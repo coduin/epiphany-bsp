@@ -1,0 +1,155 @@
+\documentclass{article}
+
+\usepackage{amsmath, amsthm, amssymb}
+\usepackage{geometry}
+\geometry{margin = 3.0 cm}
+
+\usepackage{enumerate}
+\usepackage{url}
+
+\usepackage{tikz}
+\newcommand*\circled[1]{\tikz[baseline=(char.base)]{
+            \node[shape=circle,draw,inner sep=2pt, color=red] (char) {#1};}}
+
+\newcommand*\circledt[1]{\tikz[baseline=(char.base)]{
+            \node[shape=circle,draw,inner sep=2pt, color=blue] (char) {#1};}}
+
+
+\usepackage{algorithm}
+\usepackage{caption}
+\usepackage{algpseudocode}
+\algblockdefx[NAME]{Input}{EndInput}
+    [1][]{\textbf{Input:} #1}
+    {}
+
+\algblockdefx[NAME]{Output}{EndOutput}
+    [1][]{\textbf{Output:} #1}
+    {}
+
+\newcommand{\myalg}[2]{\begin{figure}[H]
+    { \renewcommand{\figurename}{Algorithm}
+\begin{center}
+\begin{minipage}{0.6\textwidth}
+\hrulefill
+\begin{algorithmic}[1]
+    #1
+\end{algorithmic}
+\hrulefill
+\end{minipage}
+\end{center}
+\caption{#2}
+}
+\end{figure}}
+
+\renewcommand{\l}{\lambda}
+\renewcommand{\L}{\Lambda}
+\renewcommand{\mod}{~\mathrm{mod}~}
+\renewcommand{\div}{~\mathrm{div}~}
+
+\renewcommand{\vec}[1]{\mathbf{#1}}
+
+\renewcommand{\(}{\left(}
+\renewcommand{\)}{\right)}
+
+\newcommand{\dist}{\text{dist}}
+
+\newcommand{\mat}[1]{\begin{pmatrix} #1 \end{pmatrix}}
+\newcommand{\room}{\hspace{0.5cm}}
+\newcommand{\hl}[1]{\textbf{#1}}
+\newcommand{\ceil}[1]{\lceil #1 \rceil}
+\newcommand{\floor}[1]{\lfloor #1 \rfloor}
+
+\newtheorem{lem}{Lemma}
+
+\usepackage{tikz} \usetikzlibrary{shapes}
+\usetikzlibrary{arrows}
+
+\tikzset{node distance=3cm, auto}
+
+\title{Implementing the BSP Model on the Epiphany architecture}
+\author{Jan-Willem Buurlage \ Abe Wits}
+
+\begin{document}
+
+\maketitle
+
+\abstract{We describe \ldots}
+
+\tableofcontents
+
+\newpage
+
+\setlength{\parskip}{0.2 cm}
+\setlength{\parindent}{0.0 cm}
+
+\section{Introduction}
+
+\subsection{Parallella Board}
+
+Toy model, new architecture
+
+\subsubsection{Memory}
+
+\subsection{Epiphany architecture}
+
+\subsubsection{Memory model}
+
+\section{BSP on Epiphany}
+
+\subsection{Design choices}
+
+\subsection{Primitives}
+
+\section{Optimizations}
+
+\section{Examples}
+
+\section{Performance Measurements}
+
+\subsection{BSP parameters / benchmark}
+
+\subsection{GFlops/Watt etc.}
+
+\section{Further Work}
+
+\subsection{Clusters etc.}
+
+\section{A1: The Epiphany chip}
+
+The Epiphany architecture consists of a grid of processors.
+
+\section{A2: Installing \texttt{epiphany-bsp}}
+
+\subsection{Prerequisites}
+
+We use the 2014-08 release of the Epiphany SDK (eSDK), notes on installing this can be found here: \url{https://github.com/adapteva/epiphany-sdk/wiki/Notes-on-the-2014.08-release}.
+
+First of all, on Ubuntu Linux we have to install the following packages:
+\begin{align*} 
+    &\texttt{sudo apt-get install u-boot-tools gcc-4.8-arm-linux-gnueabihf g++-4.8-arm-linux-gnueabihf} \\
+    &\texttt{\hspace{1 cm}> bison flex libgmp-dev libncurses-dev libmpc-dev libmpfr-dev texinfo xzip lzip}
+\end{align*}
+Next, after cloning the \verb+epiphany-sdk+ repoistory we checkout the \texttt{2014.08.rc} branch.
+
+When downloading the toolchain, we \verb+--clone+ to make sure we obtain the latest sources (allegedly else it will download outdated ones). Else the toolchain will then build for the build machine, but it might complain along the lines of \texttt{archive has no index}. We run \texttt{arm-linux-gnueabihf-ranlib} for all these archives to try and fix this, but to no avail...
+
+
+\subsection{Obtaining the source}
+
+\subsection{Example usage}
+
+\section{References}
+
+\begin{enumerate}
+    \item \url{http://www.adapteva.com/white-papers/building-the-worlds-first-parallella-beowulf-cluster/}
+    \item \url{http://www.adapteva.com/}
+    \item \url{http://www.parallella.org}
+    \item \url{MulticoreBSP}
+    \item \url{BSPlib}
+\end{enumerate}
+
+\section{TODO}
+
+Make epiphany-examples shared, symbolic link home folders abe jw
+
+\end{document}
