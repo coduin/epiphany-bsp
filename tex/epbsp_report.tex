@@ -59,6 +59,9 @@
 \newcommand{\ceil}[1]{\lceil #1 \rceil}
 \newcommand{\floor}[1]{\lfloor #1 \rfloor}
 
+%\newcommand{\tm}{\textsuperscript{\texttrademark}}
+\def\tm{$^{\hbox{\tiny TM}}$~}
+
 \newtheorem{lem}{Lemma}
 
 \usepackage{tikz} \usetikzlibrary{shapes}
@@ -66,14 +69,14 @@
 
 \tikzset{node distance=3cm, auto}
 
-\title{Implementing the BSP Model on the Epiphany architecture}
-\author{Jan-Willem Buurlage \ Abe Wits}
+\title{Implementation of the BSP model for the Epiphany\tm architecture}
+\author{Jan-Willem Buurlage \ Abe Wits \\ \normalsize{Utrecht University, The Netherlands}}
 
 \begin{document}
 
 \maketitle
 
-\abstract{We describe \ldots}
+\abstract{In this report we introduce the \texttt{epiphany-bsp} library, an implementation of the BSP model on the Epiphany\tm architecture. After introducing this architecture, we give some technical details of current hardware that ship with an Epiphany\tm chip. Next we describe the BSP library that we developed.}
 
 \tableofcontents
 
@@ -84,15 +87,19 @@
 
 \section{Introduction}
 
+The Epiphany\tm architecture is a multicore microprocessor architecture that was developed by Adapteva\footnote{\url{http://www.adapteva.com}}. The Epiphany\tm architecture is implemented on chips that are inteded as a coprocessor to ARM/Intel CPUs. Every core has access to local, and shared memory. Besides the Epiphany\tm technology Adapteva has developed the Parallella board\footnote{\url{http://www.parallella.org}}, which is a computer with the size of a credit card that is based on this multicore coprocessor technology.
+
+\subsection{The Epiphany\tm architecture}
+
+The Epiphany architecture consists of 1 to 4096 Reduced Instruction Set Computer (RISC) cores, with local memory. These cores are part of a multicore framework. Besides this there is a Network-On-Chip (NOC) present, designed for real time applications. \ldots
+
+\subsubsection{Memory model}
+
 \subsection{Parallella Board}
 
 Toy model, new architecture
 
 \subsubsection{Memory}
-
-\subsection{Epiphany architecture}
-
-\subsubsection{Memory model}
 
 \section{BSP on Epiphany}
 
