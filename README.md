@@ -13,7 +13,7 @@ This library provides an implementation of the model on top of the Epiphany SDK.
 This allows the BSP computing model to be used with the Epiphany
 architecture developed by [Adapteva](http://www.adapteva.com).
 In particular this library has been tested on the 
-[Parallela](http://www.paralla.org) board.
+[Parallela](http://www.parallella.org) board.
 
 # Building
 

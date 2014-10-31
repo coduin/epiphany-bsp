@@ -26,17 +26,6 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-/** Initializes the BSP system. This sets up all the BSP variables and loads
- *  the epiphany BSP program.
- *
- *  @param e_name: A string containing the name of the eBSP program.
- *  @param argc: An integer containing the number of input arguments
- *  @param argv: An array of strings containg the input flags.
- */
-void bsp_init(const char* e_name,
-        int argc,
-        char **argv);
-
 /** Starts the BSP program.
  *
  *  @param nprocs: An integer indicating the number of processors to run on.
@@ -52,3 +41,20 @@ void bsp_end();
  *  @return nprocs: An integer indicating the number of available processors.
  */
 int bsp_nprocs();
+
+/** Returns the processor ID of the local core
+ *
+ *  @return pid: An integer indicating the id of the local core
+ */
+int bsp_pid();
+
+/** Time in seconds that has passed since bsp_begin() was called
+ *
+ *  @return t: A floating point value indicating the passed time in seconds.
+ */
+float bsp_time();
+
+/** Terminates a superstep, and starts all communication. The computation is 
+ *  halted until all communication has been performed.
+ */
+float bsp_sync();
