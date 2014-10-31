@@ -6,5 +6,6 @@ int main()
     int p = bsp_pid();
 
     // cpy something to memory
+
     return 0;
 }
