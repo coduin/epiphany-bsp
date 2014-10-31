@@ -1,5 +1,6 @@
-# Epiphany compiler
-E_COMPILE=epiphany-elf-
+ESDK=${EPIPHANY_HOME}
+ELIBS="-L ${ESDK}/tools/host/lib"
+ELDF=${ESDK}/bsps/current/fast.ldf
 
 HOST_LIBNAME = host-bsp
 E_LIBNAME	= e-bsp
@@ -8,7 +9,8 @@ LIBEXT = .a
 EXT_LIBS = -Le-lib
 
 INCLUDES = \
-		   -I./include \
+		   -I./include\
+		   -I${ESDK}/tools/host/include
 
 E_SRCS = \
 		 bsp.c
@@ -19,22 +21,38 @@ HOST_SRCS = \
 E_OBJS = $(E_SRCS:%.c=bin/e/%.o) 
 HOST_OBJS = $(HOST_SRCS:%.c=bin/host/%.o) 
 
+######################################################33
+
 vpath %.c src
 
-# Build sources
 bin/host/%.o: %.c
-	gcc -o $@ $<
-
+	gcc $(INCLUDES) -c $< -o $@ ${ELIBS} -le-hal
+	
 bin/e/%.o: %.c
-	e-gcc -o $@ $<
+	e-gcc -T ${ELDF} $(INCLUDES) -c $< -o $@ -le-lib
 
-# Targets
+######################################################33
+
+all: host e
+
 host: bin/lib/$(HOST_LIBNAME)$(LIBEXT)
+
 e: bin/lib/$(E_LIBNAME)$(LIBEXT)
 
 bin/lib/$(HOST_LIBNAME)$(LIBEXT): $(HOST_OBJS)
 	ar rvs $@ $^ 
 
+<<<<<<< HEAD
 # Link
 bin/lib/$(E_LIBNAME)$(LIBEXT): $(E_OBJS)
 	e-ar rvs $@ $^ 
+=======
+bin/lib/$(E_LIBNAME)$(LIBEXT): $(E_OBJS)
+	e-ar rvs $@ $^ 
+
+######################################################33
+
+clean:
+	rm bin/lib/*.a
+	rm bin/*/*.o
+>>>>>>> d4086d1303a5bef6f0376fd02f07570d43ff38c6
