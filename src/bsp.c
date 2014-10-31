@@ -28,6 +28,8 @@
 
 #include "bsp.h"
 
+#include <e-lib.h>
+
 void bsp_begin(int nprocs)
 {
     return;
