@@ -1,7 +1,5 @@
-///////////////////////////////////////////////////////////////////////////////
-
 /*
-    File: bsp.h
+    File: bsp.c
 
     This file is part of the Epiphany BSP library.
 
@@ -23,8 +21,6 @@
     see the files COPYING and COPYING.LESSER. If not, see
     <http://www.gnu.org/licenses/>.
 */
-
-///////////////////////////////////////////////////////////////////////////////
 
 #include "bsp.h"
 #include <e-lib.h>

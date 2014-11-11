@@ -1,5 +1,3 @@
-///////////////////////////////////////////////////////////////////////////////
-
 /*
     File: bsp_host.h
 
@@ -23,8 +21,6 @@
     see the files COPYING and COPYING.LESSER. If not, see
     <http://www.gnu.org/licenses/>.
 */
-
-///////////////////////////////////////////////////////////////////////////////
 
 /** Initializes the BSP system. This sets up all the BSP variables and loads
  *  the epiphany BSP program.

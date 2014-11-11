@@ -21,8 +21,6 @@ HOST_SRCS = \
 E_OBJS = $(E_SRCS:%.c=bin/e/%.o) 
 HOST_OBJS = $(HOST_SRCS:%.c=bin/host/%.o) 
 
-######################################################33
-
 vpath %.c src
 
 bin/host/%.o: %.c
@@ -30,8 +28,6 @@ bin/host/%.o: %.c
 	
 bin/e/%.o: %.c
 	e-gcc -T ${ELDF} $(INCLUDES) -c $< -o $@ -le-lib
-
-######################################################33
 
 all: host e
 
@@ -42,17 +38,9 @@ e: bin/lib/$(E_LIBNAME)$(LIBEXT)
 bin/lib/$(HOST_LIBNAME)$(LIBEXT): $(HOST_OBJS)
 	ar rvs $@ $^ 
 
-<<<<<<< HEAD
-# Link
 bin/lib/$(E_LIBNAME)$(LIBEXT): $(E_OBJS)
 	e-ar rvs $@ $^ 
-=======
-bin/lib/$(E_LIBNAME)$(LIBEXT): $(E_OBJS)
-	e-ar rvs $@ $^ 
-
-######################################################33
 
 clean:
 	rm bin/lib/*.a
 	rm bin/*/*.o
->>>>>>> d4086d1303a5bef6f0376fd02f07570d43ff38c6
