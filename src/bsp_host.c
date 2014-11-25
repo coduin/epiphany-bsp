@@ -56,8 +56,8 @@ int bsp_init(const char* e_name,
         return 0;
     }
 
-    // Obtain the number of processors from the platform informatino
-    state.n_procs = state.platform.num_chips;
+    // Obtain the number of processors from the platform information
+    state.n_procs = state.platform.rows * state.platform.cols;
 
     return 1;
 }
