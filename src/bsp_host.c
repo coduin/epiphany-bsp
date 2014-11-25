@@ -24,6 +24,7 @@
 
 #include "bsp_host.h"
 #include <e-hal.h>
+#include <stdio.h>
 
 typedef struct _bsp_state_t
 {
@@ -31,26 +32,47 @@ typedef struct _bsp_state_t
 
     // Maintain stack for every processor?
     int* memory;
+
+    // epiphany specific variables
+    e_platform_t platform;
 } bsp_state_t;
 
 // Global state
 bsp_state_t state;
 
-void bsp_init(const char* e_name,
+int bsp_init(const char* e_name,
         int argc,
         char **argv)
 {
-    state.n_procs = 0;
+    // Initialize the Epiphany system for the working with the host application
+    if(e_init(0) != E_OK) {
+        fprintf(stderr, "ERROR: Could not initialize HAL data structures.");
+        return 0;
+    }
+
+    // Get information on the platform
+    if(!e_get_platform_info(&state.platform)) {
+        fprintf(stderr, "ERROR: Could not obtain platform information.");
+    }
+
+    // Obtain the number of processors from the platform informatino
+    state.n_procs = state.platform.num_chips;
+
+    return 1;
 }
 
-void bsp_begin(int nprocs)
+int bsp_begin(int nprocs)
 {
-    return;
+    return 1;
 }
 
-void bsp_end()
+int bsp_end()
 {
-    return;
+    if(e_finalize() != E_OK) {
+         fprintf(stderr, "ERROR: Could not finalize the Epiphany connection.");
+        return 0;
+    }
+    return 1;
 }
 
 int bsp_nprocs()
