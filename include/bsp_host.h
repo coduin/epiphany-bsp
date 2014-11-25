@@ -35,6 +35,13 @@ int bsp_init(const char* e_name,
         int argc,
         char **argv);
 
+/** Starts the SPMD program on the Epiphany cores.
+ *
+ *  @return flag: An integer indicating whether the function finished
+ *                succesfully, in which case it is 1, or 0 otherwise.
+ */
+int spmd_epiphany();
+
 /** Starts the BSP program.
  *
  *  @param nprocs: An integer indicating the number of processors to run on.
