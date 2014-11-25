@@ -111,14 +111,15 @@ We will devide the Parallella board into a global and a local part:
 Scope & Global & Local \\
 \hline
 Processor & ARM & Epiphany\tm \\
+Library & eHAL & eLib \\
 Memory & 1 GB & 32 KB \\
-Init & e\_init() & ... \\
+Alloc & e\_alloc & ... \\
 Get & e\_read & e\_read \\
 Put & e\_write & e\_write \\
 
 \end{tabular}
 
-Note that only a very small amount of memory is available locally! This small local cache also contains the executable, leaving little memory for our algorithm. The global memory can be used to store larger variables, but doing this in an efficient way is non-trivial and does not adhere to the BSP-model. 
+Note that only a very small amount of memory is available locally! This small local cache also contains the executable, leaving little memory for our algorithm; the Hello World implementation provided by Adapteva has a binary of 14KB, that is more than 40 percent of the memory available locally. The global memory can be used to store larger variables, but doing this in an efficient way is non-trivial and does not adhere to the BSP-model. One possible way to use bigger programs is to split it into several smaller programs, leaving supersteps intact. The cost of loading a new program image could be seen as additional synchronisation cost, increasing $l$.
 
 Direct communication between cores is essential to the BSP model; if all communication has to go through the ARM processors and/or local memory, the central assumption that communication speed is determined by the largest amount of data sent/received by one processor breaks down. Instead we would get (semi)linear behaviour, reducing the advantages of parallel computing. Also, efficient usage of the Parallella board would require thoughtful modification of the regular optimal BSP-algorithms. 
 
@@ -160,7 +161,7 @@ and run a sequential part on the host processor to gather and present the obtain
 
 \subsubsection{On the co-processor}
 
-The eCores are initialized and started by the host processor. in the SPMD program we have two BSP primitives that can be used to gather information about the system. We have:
+The eCores are initialized and started by the host processor. In the SPMD program we have two BSP primitives that can be used to gather information about the system. We have:
 \begin{equation}
     \verb.bsp_nprocs(). 
 \end{equation}
