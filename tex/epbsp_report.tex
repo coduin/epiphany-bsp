@@ -89,13 +89,15 @@
 
 \section{Introduction}
 
-The Epiphany\tm architecture is a multicore microprocessor architecture that was developed by Adapteva\footnote{\url{http://www.adapteva.com}}. The Epiphany\tm architecture is implemented on chips that are inteded as a coprocessor to ARM/Intel CPUs. Every core has access to local, and shared memory. Besides the Epiphany\tm technology Adapteva has developed the Parallella board\footnote{\url{http://www.parallella.org}}, which is a computer with the size of a credit card that is based on this multicore coprocessor technology.
+The Epiphany\tm architecture is a multi-core microprocessor architecture that was developed by Adapteva\footnote{\url{http://www.adapteva.com}}. The Epiphany\tm architecture is implemented on chips that are inteded as a coprocessor to ARM/Intel CPUs. Every core has access to local, and shared memory. Besides the Epiphany\tm technology Adapteva has developed the Parallella board\footnote{\url{http://www.parallella.org}}, which is a computer with the size of a credit card that is based on this multi-core coprocessor technology.
 
 \subsection{The Epiphany\tm architecture}
 
-The Epiphany architecture consists of 1 to 4096 Reduced Instruction Set Computer (RISC) cores, with local memory. These cores are part of a multicore framework. Besides this there is a Network-On-Chip (NOC) present, designed for real time applications. \ldots
+The Epiphany\tm architecture consists of 1 to 4096 Reduced Instruction Set Computer (RISC) cores, with local memory. These cores are part of a multi-core framework. Besides this there is a Network-On-Chip (NOC) present, designed for real time applications. \ldots
 
 \subsubsection{Memory model}
+
+
 
 \subsection{Parallella Board}
 
@@ -103,15 +105,32 @@ Toy model, new architecture
 
 \subsubsection{Memory}
 
-\section{BSP on Epiphany}
+We will devide the Parallella board into a global and a local part:
+
+\begin{tabular}{l|ll}
+Scope & Global & Local \\
+\hline
+Processor & ARM & Epiphany\tm \\
+Memory & 1 GB & 32 KB \\
+Init & e\_init() & ... \\
+Get & e_read & e_read \\
+Put & e_write & e_write \\
+
+\end{tabular}
+
+Note that only a very small amount of memory is available locally! This small local cache also contains the executable, leaving little memory for our algorithm. The global memory can be used to store larger variables, but doing this in an efficient way is non-trivial and does not adhere to the BSP-model. 
+
+Direct communication between cores is essential to the BSP model; if all communication has to go through the ARM processors and/or local memory, the central assumption that communication speed is determined by the largest amount of data sent/received by one processor breaks down. Instead we would get (semi)linear behaviour, reducing the advantages of parallel computing. Also, efficient usage of the Parallella board would require thoughtful modification of the regular optimal BSP-algorithms. 
+
+\section{BSP on Epiphany\tm}
 
 Implementing the BSP library on the Epiphany\tm architecture has its challenges. We are dealing with a very different situation from traditional systems, in that there is a host processor, and a co-processor. Not only is there a hierarchy in processors, but we are also dealing with two kinds of memory. We have the cache, local to the eCores, and the shared memory. In the next section we will describe the choices we have made for the various components of the BSP system, and describe in turn each BSP primitive and their implementation.
 
 \subsection{Design choices}
 
-The nature of the Epiphany architecture is such that we can run programs on the eCore only when doing some initial work on the host processor. We therefore make the decision to divide our BSP programs in two parts. Part (1), the \textbf{host part} runs on the host processor, and is responsibly for loading the work group, initializing and distributing memory and data, and all the sequential parts of the program. The actual work is done in part (2), the \textbf{co-processor part}, which describes a program in the traditional SPMD style from the BSP model. Note that this implies that already written BSP will have to undergo some modifications, but we have designed the library to keep these modifications as minimal as possible.
+The nature of the Epiphany\tm architecture is such that we can run programs on the eCore only when doing some initial work on the host processor. We therefore make the decision to divide our BSP programs in two parts. Part (1), the \textbf{host part} runs on the host processor, and is responsibly for loading the work group, initializing and distributing memory and data, and all the sequential parts of the program. The actual work is done in part (2), the \textbf{co-processor part}, which describes a program in the traditional SPMD style from the BSP model. Note that this implies that already written BSP will have to undergo some modifications, but we have designed the library to keep these modifications as minimal as possible.
 
-A program in part (1) starts with distributing the data. \todo{At this point we are still figuring out how we want to do this exactly.} Next we initialize the BSP system, and begin running them on a certain number of cores. For the core numbering we rely on the workgroup style as defined by the Epiphany SDK, and these numbers will also be provided to the SPMD part. Next we start the part (2) program, which is a program that runs on the Epiphany\tm architecture. After all SPMD programs have finished, we end the BSP program by running a sequential part to analyze the result and clean the system.
+A program in part (1) starts with distributing the data. \todo{At this point we are still figuring out how we want to do this exactly.} Next we initialize the BSP system, and begin running them on a certain number of cores. For the core numbering we rely on the workgroup style as defined by the Epiphany\tm SDK, and these numbers will also be provided to the SPMD part. Next we start the part (2) program, which is a program that runs on the Epiphany\tm architecture. After all SPMD programs have finished, we end the BSP program by running a sequential part to analyze the result and clean the system.
 
 The SPMD program in part (2) will not differ much from their counterparts in the traditional BSP libraries. Here the user has access to all the BSP primitives, as if we would be writing in any other platform. This is precisely the power of the BSP model.
 
@@ -121,7 +140,7 @@ The SPMD program in part (2) will not differ much from their counterparts in the
 
 The first BSP primitive that is called is always \verb%bsp_init%. It is defined as follows: \todo{Do we want to give our own numbering to these primitives for the report?}
 \begin{equation}\verb.bsp_init(const char* e_program_name, int argc, char** argv).\end{equation}
-    Here, \verb%e_program_name% is the name given to the Epiphany program, and the other two arguments pass along the input arguments to our program. \todo{How did we implement this?}
+    Here, \verb%e_program_name% is the name given to the Epiphany\tm program, and the other two arguments pass along the input arguments to our program. \todo{How did we implement this?}
 
 Next we have the primitive to get the number of available cores.  This is a simple function without any arguments:
 \begin{equation}
@@ -174,28 +193,28 @@ Barrier...
 \subsection{BSP parameters / benchmark}
 
 \subsection{GFlops/Watt etc.}
-The 64-core Epiphany-IV chip is (one of the) most efficient processors measured in single precision GFLOPs/W. However, the total amount of GFLOPs is relatively low. Adapteva (the developing company) claims that the techniques used are scalable, and more powerfull chips with comparable power consumption are developed. If Adapteva can deliver on its promices, Epiphany chips could play a role in future super computers.
+The 64-core Epiphany\tm-IV chip is (one of the) most efficient processors measured in single precision GFLOPs/W. However, the total amount of GFLOPs is relatively low. Adapteva (the developing company) claims that the techniques used are scalable, and more powerfull chips with comparable power consumption are developed. If Adapteva can deliver on its promices, Epiphany\tm chips could play a role in future super computers.
 
-16 core Parallela has roughly 5.0 GFLOPs/W, 64 core Epiphany-IV 50 GFLOPs/W. (wiki)
+16 core Parallela has roughly 5.0 GFLOPs/W, 64 core Epiphany\tm-IV 50 GFLOPs/W. (wiki)
 16 core Parallela costs about 94 euros
 \#1 of Green500 computers is at about 3.0 GFLOPs/W (2013)
-Epiphany-IV is the most efficient according to this source:
+Epiphany\tm-IV is the most efficient according to this source:
 http://streamcomputing.eu/blog/2012-08-27/processors-that-can-do-20-gflops-watt/
 
 \section{Further Work}
 
 \subsection{Clusters etc.}
 
-\section{A1: The Epiphany chip}
-The Epiphany architecture consists of a grid of processors.
-\subsection{The Epiphany System Programming Model}
-The grid of processors is defined as a rectangle in the Epiphany Space. In this space we can define rectangular \textit{Workgroups} using two points; a Workgroup Origin and a Workgroup Size. We can refer to processors (we call the active processor the \textit{eCore}) in this Workspace using relative coordinates; (0,0) refers to the Workgroup Origin.
+\section{A1: The Epiphany\tm chip}
+The Epiphany\tm architecture consists of a grid of processors.
+\subsection{The Epiphany\tm System Programming Model}
+The grid of processors is defined as a rectangle in the Epiphany\tm Space. In this space we can define rectangular \textit{Workgroups} using two points; a Workgroup Origin and a Workgroup Size. We can refer to processors (we call the active processor the \textit{eCore}) in this Workspace using relative coordinates; (0,0) refers to the Workgroup Origin.
 
 \begin{centering}
 \begin{figure}
 \centering
-\includegraphics[scale=0.5]{EpiphanySpace.pdf}
-\caption{The Epiphany Platform, Workgroup an eCore coordinates. Source: Adapteva Inc. Epiphany SDK Reference}
+\includegraphics[scale=0.5]{Epiphany\tmSpace.pdf}
+\caption{The Epiphany\tm Platform, Workgroup an eCore coordinates. Source: Adapteva Inc. Epiphany\tm SDK Reference}
 \end{figure}
 \end{centering}
 
@@ -203,7 +222,7 @@ The grid of processors is defined as a rectangle in the Epiphany Space. In this 
 
 \subsection{Prerequisites}
 
-We use the 2014-08 release of the Epiphany SDK (eSDK), notes on installing this can be found here: \url{https://github.com/adapteva/epiphany-sdk/wiki/Notes-on-the-2014.08-release}.
+We use the 2014-08 release of the Epiphany\tm SDK (eSDK), notes on installing this can be found here: \url{https://github.com/adapteva/epiphany-sdk/wiki/Notes-on-the-2014.08-release}.
 
 First of all, on Ubuntu Linux we have to install the following packages:
 \begin{align*} 
@@ -232,5 +251,7 @@ When downloading the toolchain, we \verb+--clone+ to make sure we obtain the lat
 \section{TODO}
 
 Make epiphany-examples shared, symbolic link home folders abe jw
+Memory Management
+
 
 \end{document}
