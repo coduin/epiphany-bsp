@@ -46,13 +46,14 @@ int bsp_init(const char* e_name,
 {
     // Initialize the Epiphany system for the working with the host application
     if(e_init(0) != E_OK) {
-        fprintf(stderr, "ERROR: Could not initialize HAL data structures.");
+        fprintf(stderr, "ERROR: Could not initialize HAL data structures.\n");
         return 0;
     }
 
     // Get information on the platform
-    if(!e_get_platform_info(&state.platform)) {
-        fprintf(stderr, "ERROR: Could not obtain platform information.");
+    if(e_get_platform_info(&state.platform) != E_OK) {
+        fprintf(stderr, "ERROR: Could not obtain platform information.\n");
+        return 0;
     }
 
     // Obtain the number of processors from the platform informatino
@@ -69,7 +70,7 @@ int bsp_begin(int nprocs)
 int bsp_end()
 {
     if(e_finalize() != E_OK) {
-         fprintf(stderr, "ERROR: Could not finalize the Epiphany connection.");
+         fprintf(stderr, "ERROR: Could not finalize the Epiphany connection.\n");
         return 0;
     }
     return 1;

@@ -1,12 +1,5 @@
-<<<<<<< HEAD
-///////////////////////////////////////////////////////////////////////////////
-
 /*
     File: bsp.h
-=======
-/*
-    File: bsp.c
->>>>>>> c054b7421a9bab86eff595b3f4b2d3e002cb6511
 
     This file is part of the Epiphany BSP library.
 
@@ -29,11 +22,6 @@
     <http://www.gnu.org/licenses/>.
 */
 
-<<<<<<< HEAD
-///////////////////////////////////////////////////////////////////////////////
-
-=======
->>>>>>> c054b7421a9bab86eff595b3f4b2d3e002cb6511
 #include "bsp.h"
 #include <e-lib.h>
 
@@ -47,19 +35,6 @@ void bsp_end()
     return;
 }
 
-<<<<<<< HEAD
-void bsp_begin(int nprocs)
-{
-    return;
-}
-
-void bsp_end()
-{
-    return;
-}
-
-=======
->>>>>>> c054b7421a9bab86eff595b3f4b2d3e002cb6511
 int bsp_nprocs()
 {
     return 1;
