@@ -28,20 +28,26 @@
  *  @param e_name: A string containing the name of the eBSP program.
  *  @param argc: An integer containing the number of input arguments
  *  @param argv: An array of strings containg the input flags.
+ *  @return flag: An integer indicating whether the function finished
+ *                succesfully, in which case it is 1, or 0 otherwise.
  */
-void bsp_init(const char* e_name,
+int bsp_init(const char* e_name,
         int argc,
         char **argv);
 
 /** Starts the BSP program.
  *
  *  @param nprocs: An integer indicating the number of processors to run on.
+ *  @return flag: An integer indicating whether the function finished
+ *                succesfully, in which case it is 1, or 0 otherwise.
  */
-void bsp_begin(int nprocs);
+int bsp_begin(int nprocs);
 
 /** Finalizes and cleans up the BSP program.
+ *  @return flag: An integer indicating whether the function finished
+ *                succesfully, in which case it is 1, or 0 otherwise.
  */
-void bsp_end();
+int bsp_end();
 
 /** Returns the number of available processors.
  *
