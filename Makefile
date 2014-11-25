@@ -1,3 +1,7 @@
+ESDK=${EPIPHANY_HOME}
+ELIBS="-L ${ESDK}/tools/host/lib"
+ELDF=${ESDK}/bsps/current/fast.ldf
+
 HOST_LIBNAME = host-bsp
 E_LIBNAME	= e-bsp
 LIBEXT = .a
@@ -5,7 +9,8 @@ LIBEXT = .a
 EXT_LIBS = -Le-lib
 
 INCLUDES = \
-		   -I./include \
+		   -I./include\
+		   -I${ESDK}/tools/host/include
 
 E_SRCS = \
 		 bsp.c
@@ -21,12 +26,10 @@ HOST_OBJS = $(HOST_SRCS:%.c=bin/host/%.o)
 vpath %.c src
 
 bin/host/%.o: %.c
-	gcc $(INCLUDES) -c $< -o $@ 
+	gcc $(INCLUDES) -c $< -o $@ ${ELIBS} -le-hal
 	
 bin/e/%.o: %.c
-	e-gcc $(INCLUDES) -c $< -o $@
-
-######################################################33
+	e-gcc -T ${ELDF} $(INCLUDES) -c $< -o $@ -le-lib
 
 all: host e
 
@@ -41,3 +44,7 @@ bin/lib/$(E_LIBNAME)$(LIBEXT): $(E_OBJS)
 	e-ar rvs $@ $^ 
 
 ######################################################33
+
+clean:
+	rm bin/lib/*.a
+	rm bin/*/*.o
