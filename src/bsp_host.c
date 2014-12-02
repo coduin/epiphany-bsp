@@ -47,6 +47,16 @@ typedef struct _bsp_state_t
 // Global state
 bsp_state_t state;
 
+int p_row(int pid)
+{
+    return 0;
+}
+
+int p_col(int pid)
+{
+    return 0;
+}
+
 int bsp_init(const char* _e_name,
         int argc,
         char **argv)
@@ -83,10 +93,15 @@ int spmd_epiphany()
     // Start the program
     e_start_group(&state.dev);
     
-    while(1) {
-        // tmp solution, assume finishes in one seconds
-        usleep(1000000);
-        break;
+    usleep(1000000);
+
+    printf("(BSP) INFO: Program finished");
+
+    int pid = 0;
+    for(pid = 0; pid < state.n_procs; pid++) {
+        char buf;
+        e_read(&state.dev, p_row(pid), p_col(pid), (off_t)0x1000, &buf, 1);
+        printf("%c\n", buf);
     }
 
     return 1;

@@ -39,3 +39,8 @@ int bsp_nprocs()
 {
     return 1;
 }
+
+int bsp_pid()
+{
+    return 1;
+}
