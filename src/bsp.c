@@ -48,7 +48,25 @@ int bsp_nprocs()
     return _nprocs;
 }
 
+
 int bsp_pid()
 {
     return _pid;
 }
+
+// Sync
+void bsp_sync()
+{
+    // handle memory buffer
+    //
+    // start barrier
+    return;
+}
+
+// Memory
+void bsp_put()
+{
+    return;
+}
+
+

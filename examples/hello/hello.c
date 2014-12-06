@@ -20,6 +20,7 @@ int main(int argc, char **argv)
 
     // read stuff??
     // ...
+    // for now this is hardcoded in host lib
 
     return 0;
 }
