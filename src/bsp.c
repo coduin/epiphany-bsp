@@ -39,6 +39,7 @@ void bsp_begin(int nprocs)
 
 void bsp_end()
 {
+    // Nothing to do yet.
     return;
 }
 

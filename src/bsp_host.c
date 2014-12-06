@@ -47,7 +47,7 @@ typedef struct _bsp_state_t
 // Global state
 bsp_state_t state;
 
-int _get_p_coords(int pid, int* row, int* col)
+void _get_p_coords(int pid, int* row, int* col)
 {
     e_get_coords_from_num(&state.dev, pid, row, col);
 }
@@ -88,7 +88,8 @@ int spmd_epiphany()
     // Start the program
     e_start_group(&state.dev);
     
-    usleep(1000000);
+    // sleep for 1.0 seconds
+    usleep(1000000); //10^6 microseconds
 
     printf("(BSP) INFO: Program finished");
 
