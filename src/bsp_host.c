@@ -31,7 +31,7 @@
 typedef struct _bsp_state_t
 {
     // The number of processors available
-    int n_procs;
+    int nprocs;
 
     // Maintain stack for every processor?
     int* memory;
@@ -47,14 +47,9 @@ typedef struct _bsp_state_t
 // Global state
 bsp_state_t state;
 
-int p_row(int pid)
+int _get_p_coords(int pid, int* row, int* col)
 {
-    return 0;
-}
-
-int p_col(int pid)
-{
-    return 0;
+    e_get_coords_from_num(&state.dev, pid, row, col);
 }
 
 int bsp_init(const char* _e_name,
@@ -80,7 +75,7 @@ int bsp_init(const char* _e_name,
     }
 
     // Obtain the number of processors from the platform information
-    state.n_procs = state.platform.rows * state.platform.cols;
+    state.nprocs = state.platform.rows * state.platform.cols;
 
     // Copy the name to the state
     strcpy(state.e_name, _e_name);
@@ -98,9 +93,11 @@ int spmd_epiphany()
     printf("(BSP) INFO: Program finished");
 
     int pid = 0;
-    for(pid = 0; pid < state.n_procs; pid++) {
+    for(pid = 0; pid < state.nprocs; pid++) {
         char buf;
-        e_read(&state.dev, p_row(pid), p_col(pid), (off_t)0x1000, &buf, 1);
+        int prow, pcol;
+        _get_p_coords(pid, &prow, &pcol);
+        e_read(&state.dev, prow, pcol, (off_t)0x1000, &buf, 1);
         printf("%c\n", buf);
     }
 
@@ -134,6 +131,14 @@ int bsp_begin(int nprocs)
         return 0;
     }
 
+    // Write the nprocs to memory
+    int i, j;
+    for(i = 0; i < state.platform.rows; ++i) {
+        for(j = 0; j < state.platform.cols; ++j) {
+            e_write(&state.dev, i, j, (off_t)0x100, &state.nprocs, 1);
+        }
+    }
+
     return 1;
 }
 
@@ -148,5 +153,5 @@ int bsp_end()
 
 int bsp_nprocs()
 {
-    return state.n_procs;
+    return state.nprocs;
 }

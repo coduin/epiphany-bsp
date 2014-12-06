@@ -25,9 +25,16 @@
 #include "bsp.h"
 #include <e-lib.h>
 
+int _nprocs = -1;
+int _pid = -1;
+
 void bsp_begin(int nprocs)
 {
-    return;
+    e_coreid_t cid = e_get_coreid();
+    _pid = (int)cid;
+
+    int* nprocs_loc = (int*)0x100;
+    _nprocs = (*nprocs_loc);
 }
 
 void bsp_end()
@@ -37,10 +44,10 @@ void bsp_end()
 
 int bsp_nprocs()
 {
-    return 1;
+    return _nprocs;
 }
 
 int bsp_pid()
 {
-    return 1;
+    return _pid;
 }
