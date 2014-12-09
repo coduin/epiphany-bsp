@@ -6,6 +6,8 @@
 
 \usepackage{enumerate}
 \usepackage{url}
+\usepackage{listings}
+\usepackage{color}
 
 \usepackage{tikz}
 \newcommand*\circled[1]{\tikz[baseline=(char.base)]{
@@ -70,6 +72,14 @@
 
 \tikzset{node distance=3cm, auto}
 
+\lstset{language=C++,
+                basicstyle=\ttfamily,
+                keywordstyle=\color{blue}\ttfamily,
+                stringstyle=\color{red}\ttfamily,
+                commentstyle=\color{green}\ttfamily,
+                morecomment=[l][\color{magenta}]{\#}
+}
+
 \title{\textsc{Implementation of the BSP model for the Epiphany\tm architecture}}
 \author{Jan-Willem Buurlage \ Abe Wits \\ \normalsize{Utrecht University, The Netherlands}}
 
@@ -99,11 +109,11 @@ The Epiphany\tm architecture consists of 1 to 4096 Reduced Instruction Set Compu
 
 
 
-\subsection{Parallella Board}
+\section{Parallella Board}
 
 Toy model, new architecture
 
-\subsubsection{Memory}
+\subsection{Memory}
 
 We will devide the Parallella board into a global and a local part:
 
@@ -122,6 +132,37 @@ Put & e\_write & e\_write \\
 Note that only a very small amount of memory is available locally! This small local cache also contains the executable, leaving little memory for our algorithm; the Hello World implementation provided by Adapteva has a binary of 14KB, that is more than 40 percent of the memory available locally. The global memory can be used to store larger variables, but doing this in an efficient way is non-trivial and does not adhere to the BSP-model. One possible way to use bigger programs is to split it into several smaller programs, leaving supersteps intact. The cost of loading a new program image could be seen as additional synchronisation cost, increasing $l$.
 
 Direct communication between cores is essential to the BSP model; if all communication has to go through the ARM processors and/or local memory, the central assumption that communication speed is determined by the largest amount of data sent/received by one processor breaks down. Instead we would get (semi)linear behaviour, reducing the advantages of parallel computing. Also, efficient usage of the Parallella board would require thoughtful modification of the regular optimal BSP-algorithms. 
+
+\subsubsection{Variable registration}
+First we will handle how variable registration works in BSP:
+\\
+\begin{lstlisting}
+void bsp_push_reg (const void *ident, int size);
+void bsp_put(int pid,const void *src,void *dst,int offset,int nbytes);
+\end{lstlisting}
+Above are the BSP commands to register a variable and to put some value in a registered variable.
+All processors have to register a variable in the same superstep. BSP will ``tie together'' the pointers passed in \texttt{bsp\_push\_reg}; they are assumed to all point to a local version of the same variable. We will give this set of variables an index, \texttt{slotID}. Then if we use \texttt{bsp\_put}, we pass a local pointer \texttt{*dst} and a \texttt{\texttt{pid}}; they form an adress to the local version of \texttt{*dst} in processor \texttt{pid}. To be able to give this adress, we need some mapping of \texttt{*dst} to all the pointers with the same \texttt{slotID}; this implies they were registered in the same superstep. Then we need to take the pointer that is local to processor \texttt{pid}.
+\\
+If a normal (non-tiny) amount of memory is available, we could for example write the required data structures in C++ like this:
+\begin{lstlisting}
+map<void*, int> pointer_to_slotID;
+vector<vector<int> > registered_variables;
+\end{lstlisting}
+Given \texttt{*dst} and \texttt{pid}, we can now give the actual pointer to the version of \texttt{*dst} local to processor \texttt{pid}:
+\begin{lstlisting}
+int slotID = pointer_to_slotID[dst];
+void* actual_destination=registered_variables[slotID][pid];
+\end{lstlisting}
+With this approach, we need only $\mathcal{O}(\log(n))$ time to get the correct \texttt{slotID}, and we can then get \texttt{actual\_destination} in $\mathcal{O}(1)$ time. The std::map and std::vector datastructures are of variable size and allow fast insertion. However, they do have some memory-overhead; std::map is implemented as a red-black tree, and needs $48+(32+size)*length$ bytes (in GNU 64 bit C++ library), $size$ is of order 8 bytes (\texttt{sizeof(void*)+sizeof(int)}). When we register 10 variables, the map will use ~500 bytes. A vector uses approximately $24+size*length*2$ bytes, our vector of vectors will use order 4KB if we use 16 processors and we register 10 variables. To put this in perspective; on our Epiphany this map and vector use respectively 2 and 13 percent of the available memory!\\
+\\
+Instead we use only one datastructure:
+\begin{lstlisting}
+void*** registermap;
+\end{lstlisting}
+\texttt{registermap[slotID][pid]} is the pointer to the \texttt{slotID}th variable in processor pid.
+We get the correct \texttt{slotID} by finding \texttt{*dst} among all variables registered by our current processor, this takes $\mathcal{O}(n)$ time, but since it is very likely that $n$ is small, this is acceptable. It is not as flexible; to resize we need to allocate new memory, this is relatively expensive and clumbsy in such small memory. However, the number of variables that has to be registered is usually known beforehand. This is the only structure we need, and it uses only 640 bytes for 16 processors and 10 registered variables.\\
+\\
+
 
 \section{BSP on Epiphany\tm}
 

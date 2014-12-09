@@ -1,26 +1,26 @@
 /*
-    File: bsp_host.c
+File: bsp_host.c
 
-    This file is part of the Epiphany BSP library.
+This file is part of the Epiphany BSP library.
 
-    Copyright (C) 2014 Buurlage Wits
-    Support e-mail: <info@buurlagewits.nl>
+Copyright (C) 2014 Buurlage Wits
+Support e-mail: <info@buurlagewits.nl>
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Lesser General Public License (LGPL)
-    as published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License (LGPL)
+as published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-    GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    and the GNU Lesser General Public License along with this program,
-    see the files COPYING and COPYING.LESSER. If not, see
-    <http://www.gnu.org/licenses/>.
-*/
+You should have received a copy of the GNU General Public License
+and the GNU Lesser General Public License along with this program,
+see the files COPYING and COPYING.LESSER. If not, see
+<http://www.gnu.org/licenses/>.
+ */
 
 #include "bsp_host.h"
 #include <stdio.h>
@@ -45,8 +45,8 @@ bsp_state_t* _get_state()
 }
 
 int bsp_init(const char* _e_name,
-        int argc,
-        char **argv)
+		int argc,
+		char **argv)
 {
     // Initialize the Epiphany system for the working with the host application
     if(e_init(NULL) != E_OK) {
@@ -83,6 +83,16 @@ int spmd_epiphany()
 
     // sleep for 1.0 seconds
     usleep(100000); //10^6 microseconds
+
+    // @abe: er zijn geen bools in C! voorlopig uitgecomment
+	/* while(true) {
+		//Listen for syncs
+		//Epiphany should somehow wait for global sync..
+		if(syncing) {
+			host_sync();	
+			syncing=false;
+		}	
+    } */
 
     printf("(BSP) INFO: Program finished\n");
 
@@ -141,14 +151,30 @@ int bsp_begin(int nprocs)
 
 int bsp_end()
 {
-    if(e_finalize() != E_OK) {
-         fprintf(stderr, "ERROR: Could not finalize the Epiphany connection.\n");
-        return 0;
-    }
-    return 1;
+	if(e_finalize() != E_OK) {
+		fprintf(stderr, "ERROR: Could not finalize the Epiphany connection.\n");
+		return 0;
+	}
+	return 1;
 }
 
 int bsp_nprocs()
 {
-    return state.nprocs;
+	return state.nprocs;
 }
+
+void host_sync() {
+	mem_sync();
+}
+
+//Memory
+void mem_sync() {
+	//Broadcast void** registermap_buffer to all void*** registermap
+	//Then reset registermap_buffer
+	
+	//Right now bsp_pop_reg is ignored
+	//Check if overwrite is necessary => this gives no problems
+	
+	//TODO: write this function
+}
+
