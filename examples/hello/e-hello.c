@@ -2,14 +2,19 @@
 
 int main()
 {
+    bsp_begin();
+
     int n = bsp_nprocs(); 
-    int i = bsp_pid();
+    int p = bsp_pid();
 
-    const char* hmsg = "Hello world!";
+    const char* hmsg = "Hello world! BSP";
 
-    // set char
-    char* a = 0x1000;
-    (*a) = hmsg[i];
+    // set char */
+    char* a = (void*)0x7050;
+    (*a) = hmsg[p];
+
+    int* po = (void*)0x7100;
+    (*po) = p;
 
     return 0;
 }

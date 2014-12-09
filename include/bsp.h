@@ -23,10 +23,8 @@
 */
 
 /** Starts the BSP program.
- *
- *  @param nprocs: An integer indicating the number of processors to run on.
  */
-void bsp_begin(int nprocs);
+void bsp_begin();
 
 /** Finalizes and cleans up the BSP program.
  */

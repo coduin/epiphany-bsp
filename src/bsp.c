@@ -28,12 +28,14 @@
 int _nprocs = -1;
 int _pid = -1;
 
-void bsp_begin(int nprocs)
+void bsp_begin()
 {
+    int row, col;
     e_coreid_t cid = e_get_coreid();
-    _pid = (int)cid;
+    e_coords_from_coreid(cid, &row, &col);
+    _pid = col + 4*row;
 
-    int* nprocs_loc = (int*)0x100;
+    int* nprocs_loc = (int*)0x7000;
     _nprocs = (*nprocs_loc);
 }
 
@@ -68,5 +70,3 @@ void bsp_put()
 {
     return;
 }
-
-

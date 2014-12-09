@@ -23,33 +23,25 @@
 */
 
 #include "bsp_host.h"
-#include <e-hal.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
 
-typedef struct _bsp_state_t
-{
-    // The number of processors available
-    int nprocs;
-
-    // Maintain stack for every processor?
-    int* memory;
-
-    // The name of the e-program
-    char* e_name;
-
-    // Epiphany specific variables
-    e_platform_t platform;
-    e_epiphany_t dev;
-} bsp_state_t;
+#define MAX_NAME_SIZE 30
 
 // Global state
 bsp_state_t state;
 
 void _get_p_coords(int pid, int* row, int* col)
 {
-    e_get_coords_from_num(&state.dev, pid, row, col);
+    (*row) = pid / state.cols;
+    (*col) = pid % state.cols;
+}
+
+bsp_state_t* _get_state()
+{
+    return &state;
 }
 
 int bsp_init(const char* _e_name,
@@ -57,7 +49,7 @@ int bsp_init(const char* _e_name,
         char **argv)
 {
     // Initialize the Epiphany system for the working with the host application
-    if(e_init(0) != E_OK) {
+    if(e_init(NULL) != E_OK) {
         fprintf(stderr, "ERROR: Could not initialize HAL data structures.\n");
         return 0;
     }
@@ -78,6 +70,7 @@ int bsp_init(const char* _e_name,
     state.nprocs = state.platform.rows * state.platform.cols;
 
     // Copy the name to the state
+    state.e_name = (char*)malloc(MAX_NAME_SIZE);
     strcpy(state.e_name, _e_name);
 
     return 1;
@@ -87,45 +80,48 @@ int spmd_epiphany()
 {
     // Start the program
     e_start_group(&state.dev);
-    
+
     // sleep for 1.0 seconds
-    usleep(1000000); //10^6 microseconds
+    usleep(100000); //10^6 microseconds
 
-    printf("(BSP) INFO: Program finished");
-
-    int pid = 0;
-    for(pid = 0; pid < state.nprocs; pid++) {
-        char buf;
-        int prow, pcol;
-        _get_p_coords(pid, &prow, &pcol);
-        e_read(&state.dev, prow, pcol, (off_t)0x1000, &buf, 1);
-        printf("%c\n", buf);
-    }
+    printf("(BSP) INFO: Program finished\n");
 
     return 1;
 }
 
 int bsp_begin(int nprocs)
 {
+    state.rows = (nprocs / state.platform.rows);
+    state.cols = nprocs / (nprocs / state.platform.rows);
+
+    printf("(BSP) INFO: Making a workgroup of size %i x %i\n",
+            state.rows,
+            state.cols);
+
+    state.nprocs_used = nprocs;
+
     // Open the workgroup
     if(e_open(&state.dev,
-            state.platform.row,
-            state.platform.col,
-            nprocs / state.platform.rows,
-            nprocs / (nprocs / state.platform.rows) != E_OK))
+            0, 0,
+            state.rows,
+            state.cols) != E_OK)
     {
         fprintf(stderr, "ERROR: Could not open workgroup.\n");
         return 0;
     }
+    
+    if(e_reset_group(&state.dev) != E_OK) {
+        fprintf(stderr, "ERROR: Could not reset workgroup.\n");
+        return 0;
+    }
 
-    printf("(BSP) INFO: Made a workgroup of size %i\n",
-            nprocs / (nprocs / state.platform.rows) * (nprocs / state.platform.rows));
 
     // Load the e-binary
+    printf("(BSP) INFO: Loading: %s\n", state.e_name);
     if(e_load_group(state.e_name,
-                state.dev,
+                &state.dev,
                 0, 0,
-                state.dev.rows, state.dev.cols, // TODO: hard coded, should be fixed
+                state.rows, state.cols, 
                 E_FALSE) != E_OK)
     {
         fprintf(stderr, "ERROR: Could not load program in workgroup.\n");
@@ -136,7 +132,7 @@ int bsp_begin(int nprocs)
     int i, j;
     for(i = 0; i < state.platform.rows; ++i) {
         for(j = 0; j < state.platform.cols; ++j) {
-            e_write(&state.dev, i, j, (off_t)0x100, &state.nprocs, 1);
+            e_write(&state.dev, i, j, (off_t)0x7000, &state.nprocs, sizeof(int));
         }
     }
 

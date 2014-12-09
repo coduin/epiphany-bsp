@@ -22,6 +22,34 @@
     <http://www.gnu.org/licenses/>.
 */
 
+#include <e-hal.h>
+#include <e-loader.h>
+
+typedef struct _bsp_state_t
+{
+    // The number of processors available
+    int nprocs;
+
+    // Maintain stack for every processor?
+    int* memory;
+
+    // The name of the e-program
+    char* e_name;
+
+    // Number of rows or columns in use
+    int rows;
+    int cols;
+
+    // Number of processors in use
+    int nprocs_used;
+
+    // Epiphany specific variables
+    e_platform_t platform;
+    e_epiphany_t dev;
+} bsp_state_t;
+
+bsp_state_t* _get_state();
+
 /** Initializes the BSP system. This sets up all the BSP variables and loads
  *  the epiphany BSP program.
  *
