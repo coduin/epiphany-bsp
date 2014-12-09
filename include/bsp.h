@@ -1,26 +1,26 @@
 /*
-    File: bsp.h
+File: bsp.h
 
-    This file is part of the Epiphany BSP library.
+This file is part of the Epiphany BSP library.
 
-    Copyright (C) 2014 Buurlage Wits
-    Support e-mail: <info@buurlagewits.nl>
+Copyright (C) 2014 Buurlage Wits
+Support e-mail: <info@buurlagewits.nl>
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Lesser General Public License (LGPL)
-    as published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License (LGPL)
+as published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-    GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    and the GNU Lesser General Public License along with this program,
-    see the files COPYING and COPYING.LESSER. If not, see
-    <http://www.gnu.org/licenses/>.
-*/
+You should have received a copy of the GNU General Public License
+and the GNU Lesser General Public License along with this program,
+see the files COPYING and COPYING.LESSER. If not, see
+<http://www.gnu.org/licenses/>.
+ */
 
 /** Starts the BSP program.
  *
@@ -52,5 +52,20 @@ float bsp_time();
 
 /** Terminates a superstep, and starts all communication. The computation is 
  *  halted until all communication has been performed.
+ *  Somehow host_sync() is called before all processes continue.
  */
 void bsp_sync();
+
+void*** registermap;//registermap[slotID][pid]=void*
+
+/** Registers a variable by putting to static memory location in host memory
+ *  Registration maps are updated at next sync.
+ */
+void bsp_push_reg(const void* variable, const int nbytes);
+
+/** Puts a variable to some processor.
+ *  Internal workings:
+ *  Loop over void*[nRegisteredVariables][sourcePid] to find variable
+ *  Then use epiphany put to void*[index][targetPid]
+ */
+void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes);

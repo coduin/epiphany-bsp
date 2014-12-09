@@ -1,26 +1,26 @@
 /*
-    File: bsp_host.c
+File: bsp_host.c
 
-    This file is part of the Epiphany BSP library.
+This file is part of the Epiphany BSP library.
 
-    Copyright (C) 2014 Buurlage Wits
-    Support e-mail: <info@buurlagewits.nl>
+Copyright (C) 2014 Buurlage Wits
+Support e-mail: <info@buurlagewits.nl>
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Lesser General Public License (LGPL)
-    as published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License (LGPL)
+as published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-    GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    and the GNU Lesser General Public License along with this program,
-    see the files COPYING and COPYING.LESSER. If not, see
-    <http://www.gnu.org/licenses/>.
-*/
+You should have received a copy of the GNU General Public License
+and the GNU Lesser General Public License along with this program,
+see the files COPYING and COPYING.LESSER. If not, see
+<http://www.gnu.org/licenses/>.
+ */
 
 #include "bsp_host.h"
 #include <e-hal.h>
@@ -30,18 +30,18 @@
 
 typedef struct _bsp_state_t
 {
-    // The number of processors available
-    int nprocs;
+	// The number of processors available
+	int nprocs;
 
-    // Maintain stack for every processor?
-    int* memory;
+	// Maintain stack for every processor?
+	int* memory;
 
-    // The name of the e-program
-    char* e_name;
+	// The name of the e-program
+	char* e_name;
 
-    // Epiphany specific variables
-    e_platform_t platform;
-    e_epiphany_t dev;
+	// Epiphany specific variables
+	e_platform_t platform;
+	e_epiphany_t dev;
 } bsp_state_t;
 
 // Global state
@@ -49,127 +49,133 @@ bsp_state_t state;
 
 void _get_p_coords(int pid, int* row, int* col)
 {
-    e_get_coords_from_num(&state.dev, pid, row, col);
+	e_get_coords_from_num(&state.dev, pid, row, col);
 }
 
 int bsp_init(const char* _e_name,
-        int argc,
-        char **argv)
+		int argc,
+		char **argv)
 {
-    // Initialize the Epiphany system for the working with the host application
-    if(e_init(0) != E_OK) {
-        fprintf(stderr, "ERROR: Could not initialize HAL data structures.\n");
-        return 0;
-    }
+	// Initialize the Epiphany system for the working with the host application
+	if(e_init(0) != E_OK) {
+		fprintf(stderr, "ERROR: Could not initialize HAL data structures.\n");
+		return 0;
+	}
 
-    // Reset the Epiphany system
-    if(e_reset_system() != E_OK) {
-        fprintf(stderr, "ERROR: Could not reset the Epiphany system.\n");
-        return 0;
-    }
+	// Reset the Epiphany system
+	if(e_reset_system() != E_OK) {
+		fprintf(stderr, "ERROR: Could not reset the Epiphany system.\n");
+		return 0;
+	}
 
-    // Get information on the platform
-    if(e_get_platform_info(&state.platform) != E_OK) {
-        fprintf(stderr, "ERROR: Could not obtain platform information.\n");
-        return 0;
-    }
+	// Get information on the platform
+	if(e_get_platform_info(&state.platform) != E_OK) {
+		fprintf(stderr, "ERROR: Could not obtain platform information.\n");
+		return 0;
+	}
 
-    // Obtain the number of processors from the platform information
-    state.nprocs = state.platform.rows * state.platform.cols;
+	// Obtain the number of processors from the platform information
+	state.nprocs = state.platform.rows * state.platform.cols;
 
-    // Copy the name to the state
-    strcpy(state.e_name, _e_name);
+	// Copy the name to the state
+	strcpy(state.e_name, _e_name);
 
-    return 1;
+	return 1;
 }
 
 int spmd_epiphany()
 {
-    // Start the program
-    e_start_group(&state.dev);
-    
-    // sleep for 1.0 seconds
-    usleep(1000000); //10^6 microseconds
+	// Start the program
+	e_start_group(&state.dev);
 
-    printf("(BSP) INFO: Program finished");
+	bool syncing; //TODO: fix this dummy code
+	while(true) {
+		//Listen for syncs
+		//Epiphany should somehow wait for global sync..
+		if(syncing) {
+			host_sync();	
+			syncing=false;
+		}	
+	}
 
-    int pid = 0;
-    for(pid = 0; pid < state.nprocs; pid++) {
-        char buf;
-        int prow, pcol;
-        _get_p_coords(pid, &prow, &pcol);
-        e_read(&state.dev, prow, pcol, (off_t)0x1000, &buf, 1);
-        printf("%c\n", buf);
-    }
+	printf("(BSP) INFO: Program finished");
 
-    return 1;
+	int pid = 0;
+	for(pid = 0; pid < state.nprocs; pid++) {
+		char buf;
+		int prow, pcol;
+		_get_p_coords(pid, &prow, &pcol);
+		e_read(&state.dev, prow, pcol, (off_t)0x1000, &buf, 1);
+		printf("%c\n", buf);
+	}
+
+	return 1;
 }
 
 int bsp_begin(int nprocs)
 {
-    // Open the workgroup
-    if(e_open(&state.dev,
-            state.platform.row,
-            state.platform.col,
-            nprocs / state.platform.rows,
-            nprocs / (nprocs / state.platform.rows) != E_OK))
-    {
-        fprintf(stderr, "ERROR: Could not open workgroup.\n");
-        return 0;
-    }
+	// Open the workgroup
+	if(e_open(&state.dev,
+				state.platform.row,
+				state.platform.col,
+				nprocs / state.platform.rows,
+				nprocs / (nprocs / state.platform.rows) != E_OK))
+	{
+		fprintf(stderr, "ERROR: Could not open workgroup.\n");
+		return 0;
+	}
 
-    printf("(BSP) INFO: Made a workgroup of size %i\n",
-            nprocs / (nprocs / state.platform.rows) * (nprocs / state.platform.rows));
+	printf("(BSP) INFO: Made a workgroup of size %i\n",
+			nprocs / (nprocs / state.platform.rows) * (nprocs / state.platform.rows));
 
-    // Load the e-binary
-    if(e_load_group(state.e_name,
-                state.dev,
-                0, 0,
-                state.dev.rows, state.dev.cols, // TODO: hard coded, should be fixed
-                E_FALSE) != E_OK)
-    {
-        fprintf(stderr, "ERROR: Could not load program in workgroup.\n");
-        return 0;
-    }
+	// Load the e-binary
+	if(e_load_group(state.e_name,
+				state.dev,
+				0, 0,
+				state.dev.rows, state.dev.cols, // TODO: hard coded, should be fixed
+				E_FALSE) != E_OK)
+	{
+		fprintf(stderr, "ERROR: Could not load program in workgroup.\n");
+		return 0;
+	}
 
-    // Write the nprocs to memory
-    int i, j;
-    for(i = 0; i < state.platform.rows; ++i) {
-        for(j = 0; j < state.platform.cols; ++j) {
-            e_write(&state.dev, i, j, (off_t)0x100, &state.nprocs, 1);
-        }
-    }
+	// Write the nprocs to memory
+	int i, j;
+	for(i = 0; i < state.platform.rows; ++i) {
+		for(j = 0; j < state.platform.cols; ++j) {
+			e_write(&state.dev, i, j, (off_t)0x100, &state.nprocs, 1);
+		}
+	}
 
-    return 1;
+	return 1;
 }
 
 int bsp_end()
 {
-    if(e_finalize() != E_OK) {
-         fprintf(stderr, "ERROR: Could not finalize the Epiphany connection.\n");
-        return 0;
-    }
-    return 1;
+	if(e_finalize() != E_OK) {
+		fprintf(stderr, "ERROR: Could not finalize the Epiphany connection.\n");
+		return 0;
+	}
+	return 1;
 }
 
 int bsp_nprocs()
 {
-    return state.nprocs;
+	return state.nprocs;
+}
+
+void host_sync() {
+	mem_sync();
 }
 
 //Memory
 void mem_sync() {
-	//Put all pushed registers in map
-	//map Pointer -> LocalAdressInEpiphany
-
+	//Broadcast void** registermap_buffer to all void*** registermap
+	//Then reset registermap_buffer
+	
+	//Right now bsp_pop_reg is ignored
+	//Check if overwrite is necessary => this gives no problems
+	
+	//TODO: write this function
 }
 
-void bsp_push_reg(const void* variable, const int nbytes)
-{
-	//Allocate nbytes in global memory, return pointer
-}
-
-void bsp_pop_reg(const void* variable)
-{
-	//Pop!	
-}
