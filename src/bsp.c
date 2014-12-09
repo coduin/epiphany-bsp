@@ -64,9 +64,17 @@ void bsp_sync()
 }
 
 // Memory
+void bsp_push_reg(const void* variable, const int nbytes)
+{
+	//Make connection to host	
+}
+
+void bsp_pop_reg(const void* variable)
+{
+	//Make connection to host
+}
+
 void bsp_put()
 {
     return;
 }
-
-

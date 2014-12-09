@@ -156,3 +156,20 @@ int bsp_nprocs()
 {
     return state.nprocs;
 }
+
+//Memory
+void mem_sync() {
+	//Put all pushed registers in map
+	//map Pointer -> LocalAdressInEpiphany
+
+}
+
+void bsp_push_reg(const void* variable, const int nbytes)
+{
+	//Allocate nbytes in global memory, return pointer
+}
+
+void bsp_pop_reg(const void* variable)
+{
+	//Pop!	
+}
