@@ -53,4 +53,4 @@ float bsp_time();
 /** Terminates a superstep, and starts all communication. The computation is 
  *  halted until all communication has been performed.
  */
-float bsp_sync();
+void bsp_sync();
