@@ -29,7 +29,7 @@ bin/hello.elf: hello/e-hello.c
 	e-gcc -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) -le-bsp -le-lib
 
 bin/hello.srec: bin/hello.elf
-	e-objcopy --srec-forceS3 --output-target srec bin/hello.elf bin/hello.srec
+	e-objcopy --srec-forceS3 --output-target srec $< $@
 
 ########################################################
 
@@ -42,7 +42,20 @@ bin/e_hello.elf: e_hello/e_ehello.c
 	e-gcc -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) -le-lib
 
 bin/e_hello.srec: bin/e_hello.elf
-	e-objcopy --srec-forceS3 --output-target srec bin/e_hello.elf bin/e_hello.srec
+	e-objcopy --srec-forceS3 --output-target srec $< $@
+
+########################################################
+
+e_hello: bin/dotproduct_host bin/dotproduct.elf bin/dotproduct.srec
+
+bin/dotproduct_host: dotproduct/dotproduct.c
+	gcc $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) -lhost-bsp -le-hal -le-loader
+	
+bin/dotproduct.elf: dotproduct/e-dotproduct.c
+	e-gcc -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) -le-bsp -le-lib
+
+bin/dotproduct.srec: bin/dotproduct.elf
+	e-objcopy --srec-forceS3 --output-target srec $< $@
 
 ########################################################
 

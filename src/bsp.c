@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 and the GNU Lesser General Public License along with this program,
 see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
- */
+*/
 
 #include "bsp.h"
 #include <e-lib.h>
@@ -41,62 +41,62 @@ void bsp_begin()
 
 void bsp_end()
 {
-	// Nothing to do yet.
-	return;
+    // Nothing to do yet.
+    return;
 }
 
 int bsp_nprocs()
 {
-	return _nprocs;
+    return _nprocs;
 }
 
 
 int bsp_pid()
 {
-	return _pid;
+    return _pid;
 }
 
 // Sync
 void bsp_sync()
 {
-	// call mem_sync() global
-	//
-	// start barrier
-	return;
+    // call mem_sync() global
+    //
+    // start barrier
+    return;
 }
 
 // Memory
 void bsp_push_reg(const void* variable, const int nbytes)
 {
-	void* offset=0;//TODO shoud write to void** registermap_buffer 
-	int voidSize=8;
-	int intSize=8;	
+    void* offset=0;//TODO shoud write to void** registermap_buffer 
+    int voidSize=8;
+    int intSize=8;	
     // @Abe: dit compileert niet
-	//e_write(e_emem_config, **variable, 0u, 0u, offset+(voidSize+intSize)*e_core_id(), 8);
-	//e_write(e_emem_config, *nbytes, 0u, 0u, offset+voidSize+(voidSize+intSize)*e_core_id(), 8);
+    //e_write(e_emem_config, **variable, 0u, 0u, offset+(voidSize+intSize)*e_core_id(), 8);
+    //e_write(e_emem_config, *nbytes, 0u, 0u, offset+voidSize+(voidSize+intSize)*e_core_id(), 8);
 }
 
 void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes)
 {
-	unsigned int row, col;
+    unsigned int row, col;
     // @Abe: laten we hiervoor gebruik maken van een equivalent als _get_p_coords()
     // want deze shit werkt maar rare core ids..
-	//e_coords_from_coreid(pid, &row, &col)
+    //e_coords_from_coreid(pid, &row, &col)
 
-	int slotID;
-	for(slotID=0; ; slotID++) {
+    int slotID;
+    for(slotID=0; ; slotID++) {
 #ifdef DEBUG
-		if(slotID >= MAX_N_REGISTER) {
-			fprintf(stderr,"PUTTING TO UNREGISTERED VARIABLE");
-		}
+        if(slotID >= MAX_N_REGISTER) {
+            fprintf(stderr,"PUTTING TO UNREGISTERED VARIABLE");
+        }
 #endif
         // @Abe: dit compileert niet
         //if(registermap[slotID][e_core_id()] == dst)
-            //break;
-	}
+        //break;
+    }
 
-	void* actualDst=registermap[slotID][pid]+offset;
+    void* actualDst=registermap[slotID][pid]+offset;
 
     // @Abe: dit compileert niet
-	//e_write(e_group_config, src, row, col, actualDst, nbytes);	
+    //e_write(e_group_config, src, row, col, actualDst, nbytes);	
 }
