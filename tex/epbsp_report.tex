@@ -188,7 +188,7 @@ Next we have the primitive to get the number of available cores.  This is a simp
 \begin{equation}
     \verb.bsp_nprocs(). 
 \end{equation}
-We simply use the numbering for the processors that is defined by the eSDK.
+We simply use the numbering for the processors that is defined by the eSDK. \todo{No we do not! also, we should use registers to implement this!}
 
 We can use the previous primitive to start the BSP program on the maximum amount of cores. Then we combine it with the primitive that indicates the beginning of the SPMD part of the BSP system:
 \begin{equation}
