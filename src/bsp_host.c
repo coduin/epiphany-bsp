@@ -142,7 +142,7 @@ int bsp_begin(int nprocs)
     int i, j;
     for(i = 0; i < state.platform.rows; ++i) {
         for(j = 0; j < state.platform.cols; ++j) {
-            e_write(&state.dev, i, j, (off_t)0x7000, &state.nprocs, sizeof(int));
+            e_write(&state.dev, i, j, (off_t)0x7500, &state.nprocs, sizeof(int));
         }
     }
 
