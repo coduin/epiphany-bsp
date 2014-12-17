@@ -110,14 +110,13 @@ The Epiphany\tm architecture is a multi-core microprocessor architecture that wa
 
 There are already some popular parallel-programming paradigms available for this architecture. In particular, the architecture is programmable using OpenCL. However, the only optimized way to program this architecture is by using the supplied software development kit, the Epiphany SDK (ESDK), which in our opinion lacks documentation especially for people new to the EA. In the report we describe a new library for the EA, which is built on top of the ESDK called Epiphany-BSP. 
 
-The Bulk Synchronous Parallel (BSP) computing model is a model for designing parallel algorithms. It provides a description of how parallel computation should be carried out. Programs written with this model consist of a number of supersteps, which in turn consist of a local computations and non-blocking communication. A (barrier) synchronisation at the end of such a step is used to guarentee occurance of all communications within a step.
-
+The Bulk Synchronous Parallel (BSP) computing model is a model for designing parallel algorithms. It provides a description of how parallel computation should be carried out. Programs written with this model consist of a number of supersteps, which in turn consist of a local computations and non-blocking communication. A (barrier) synchronisation at the end of such a step is used to guarantee occurance of all communications within a step. Later we will describe the BSP model in some more detail. First we introduce th Epiphany architecture and present some technical details on the intented target hardware.
 
 \section{The Epiphany\tm architecture}
 
 The Epiphany\tm architecture (EA) consists of a number of Reduced Instruction Set Computer (RISC) cores, currently defined for 1 to 4096, with a certain amount of local memory. These cores are part of a multi-core framework. Besides this there is a Network-On-Chip (NOC) present, designed for real time applications. 
 
-\subsubsection{Memory model}
+\subsection{Memory model}
 
 The local memory on the EA uses an adress space that consists of $2^{32}$ bytes \cite{ep:sdkdoc}. Following the documentation we will call this the \emph{global address space}. Besides this each Epiphany core has a local adress space. Current models have 32KB of local memory, which starts at \texttt{0x0000} and ends at \texttt{0x7FFF}. This space is partitioned in 4 memory banks starting at \texttt{0x0000}, \texttt{0x2000}, \texttt{0x4000}, and \texttt{0x6000}. Furthermore, there are registers available at \texttt{0xF0000}, and between \texttt{0x7FFFF} there is a section of reserved space. This address space is referred to as \emph{local address space}.
 

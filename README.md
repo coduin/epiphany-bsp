@@ -16,9 +16,9 @@ In particular this library has been tested on the
 [Parallella](http://www.parallella.org) board. Our goal is to
 allow current BSP programs to be run on the Epiphany architecture
 with minimal modifications. We believe the BSP model is a good starting point
-for anyone new to parallel algorithms, allowing people to get their hands dirty
-with the Epiphany architecture, without having to resort on the at times cumbersome
-Epiphany SDK.
+for anyone new to parallel algorithms, and we hope to allow people to get their hands dirty
+with the Epiphany architecture, without necessarily having to resort to the at times
+cumbersome Epiphany SDK.
 
 # Building
 
@@ -29,13 +29,14 @@ are built seperately. Use:
 
     $ make
 
-to build the library. Then `cd examples` and run
+to build the library. To build the examples:
 
+    $ cd examples
     $ make
 
-again to build the libraries. The examples are to be run from the
-examples folder (required in order to resolve the Epiphany binaries) For example:
+The examples are to be run from the examples folder (required in order 
+to resolve the Epiphany binaries). For example:
 
     $ ./bin/hello_host
 
-Runs the Hello World example.
+Runs the 'Hello World!' example.
