@@ -106,11 +106,11 @@
 
 \section{Introduction}
 
-The Epiphany\tm architecture is a multi-core microprocessor architecture that was developed by Adapteva\footnote{\url{http://www.adapteva.com}}. The Epiphany\tm architecture is implemented on chips that are inteded as a coprocessor to ARM/Intel CPUs. Every core has access to local, and shared memory. Besides the Epiphany\tm technology Adapteva has developed the Parallella board\footnote{\url{http://www.parallella.org}}, which is a computer with the size of a credit card that is based on this multi-core coprocessor technology.
+The Epiphany\tm architecture is a multi-core microprocessor architecture that was developed by Adapteva\footnote{\url{http://www.adapteva.com}}. The Epiphany\tm architecture is implemented on chips that are inteded as a coprocessor to ARM/Intel CPUs. Every core has access to local, and shared memory. Besides the Epiphany\tm technology Adapteva has developed the Parallella board\footnote{\url{http://www.parallella.org}}, which is a computer with the size of a credit card that is based on this multi-core coprocessor technology. Although the architecture was initially designed for embedded real time signal processing application, it has also gained interest from the High Performance Computing community because of its energy-efficiency and scalability \cite{ep:whitepaper}.
 
-There are already some popular parallel-programming paradigms available for this architecture. In particular, the architecture is programmable using OpenCL. However, the only optimized way to program this architecture is by using the supplied software development kit, the Epiphany SDK (ESDK), which in our opinion lacks documentation especially for people new to the EA. In the report we describe a new library for the EA, which is built on top of the ESDK called Epiphany-BSP. 
+There are already some popular parallel-programming models are available for this architecture, e.g. OpenCL. However, in our experience, currently the only feasible way to program this architecture is by using the supplied software development kit, the Epiphany SDK (ESDK). In our opinion the ESDK lacks proper documentation, especially for people new to the EA. It is also undergoing heavy changes in every iteration, and some commonly requested features are in the work. In this report we describe a new library for the EA, which is built on top of the ESDK called Epiphany-BSP. 
 
-The Bulk Synchronous Parallel (BSP) computing model is a model for designing parallel algorithms. It provides a description of how parallel computation should be carried out. Programs written with this model consist of a number of supersteps, which in turn consist of a local computations and non-blocking communication. A (barrier) synchronisation at the end of such a step is used to guarantee occurance of all communications within a step. Later we will describe the BSP model in some more detail. First we introduce th Epiphany architecture and present some technical details on the intented target hardware.
+The Bulk Synchronous Parallel (BSP) computing model is a model for designing parallel algorithms. It provides a description of how parallel computation should be carried out. Programs written with this model consist of a number of supersteps, which in turn consist of a local computations and non-blocking communication. A (barrier) synchronisation at the end of such a step is used to guarantee occurance of all communications within a step. Later we will describe the BSP model in some more detail. First we introduce the Epiphany architecture and present some technical details on the intented target hardware.
 
 \section{The Epiphany\tm architecture}
 
@@ -118,15 +118,25 @@ The Epiphany\tm architecture (EA) consists of a number of Reduced Instruction Se
 
 \subsection{Memory model}
 
-The local memory on the EA uses an adress space that consists of $2^{32}$ bytes \cite{ep:sdkdoc}. Following the documentation we will call this the \emph{global address space}. Besides this each Epiphany core has a local adress space. Current models have 32KB of local memory, which starts at \texttt{0x0000} and ends at \texttt{0x7FFF}. This space is partitioned in 4 memory banks starting at \texttt{0x0000}, \texttt{0x2000}, \texttt{0x4000}, and \texttt{0x6000}. Furthermore, there are registers available at \texttt{0xF0000}, and between \texttt{0x7FFFF} there is a section of reserved space. This address space is referred to as \emph{local address space}.
+The local memory on the EA uses an adress space that consists of $2^{32}$ bytes \cite{ep:sdkdoc}. Following the documentation we will call this the \emph{global address space}. Besides this each Epiphany core has an aliased range of local addresses. Current models have 32KB of local memory per chip, which starts at \texttt{0x0000} and ends at \texttt{0x7FFF}. This space is partitioned in 4 memory banks starting at \texttt{0x0000}, \texttt{0x2000}, \texttt{0x4000}, and \texttt{0x6000}. Furthermore, there are registers available at \texttt{0xF0000}, and between \texttt{0x7FFFF} there is a section of reserved space. This address space is referred to as \emph{local address space}.
 
 \input{localspace.tikz}
 
-The memory is freely accessible and one can choose where to store data and code (i.e.\ parts of the binary), however it is best for performance to use seperate banks for data and code.
+The memory is freely accessible and one can choose where to store data and code (i.e.\ parts of the binary), however it is best for performance to use seperate banks for data and code. To do this one has to use linker scripts in order to explicitely place data and code \cite{ep:sdkdoc}. However, more convenient methods are planned for future SDK releases. There is also an interface available for setting the memory-mapped registers. For a complete overview of these registers we refer to \cite{ep:archdoc}.
+
+\section{The Bulk Synchronous Parallel model}
+
+The Bulk Synchronous Parallel (BSP) model was developed by Leslie Valiant in the 1980s. It was introduced in an article in 1990 \cite{bsp:valiant}. The BSP model is intended as a briding model between parallel hardware and software. It is an elegant and simple model that has a small and easy to understand interface.
+
+\todo{Elaborate} \cite{bsp:bisseling}.
 
 \section{Parallella Board}
 
-Toy model, new architecture
+The Parallella board was introduced by Adapteva in a Kickstarter\footnote{Kickstarter is a crowd-funding website. See \url{http://www.kickstarter.com} for more information} campaign. Inspired by projects such as Arduino and Raspberry Pi, the Parallella is a credit-sized computer that is designed to be energy-efficient, and to have high-performance \cite{par:manual}. Besides this, both the board-design and the corresponding software based on the Epiphany architecture, are completely open source. In this section we will provide a short introduction to the board from a High Performance Computing (HPS) point-of-view. We will focus on the processors and the different types of memory that are involved, and refer to the documentation for details on the peripherals (USB, HDMI, GPIO, SD Card, etc.). 
+
+The original Parallella boards consist of a Zynq-7000 series Dual Core ARM processor, a 16 or 64 core Epiphany processor and has 1GB of SDRAM available.
+
+\input{parallellaboard.tikz}
 
 \subsection{Memory}
 
@@ -313,10 +323,24 @@ Memory Management
 
 \begin{thebibliography}{9}
 
-\bibitem{ep:sdkdoc}
-  Epiphany SDK Documentation
+\bibitem{ep:whitepaper}
+  Kickstarting High-performance Energy-efficient Manycore Architectures with Epiphany
 
-    
+\bibitem{ep:sdkdoc}
+  Epiphany SDK Reference
+
+\bibitem{ep:archdoc}
+  Epiphany Architecture Reference
+
+\bibitem{par:manual}
+  Parallella User Manual
+
+\bibitem{bsp:valiant}
+    Leslie G. Valiant, A bridging model for parallel computation, Communications of the ACM, Volume 33 Issue 8, Aug. 1990
+
+\bibitem{bsp:bisseling}
+    Parallel Scientific Computing. A structured approach using BSP and MPI. Rob H. Bisseling, Utrecht University. Oxford University Press.
+
 \end{thebibliography}
 
 \end{document}
