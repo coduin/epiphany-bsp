@@ -5,3 +5,4 @@
 #define CORE_ID e_group_config.core_row*e_group_config.group_cols+e_group_config.core_col
 #define CORE_ROW e_group_config.core_row
 #define CORE_COL e_group_config.core_col
+#define NCORES e_group_config.group_rows*e_group_config.group_cols

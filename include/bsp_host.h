@@ -24,6 +24,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #include <e-hal.h>
 #include <e-loader.h>
+#include "common.h"
 
 typedef struct _bsp_state_t
 {

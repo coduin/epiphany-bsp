@@ -74,13 +74,11 @@ int bsp_init(const char* _e_name,
     strcpy(state.e_name, _e_name);
 
     // Allocate registermap_buffer
-    registermap_buffer=REGISTERMAP_BUFFER_ADRESS;
+    registermap_buffer=(void**)REGISTERMAP_BUFFER_ADRESS;
     //Set registermap_buffer to zero, the dirty way TODO find clean solution
     int i;
-    for(i=0; i<_nprocs; i++) {
-        void* tmp=registermap_buffer+i;
-        *tmp=0;
-    }
+    for(i=0; i<state.nprocs; i++)
+        registermap_buffer[i]=0;
     return 1;
 }
 
@@ -197,15 +195,13 @@ void mem_sync() {
     // Broadcast registermap_buffer to registermap 
     for(i = 0; i < state.platform.rows; ++i) {
         for(j = 0; j < state.platform.cols; ++j) {
-            e_write(e_group_config, REGISTERMAP_BUFFER_ADRESS, i, j, REGISTERMAP_ADRESS+nVariablesRegistered*state.nprocs, state.nprocs*sizeof(void*));
+            e_write(&state.dev, i, j, (off_t) REGISTERMAP_ADRESS+nVariablesRegistered*state.nprocs, REGISTERMAP_BUFFER_ADRESS,(size_t) state.nprocs*sizeof(void*));
         }
     }
     nVariablesRegistered++;
 
     // Reset registermap_buffer
-    for(i = 0; i < state.nprocs; i++) {
-        void* tmp=registermap_buffer+i;
-        *tmp=0;
-    }
+    for(i = 0; i < state.nprocs; i++)
+        registermap_buffer[i]=0;
 }
 
