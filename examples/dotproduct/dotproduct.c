@@ -23,11 +23,13 @@ int main(int argc, char **argv)
     // partition and write to processors
     int chunk = l / bsp_nprocs();
     printf("chunk: %i\n", chunk);
-    int base = 0x7000;
+
+    // write in memory bank 4
+    int base = 0x6000;
     for(pid = 0; pid < bsp_nprocs(); pid++) {
         int prow, pcol;
         _get_p_coords(pid, &prow, &pcol);
-        e_write(&(_get_state()->dev), prow, pcol, (off_t)base, &chunk, 1);
+        e_write(&(_get_state()->dev), prow, pcol, (off_t)base, &chunk, sizeof(int));
         for(i = 0; i < chunk; ++i) {
             e_write(&(_get_state()->dev), prow, pcol, (off_t)(base + 4 + 4*i), &a[i + chunk*pid], 4);
             e_write(&(_get_state()->dev), prow, pcol, (off_t)(base + 4 + 4*chunk + 4*i), &b[i + chunk*pid], 4);
@@ -40,12 +42,14 @@ int main(int argc, char **argv)
     // read output
     int* result = malloc(sizeof(int) * bsp_nprocs());
     int sum = 0;
+    printf("proc \t mem_loc \t partial_sum\n");
+    printf("---- \t ------- \t -----------\n");
     for(pid = 0; pid < bsp_nprocs(); pid++) {
         char msg;
         int pcol, prow;
         _get_p_coords(pid, &prow, &pcol);
-        e_read(&(_get_state()->dev), prow, pcol, (off_t)(base + 4 + 8*chunk), &result[pid], 4);
-        printf("%i: %i\n", pid, result[pid]);
+        e_read(&(_get_state()->dev), prow, pcol, (off_t)(base + 4 + 8*chunk), &result[pid], sizeof(int));
+        printf("%i: \t 0x%x \t %i\n", pid, base + 4 + 8*chunk, result[pid]);
         sum += result[pid];
     }
 

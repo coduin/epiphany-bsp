@@ -25,18 +25,24 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include "bsp.h"
 #include <e-lib.h>
 
+#define _NPROCS 16
+
 int _nprocs = -1;
 int _pid = -1;
+e_barrier_t sync_bar[_NPROCS];
+e_barrier_t* sync_bar_tgt[_NPROCS];
 
 void bsp_begin()
 {
-    int row, col;
-    e_coreid_t cid = e_get_coreid();
-    e_coords_from_coreid(cid, &row, &col);
-    _pid = col + 4*row;
+    int row = e_group_config.core_row;
+    int col = e_group_config.core_col;
+    int cols = e_group_config.group_cols;
+    _pid = col + cols*row;
 
-    int* nprocs_loc = (int*)0x7000;
+    int* nprocs_loc = (int*)0x7500;
     _nprocs = (*nprocs_loc);
+
+    e_barrier_init(sync_bar, sync_bar_tgt);
 }
 
 void bsp_end()
@@ -59,9 +65,16 @@ int bsp_pid()
 // Sync
 void bsp_sync()
 {
-    // call mem_sync() global
-    //
-    // start barrier
+    // wait until each core is in this function:
+    // e_barrier(sync_bar, sync_bar_tgt);
+
+    // do memory management here, and halt when asking for RAM
+
+    // wait again until everything sent
+    e_barrier(sync_bar, sync_bar_tgt);
+
+    // now ready to receive everything and continue
+
     return;
 }
 
@@ -76,7 +89,7 @@ void bsp_push_reg(const void* variable, const int nbytes)
     //e_write(e_emem_config, *nbytes, 0u, 0u, offset+voidSize+(voidSize+intSize)*e_core_id(), 8);
 }
 
-void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes)
+void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
 {
     unsigned int row, col;
     // @Abe: laten we hiervoor gebruik maken van een equivalent als _get_p_coords()
