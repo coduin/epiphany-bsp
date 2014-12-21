@@ -23,12 +23,12 @@ see the files COPYING and COPYING.LESSER. If not, see
  */
 
 #include "bsp_host.h"
+#include "common.h"
+
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
-
-#define MAX_NAME_SIZE 30
 
 // Global state
 bsp_state_t state;
