@@ -73,6 +73,14 @@ int bsp_init(const char* _e_name,
     state.e_name = (char*)malloc(MAX_NAME_SIZE);
     strcpy(state.e_name, _e_name);
 
+    // Allocate registermap_buffer
+    registermap_buffer=REGISTERMAP_BUFFER_ADRESS;
+    //Set registermap_buffer to zero, the dirty way TODO find clean solution
+    int i;
+    for(i=0; i<_nprocs; i++) {
+        void* tmp=registermap_buffer+i;
+        *tmp=0;
+    }
     return 1;
 }
 
@@ -109,6 +117,7 @@ int bsp_begin(int nprocs)
             state.cols);
 
     state.nprocs_used = nprocs;
+    nVariablesRegistered=0;
 
     // Open the workgroup
     if(e_open(&state.dev,
@@ -167,14 +176,36 @@ void host_sync() {
 	mem_sync();
 }
 
-//Memory
+// Memory
 void mem_sync() {
-	//Broadcast void** registermap_buffer to all void*** registermap
-	//Then reset registermap_buffer
+	// Right now bsp_pop_reg is ignored
+	// Check if overwrite is necessary => this gives no problems
 	
-	//Right now bsp_pop_reg is ignored
-	//Check if overwrite is necessary => this gives no problems
-	
-	//TODO: write this function
+    int i, j;
+    int variablesWereRegistered=0;
+    // Check if variables were registered TODO: make nicer solution using register?
+    for(i = 0; i < state.nprocs; ++i) {
+        if(*(registermap_buffer+i) != 0) {
+            variablesWereRegistered=1;
+            break;
+        }
+    }
+    if(!variablesWereRegistered) {
+        return; // No registration took place; we are done
+    }
+   
+    // Broadcast registermap_buffer to registermap 
+    for(i = 0; i < state.platform.rows; ++i) {
+        for(j = 0; j < state.platform.cols; ++j) {
+            e_write(e_group_config, REGISTERMAP_BUFFER_ADRESS, i, j, REGISTERMAP_ADRESS+nVariablesRegistered*state.nprocs, state.nprocs*sizeof(void*));
+        }
+    }
+    nVariablesRegistered++;
+
+    // Reset registermap_buffer
+    for(i = 0; i < state.nprocs; i++) {
+        void* tmp=registermap_buffer+i;
+        *tmp=0;
+    }
 }
 

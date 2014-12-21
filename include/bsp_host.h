@@ -92,7 +92,7 @@ int bsp_nprocs();
 
 
 void** registermap_buffer;
-
+int nVariablesRegistered;
 
 /** host_sync is called on bsp_sync() in epiphany
  */

@@ -22,6 +22,8 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
  */
 
+#include "common.h"
+
 /** Starts the BSP program.
  */
 void bsp_begin();
@@ -54,7 +56,8 @@ float bsp_time();
  */
 void bsp_sync();
 
-void*** registermap;//registermap[slotID][pid]=void*
+//void*** registermap;//registermap[slotID][pid]=void*
+void** registermap;//registermap[nprocs*slotID+pid]=void*
 
 /** Registers a variable by putting to static memory location in host memory
  *  Registration maps are updated at next sync.
