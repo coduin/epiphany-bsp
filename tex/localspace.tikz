@@ -1,0 +1,32 @@
+\begin{figure}[H]
+\centering
+\begin{subfigure}
+\centering
+\begin{tikzpicture}[scale=0.7,font=\sffamily\scriptsize]
+\tikzset{node distance=2cm, auto}
+\filldraw[fill=lightergray, draw=black] (0, 0) rectangle (2, 5);
+\filldraw[fill=lightergray, draw=black] (2, 0) rectangle (4, 5);
+\filldraw[fill=lightergray, draw=black] (4, 0) rectangle (6, 5);
+\filldraw[fill=lightergray, draw=black] (6, 0) rectangle (8, 5);
+\filldraw[fill=white, draw=black] (8, 1) rectangle (12, 4);
+\filldraw[fill=lightergray, draw=black] (12, 0) rectangle (14, 5);
+
+\node[minimum width=2cm,font=\sffamily\small] at (1, -0.5) {\texttt{0x0000}};
+\node[minimum width=2cm,font=\sffamily\small] at (3, -0.5) {\texttt{0x2000}};
+\node[minimum width=2cm,font=\sffamily\small] at (5, -0.5) {\texttt{0x4000}};
+\node[minimum width=2cm,font=\sffamily\small] at (7, -0.5) {\texttt{0x6000}};
+\node[minimum width=2cm,font=\sffamily\small] at (13, -0.5) {\texttt{0xF0000}};
+\node[minimum width=2cm,rotate=90] at (1, 2.5) {BANK 1};
+\node[minimum width=2cm,rotate=90] at (3, 2.5) {BANK 2};
+\node[minimum width=2cm,rotate=90] at (5, 2.5) {BANK 3};
+\node[minimum width=2cm,rotate=90] at (7, 2.5) {BANK 4};
+\node[minimum width=2cm, text width=3cm, rotate=90] at (13, 2.5) {MEMORY-MAPPED REGISTERS};
+\node[minimum width=2cm] at (10, 2.5) {RESERVED};
+
+\end{tikzpicture}
+\end{subfigure}
+\caption{The local address space corresponding to a single Epiphany core. This figure has been adapted from Figure 1.2 in \cite{ep:sdkdoc}}
+\label{fig:localspace}
+\end{figure}
+
+

@@ -46,7 +46,7 @@ bin/e_hello.srec: bin/e_hello.elf
 
 ########################################################
 
-e_hello: bin/dotproduct_host bin/dotproduct.elf bin/dotproduct.srec
+dotproduct: bin/dotproduct_host bin/dotproduct.elf bin/dotproduct.srec
 
 bin/dotproduct_host: dotproduct/dotproduct.c
 	gcc $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) -lhost-bsp -le-hal -le-loader
