@@ -74,11 +74,15 @@ int bsp_init(const char* _e_name,
     strcpy(state.e_name, _e_name);
 
     // Allocate registermap_buffer
-    registermap_buffer=(void**)REGISTERMAP_BUFFER_ADRESS;
-    //Set registermap_buffer to zero, the dirty way TODO find clean solution
-    int i;
-    for(i=0; i<state.nprocs; i++)
-        registermap_buffer[i]=0;
+    if( E_OK != e_shm_alloc(&registermap_buffer, registermap_buffer_shmname, state.nprocs*sizeof(void*)) ) {
+        fprintf(stderr, "ERROR: Could not allocate registermap_buffer.\n");
+        return 0; 
+    }
+    
+    //Set registermap_buffer to zero
+    void* buf=calloc(sizeof(void*),state.nprocs);
+    e_write(&registermap_buffer, 0u, 0u, (off_t) 0, buf, state.nprocs*sizeof(void*));
+
     return 1;
 }
 
@@ -158,7 +162,11 @@ int bsp_begin(int nprocs)
 
 int bsp_end()
 {
-	if(e_finalize() != E_OK) {
+    if(E_OK != e_shm_release(registermap_buffer_shmname) ) {
+        fprintf(stderr, "ERROR: Could not relese registermap_buffer\n");
+        return 0;
+    }
+	if(E_OK != e_finalize()) {
 		fprintf(stderr, "ERROR: Could not finalize the Epiphany connection.\n");
 		return 0;
 	}
@@ -183,7 +191,9 @@ void mem_sync() {
     int variablesWereRegistered=0;
     // Check if variables were registered TODO: make nicer solution using register?
     for(i = 0; i < state.nprocs; ++i) {
-        if(*(registermap_buffer+i) != 0) {
+        void** buf=(void**) malloc(sizeof(void*));
+        e_read(&registermap_buffer, 0u, 0u, (off_t) i*sizeof(void*), buf, sizeof(void*));
+        if(*buf != NULL) {
             variablesWereRegistered=1;
             break;
         }
@@ -193,15 +203,17 @@ void mem_sync() {
     }
    
     // Broadcast registermap_buffer to registermap 
+    void** buf=(void**) malloc(sizeof(void*)*state.nprocs);
+    e_read(&registermap_buffer, 0u, 0u, (off_t) 0, buf, sizeof(void*)*state.nprocs);
     for(i = 0; i < state.platform.rows; ++i) {
         for(j = 0; j < state.platform.cols; ++j) {
-            e_write(&state.dev, i, j, (off_t) REGISTERMAP_ADRESS+nVariablesRegistered*state.nprocs, REGISTERMAP_BUFFER_ADRESS,(size_t) state.nprocs*sizeof(void*));
+            e_write(&state.dev, i, j, (off_t) REGISTERMAP_ADRESS+nVariablesRegistered*state.nprocs, buf,(size_t) state.nprocs*sizeof(void*));
         }
     }
     nVariablesRegistered++;
 
     // Reset registermap_buffer
-    for(i = 0; i < state.nprocs; i++)
-        registermap_buffer[i]=0;
+    void* buffer=calloc(sizeof(void*),state.nprocs);
+    e_write(&registermap_buffer, 0u, 0u, (off_t) 0, buffer, state.nprocs*sizeof(void*));
 }
 

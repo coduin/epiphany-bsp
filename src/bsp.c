@@ -87,8 +87,11 @@ void bsp_sync()
 // Memory
 void bsp_push_reg(const void* variable, const int nbytes)
 {
-    void** offset=(void**)REGISTERMAP_BUFFER_ADRESS;
-    e_write(&e_emem_config, &variable, 0u, 0u, offset+sizeof(void*)*CORE_ID, sizeof(void*));
+    e_memseg_t emem;
+    if( E_OK != e_shm_attach(&emem, registermap_buffer_shmname) ) {
+        return;
+    }
+    e_write((void*)&emem, &variable, 0u, 0u, sizeof(void*)*CORE_ID, sizeof(void*));//TODO: check if size should be in byte of (void*) multiples
 }
 
 void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)

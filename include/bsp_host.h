@@ -49,6 +49,11 @@ typedef struct _bsp_state_t
     e_epiphany_t dev;
 } bsp_state_t;
 
+
+e_mem_t registermap_buffer;
+int nVariablesRegistered;
+
+
 bsp_state_t* _get_state();
 
 /** Initializes the BSP system. This sets up all the BSP variables and loads
@@ -90,10 +95,6 @@ int bsp_end();
  *  @return nprocs: An integer indicating the number of available processors.
  */
 int bsp_nprocs();
-
-
-void** registermap_buffer;
-int nVariablesRegistered;
 
 /** host_sync is called on bsp_sync() in epiphany
  */
