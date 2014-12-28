@@ -1,8 +1,10 @@
+#pragma once
+
 #define DEBUG
 
 #define MAX_NAME_SIZE 30
 
-#define REGISTERMAP_BUFFER_SHM_NAME "rmbshm";
+#define REGISTERMAP_BUFFER_SHM_NAME "rmbshm"
 
 #define REGISTERMAP_ADDRESS 0x7050 //In local memory
 #define MAX_N_REGISTER 10

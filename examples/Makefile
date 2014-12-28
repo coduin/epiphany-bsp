@@ -14,47 +14,51 @@ HOST_LIBS = \
 E_LIBS = \
 	 -L${ESDK}/tools/host/lib
 
+HOST_LIB_NAMES = -lhost-bsp -le-hal -le-loader
+
+E_LIB_NAMES = -le-bsp -le-lib
+
 ########################################################
 
-all: hello e_hello dotproduct
+all: hello e_hello dot_product
 
 ########################################################
 
-hello: bin/hello_host bin/hello.elf bin/hello.srec
+hello: bin/host_hello bin/e_hello.elf bin/e_hello.srec
 
-bin/hello_host: hello/hello.c
-	gcc $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) -lhost-bsp -le-hal -le-loader
+bin/host_hello: hello/host_hello.c
+	gcc $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
 	
-bin/hello.elf: hello/e-hello.c
-	e-gcc -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) -le-bsp -le-lib
-
-bin/hello.srec: bin/hello.elf
-	e-objcopy --srec-forceS3 --output-target srec $< $@
-
-########################################################
-
-e_hello: bin/e_hello_host bin/e_hello.elf bin/e_hello.srec
-
-bin/e_hello_host: e_hello/e_hello.c
-	gcc $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) -le-hal -le-loader
-	
-bin/e_hello.elf: e_hello/e_ehello.c
-	e-gcc -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) -le-lib
+bin/e_hello.elf: hello/e_hello.c
+	e-gcc -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
 
 bin/e_hello.srec: bin/e_hello.elf
 	e-objcopy --srec-forceS3 --output-target srec $< $@
 
 ########################################################
 
-dotproduct: bin/dotproduct_host bin/dotproduct.elf bin/dotproduct.srec
+e_hello: bin/host_e_hello bin/e_e_hello.elf bin/e_e_hello.srec
 
-bin/dotproduct_host: dotproduct/dotproduct.c
-	gcc $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) -lhost-bsp -le-hal -le-loader
+bin/host_e_hello: e_hello/host_e_hello.c
+	gcc $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
 	
-bin/dotproduct.elf: dotproduct/e-dotproduct.c
-	e-gcc -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) -le-bsp -le-lib
+bin/e_e_hello.elf: e_hello/e_e_hello.c
+	e-gcc -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
 
-bin/dotproduct.srec: bin/dotproduct.elf
+bin/e_e_hello.srec: bin/e_e_hello.elf
+	e-objcopy --srec-forceS3 --output-target srec $< $@
+
+########################################################
+
+dot_product: bin/host_dot_product bin/e_dot_product.elf bin/e_dot_product.srec
+
+bin/host_dot_product: dot_product/host_dot_product.c
+	gcc $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
+	
+bin/e_dot_product.elf: dot_product/e_dot_product.c
+	e-gcc -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
+
+bin/e_dot_product.srec: bin/e_dot_product.elf
 	e-objcopy --srec-forceS3 --output-target srec $< $@
 
 ########################################################
