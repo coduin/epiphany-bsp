@@ -26,13 +26,12 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <e-loader.h>
 #include "common.h"
 
+const char registermap_buffer_shm_name[] = REGISTERMAP_BUFFER_SHM_NAME;
+
 typedef struct _bsp_state_t
 {
     // The number of processors available
     int nprocs;
-
-    // Maintain stack for every processor?
-    int* memory;
 
     // The name of the e-program
     char* e_name;
@@ -44,15 +43,14 @@ typedef struct _bsp_state_t
     // Number of processors in use
     int nprocs_used;
 
+    // Register map
+    e_mem_t registermap_buffer;
+    int num_vars_registered;
+
     // Epiphany specific variables
     e_platform_t platform;
     e_epiphany_t dev;
 } bsp_state_t;
-
-
-e_mem_t registermap_buffer;
-int nVariablesRegistered;
-
 
 bsp_state_t* _get_state();
 
@@ -98,9 +96,9 @@ int bsp_nprocs();
 
 /** host_sync is called on bsp_sync() in epiphany
  */
-void host_sync();
+void _host_sync();
 
 /** The part of host_sync responsible for registering variables
  *  This broadcasts void** registermap_buffer to void*** registermap
  */
-void mem_sync();
+void _mem_sync();

@@ -42,7 +42,7 @@ void bsp_begin()
     int* nprocs_loc = (int*)0x7500;
     _nprocs = (*nprocs_loc);
 
-    registermap=(void**)REGISTERMAP_ADRESS;
+    registermap=(void**)REGISTERMAP_ADDRESS;
     //Set memory to 0 (dirty solution) TODO make clean solution
     int i;
     for(i = 0; i < MAX_N_REGISTER*_nprocs; i++)
@@ -88,10 +88,15 @@ void bsp_sync()
 void bsp_push_reg(const void* variable, const int nbytes)
 {
     e_memseg_t emem;
-    if( E_OK != e_shm_attach(&emem, registermap_buffer_shmname) ) {
+    if( E_OK != e_shm_attach(&emem, registermap_buffer_shm_name) ) {
         return;
     }
-    e_write((void*)&emem, &variable, 0u, 0u, sizeof(void*)*CORE_ID, sizeof(void*));//TODO: check if size should be in byte of (void*) multiples
+    e_write((void*)&emem,
+            &variable,
+            0u,
+            0u,
+            (void*)(sizeof(void*) * CORE_ID), // FIXME
+            sizeof(void*));
 }
 
 void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
