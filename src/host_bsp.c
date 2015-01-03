@@ -33,15 +33,23 @@ see the files COPYING and COPYING.LESSER. If not, see
 // Global state
 bsp_state_t state;
 
-void _get_p_coords(int pid, int* row, int* col)
+
+void co_write(int pid, void* src, off_t dst, int size)
 {
-    (*row) = pid / state.cols;
-    (*col) = pid % state.cols;
+    int prow, pcol;
+    _get_p_coords(pid, &prow, &pcol);
+    e_write(&state.dev,
+            prow, pcol,
+            dst, src, size);
 }
 
-bsp_state_t* _get_state()
+void co_read(int pid, off_t src, void* dst, int size)
 {
-    return &state;
+    int prow, pcol;
+    _get_p_coords(pid, &prow, &pcol);
+    e_read(&state.dev,
+           prow, pcol,
+           src, dst, size);
 }
 
 int bsp_init(const char* _e_name,
@@ -180,12 +188,12 @@ int bsp_nprocs()
     return state.nprocs;
 }
 
-void _host_sync() {
-    _mem_sync();
-}
+//------------------
+// Private functions
+//------------------
 
 // Memory
-void _mem_sync() {
+void _host_sync() {
     // TODO: Right now bsp_pop_reg is ignored
     // Check if overwrite is necessary => this gives no problems
 
@@ -221,4 +229,15 @@ void _mem_sync() {
     // Reset registermap_buffer
     void* buffer=calloc(sizeof(void*),state.nprocs);
     e_write(&state.registermap_buffer, 0u, 0u, (off_t) 0, buffer, state.nprocs*sizeof(void*));
+}
+
+void _get_p_coords(int pid, int* row, int* col)
+{
+    (*row) = pid / state.cols;
+    (*col) = pid % state.cols;
+}
+
+bsp_state_t* _get_state()
+{
+    return &state;
 }

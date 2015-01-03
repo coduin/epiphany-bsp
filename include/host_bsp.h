@@ -54,7 +54,26 @@ typedef struct _bsp_state_t
     e_epiphany_t dev;
 } bsp_state_t;
 
-bsp_state_t* _get_state();
+/** This writes data from the host processor to the co-processor.
+ *  This can be useful for distributing initial data, or when dividing work
+ *  betewen the host and the Epiphany.
+ *
+ *  @param pid: The processor ID in the BSP system.
+ *  @param src: A pointer to the source of the data to write.
+ *  @param dst: The destination on the chip processor. (e.g. 0x2000)
+ *  @param size: Amount of data to write in bytes.
+ */
+void co_write(int pid, void* src, off_t dst, int size);
+
+/** This reads data from the co-processor to the host processor.
+ *  This can be useful for distributing initial data, or when dividing work
+ *
+ *  @param pid: The processor ID in the BSP system.
+ *  @param src: The source of the data on the co-processor (e.g. 0x2000)
+ *  @param dst: A destination pointer on the host processor.
+ *  @param size: Amount of data to read in bytes.
+ */
+void co_read(int pid, off_t src, void* dst, int size);
 
 /** Initializes the BSP system. This sets up all the BSP variables and loads
  *  the epiphany BSP program.
@@ -96,11 +115,13 @@ int bsp_end();
  */
 int bsp_nprocs();
 
-/** host_sync is called on bsp_sync() in epiphany
- */
+//------------------
+// Private functions
+//------------------
+
+// For synchronization between host and co
 void _host_sync();
 
-/** The part of host_sync responsible for registering variables
- *  This broadcasts void** registermap_buffer to void*** registermap
- */
-void _mem_sync();
+// Convenience functions
+void _get_p_coords(int pid, int* row, int* col)
+bsp_state_t* _get_state();
