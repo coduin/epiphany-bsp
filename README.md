@@ -32,7 +32,7 @@ int main() {
     bsp_end();
 }
 ```
-This runs the Epiphany binary `e_program` on all available Epiphany cores. On the co-processor we have access to a subset of the BSP primitives, for example we have acces to information on our processor id and the number of cores:
+This runs the Epiphany binary `e_program` on all available Epiphany cores. On the co-processor we have access to a subset of the BSP primitives, for example can look up information on our processor id and the number of cores in use:
 ```C
 // on co-processor (e_program)
 int main() {
@@ -43,7 +43,7 @@ int main() {
 
     ...
 ```
-Furthermore cores can communicate by first registering a variable and then using `bsp_put` or its high-performance `bsp_hpput`, and `bsp_sync`. For example:
+Furthermore cores can communicate by first registering a variable and then using `bsp_put` or its high-performance counterpart `bsp_hpput`, and `bsp_sync`. For example:
 ```C
     ...
 
@@ -55,7 +55,7 @@ Furthermore cores can communicate by first registering a variable and then using
     bsp_hpput(p + 1 % n, a, a, 0, sizeof(int));
     bsp_sync();
 ```
-For example would overwrite the variable `a` on processor `p`, with the value `p - 1`.
+would overwrite the variable `a` on processor `p`, with the value `p - 1`. Detailed documentation will be added to the library over time. The header files already contain clear descriptions of the bsp primitives, and a number of examples are available as well.
 
 # Installation
 
