@@ -60,6 +60,11 @@ float bsp_time();
  */
 void bsp_sync();
 
+/** Variable with value STATE_RUN, STATE_SYNC or STATE_CONTINUE
+ *  This is needed to allow synchronisation on the ARM.
+ */
+int* syncstate;
+
 //void*** registermap;//registermap[slotID][pid]=void*
 void** registermap;//registermap[nprocs*slotID+pid]=void*
 
