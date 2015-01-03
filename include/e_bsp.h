@@ -73,4 +73,4 @@ void bsp_push_reg(const void* variable, const int nbytes);
  *  Loop over void*[nRegisteredVariables][sourcePid] to find variable
  *  Then use epiphany put to void*[index][targetPid]
  */
-void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes);
+void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes);
