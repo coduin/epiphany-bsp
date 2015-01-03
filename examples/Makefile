@@ -63,5 +63,18 @@ bin/e_dot_product.srec: bin/e_dot_product.elf
 
 ########################################################
 
+lu_decomposition: bin/host_lu_decomposition bin/e_lu_decomposition.elf bin/e_lu_decomposition.srec
+
+bin/host_lu_decomposition: lu_decomposition/host_lu_decomposition.c
+	gcc $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
+	
+bin/e_lu_decomposition.elf: lu_decomposition/e_lu_decomposition.c
+	e-gcc -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
+
+bin/e_lu_decomposition.srec: bin/e_lu_decomposition.elf
+	e-objcopy --srec-forceS3 --output-target srec $< $@
+
+########################################################
+
 clean:
 	rm bin/*
