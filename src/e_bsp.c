@@ -39,10 +39,11 @@ void bsp_begin()
     int cols = e_group_config.group_cols;
     _pid = col + cols*row;
 
-    int* nprocs_loc = (int*)0x7500;
+    int* nprocs_loc = (int*)NPROCS_LOC_ADDRESS;
     _nprocs = (*nprocs_loc);
 
     registermap=(void**)REGISTERMAP_ADDRESS;
+	syncstate = (int*)SYNC_STATE_ADDRESS;
     //Set memory to 0 (dirty solution) TODO make clean solution
     int i;
     for(i = 0; i < MAX_N_REGISTER*_nprocs; i++)
@@ -53,7 +54,7 @@ void bsp_begin()
 
 void bsp_end()
 {
-    // Nothing to do yet.
+	(*syncstate)=STATE_FINISH;
     return;
 }
 
@@ -71,16 +72,16 @@ int bsp_pid()
 // Sync
 void bsp_sync()
 {
-    // wait until each core is in this function:
-    // e_barrier(sync_bar, sync_bar_tgt);
+	//Signal host that epiphany is syncing, wait until host is done
+	(*syncstate)=STATE_SYNC;
+	while(*syncstate != STATE_CONTINUE);//Add delay?
 
-    // do memory management here, and halt when asking for RAM
-
-    // wait again until everything sent
+	//Sync to flush epiphany commands
     e_barrier(sync_bar, sync_bar_tgt);
-
+	
+	//Reset state
+	(*syncstate)=STATE_RUN;
     // now ready to receive everything and continue
-
     return;
 }
 

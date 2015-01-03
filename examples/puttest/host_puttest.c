@@ -4,11 +4,12 @@
 int main(int argc, char **argv)
 {
     // initialize the BSP system
-    if(!bsp_init("bin/e_hello.srec", argc, argv)) {
+    if(!bsp_init("bin/e_puttest.srec", argc, argv)) {
         fprintf(stderr, "[HELLO] bsp_init() failed\n");
         return -1;
     }
 
+    printf("Welcome to puttest!\n");
     // show the number of processors available
     printf("bsp_nprocs(): %i\n", bsp_nprocs());
 
