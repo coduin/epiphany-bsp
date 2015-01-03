@@ -2,7 +2,7 @@
 \centering
 \begin{subfigure}
 \centering
-\begin{tikzpicture}[scale=0.7,font=\sffamily\scriptsize]
+\begin{tikzpicture}[scale=0.8,font=\sffamily\small]
 \tikzset{node distance=2cm, auto}
 \filldraw[fill=lightergray, draw=black] (0, 0) rectangle (2, 5);
 \filldraw[fill=lightergray, draw=black] (2, 0) rectangle (4, 5);

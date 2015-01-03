@@ -20,7 +20,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: hello e_hello dot_product
+all: hello e_hello dot_product puttest
 
 ########################################################
 
@@ -72,6 +72,19 @@ bin/e_lu_decomposition.elf: lu_decomposition/e_lu_decomposition.c
 	e-gcc -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
 
 bin/e_lu_decomposition.srec: bin/e_lu_decomposition.elf
+	e-objcopy --srec-forceS3 --output-target srec $< $@
+
+########################################################
+
+puttest: bin/host_puttest bin/e_puttest.elf bin/e_puttest.srec
+
+bin/host_puttest: puttest/host_puttest.c
+	gcc $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
+	
+bin/e_puttest.elf: puttest/e_puttest.c
+	e-gcc -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
+
+bin/e_puttest.srec: bin/e_puttest.elf
 	e-objcopy --srec-forceS3 --output-target srec $< $@
 
 ########################################################

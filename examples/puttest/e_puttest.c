@@ -10,11 +10,17 @@ int main()
 
     const char* hmsg = "Hello world! BSP";
 
+    // set char */
     char* a = (void*)0x7050;
     (*a) = hmsg[p];
+    
+    bsp_sync();
+    
+
     int* po = (void*)0x7100;
     int tmp=CORE_ID;
     (*po) = tmp;
+
 
     return 0;
 }
