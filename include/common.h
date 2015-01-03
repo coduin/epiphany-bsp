@@ -18,5 +18,6 @@
 #define STATE_RUN 0
 #define STATE_SYNC 1
 #define STATE_CONTINUE 2
+#define STATE_FINISH 3
 
 #define NCORES (e_group_config.group_rows*e_group_config.group_cols)

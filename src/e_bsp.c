@@ -54,7 +54,7 @@ void bsp_begin()
 
 void bsp_end()
 {
-    // Nothing to do yet.
+	(*syncstate)=STATE_FINISH;
     return;
 }
 
