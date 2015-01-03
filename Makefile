@@ -13,15 +13,15 @@ INCLUDES = \
 HOST_LIBS=-L${ESDK}/tools/host/lib
 
 E_SRCS = \
-		 bsp.c
+		 e_bsp.c
 
 HOST_SRCS = \
-		 bsp_host.c
+		 host_bsp.c
 
 E_OBJS = $(E_SRCS:%.c=bin/e/%.o) 
 HOST_OBJS = $(HOST_SRCS:%.c=bin/host/%.o) 
 
-######################################################33
+########################################################
 
 vpath %.c src
 
@@ -43,7 +43,7 @@ bin/lib/$(HOST_LIBNAME)$(LIBEXT): $(HOST_OBJS)
 bin/lib/$(E_LIBNAME)$(LIBEXT): $(E_OBJS)
 	e-ar rvs $@ $^ 
 
-######################################################33
+########################################################
 
 clean:
 	rm bin/lib/*.a

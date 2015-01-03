@@ -1,10 +1,10 @@
-#include <bsp_host.h>
+#include <host_bsp.h>
 #include <stdio.h>
 
 int main(int argc, char **argv)
 {
     // initialize the BSP system
-    if(!bsp_init("bin/hello.srec", argc, argv)) {
+    if(!bsp_init("bin/e_hello.srec", argc, argv)) {
         fprintf(stderr, "[HELLO] bsp_init() failed\n");
         return -1;
     }

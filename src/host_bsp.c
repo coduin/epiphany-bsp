@@ -20,9 +20,9 @@ You should have received a copy of the GNU General Public License
 and the GNU Lesser General Public License along with this program,
 see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
- */
+*/
 
-#include "bsp_host.h"
+#include "host_bsp.h"
 #include "common.h"
 
 #include <stdio.h>
@@ -45,8 +45,8 @@ bsp_state_t* _get_state()
 }
 
 int bsp_init(const char* _e_name,
-		int argc,
-		char **argv)
+        int argc,
+        char **argv)
 {
     // Initialize the Epiphany system for the working with the host application
     if(e_init(NULL) != E_OK) {
@@ -73,6 +73,18 @@ int bsp_init(const char* _e_name,
     state.e_name = (char*)malloc(MAX_NAME_SIZE);
     strcpy(state.e_name, _e_name);
 
+    // Allocate registermap_buffer
+    if(e_shm_alloc(&state.registermap_buffer,
+                REGISTERMAP_BUFFER_SHM_NAME,
+                state.nprocs*sizeof(void*)) != E_OK) {
+        fprintf(stderr, "ERROR: Could not allocate registermap_buffer.\n");
+        return 0; 
+    }
+
+    //Set registermap_buffer to zero
+    void* buf=calloc(sizeof(void*),state.nprocs);
+    e_write(&state.registermap_buffer, 0u, 0u, (off_t) 0, buf, state.nprocs * sizeof(void*));
+
     return 1;
 }
 
@@ -85,13 +97,13 @@ int spmd_epiphany()
     usleep(100000); //10^6 microseconds
 
     // @abe: er zijn geen bools in C! voorlopig uitgecomment
-	/* while(true) {
-		//Listen for syncs
-		//Epiphany should somehow wait for global sync..
-		if(syncing) {
-			host_sync();	
-			syncing=false;
-		}	
+    /* while(true) {
+    //Listen for syncs
+    //Epiphany should somehow wait for global sync..
+    if(syncing) {
+    host_sync();	
+    syncing=false;
+    }	
     } */
 
     printf("(BSP) INFO: Program finished\n");
@@ -109,17 +121,18 @@ int bsp_begin(int nprocs)
             state.cols);
 
     state.nprocs_used = nprocs;
+    state.num_vars_registered = 0;
 
     // Open the workgroup
     if(e_open(&state.dev,
-            0, 0,
-            state.rows,
-            state.cols) != E_OK)
+                0, 0,
+                state.rows,
+                state.cols) != E_OK)
     {
         fprintf(stderr, "ERROR: Could not open workgroup.\n");
         return 0;
     }
-    
+
     if(e_reset_group(&state.dev) != E_OK) {
         fprintf(stderr, "ERROR: Could not reset workgroup.\n");
         return 0;
@@ -151,30 +164,61 @@ int bsp_begin(int nprocs)
 
 int bsp_end()
 {
-	if(e_finalize() != E_OK) {
-		fprintf(stderr, "ERROR: Could not finalize the Epiphany connection.\n");
-		return 0;
-	}
-	return 1;
+    if(E_OK != e_shm_release(REGISTERMAP_BUFFER_SHM_NAME) ) {
+        fprintf(stderr, "ERROR: Could not relese registermap_buffer\n");
+        return 0;
+    }
+    if(E_OK != e_finalize()) {
+        fprintf(stderr, "ERROR: Could not finalize the Epiphany connection.\n");
+        return 0;
+    }
+    return 1;
 }
 
 int bsp_nprocs()
 {
-	return state.nprocs;
+    return state.nprocs;
 }
 
-void host_sync() {
-	mem_sync();
+void _host_sync() {
+    _mem_sync();
 }
 
-//Memory
-void mem_sync() {
-	//Broadcast void** registermap_buffer to all void*** registermap
-	//Then reset registermap_buffer
-	
-	//Right now bsp_pop_reg is ignored
-	//Check if overwrite is necessary => this gives no problems
-	
-	//TODO: write this function
-}
+// Memory
+void _mem_sync() {
+    // TODO: Right now bsp_pop_reg is ignored
+    // Check if overwrite is necessary => this gives no problems
 
+    int i, j;
+    int new_vars=0;
+    // Check if variables were registered TODO: make nicer solution using register?
+    for (i = 0; i < state.nprocs; ++i) {
+        void* buf;
+        e_read(&state.registermap_buffer, 0u, 0u, (off_t) i*sizeof(void*), &buf, sizeof(void*));
+        if(buf != NULL) {
+            new_vars=1;
+            break;
+        }
+    }
+    if(!new_vars) {
+        return; // No registration took place; we are done
+    }
+
+    // Broadcast registermap_buffer to registermap 
+    void** buf = (void**) malloc(sizeof(void*)*state.nprocs);
+    e_read(&state.registermap_buffer, 0u, 0u, (off_t) 0, buf, sizeof(void*)*state.nprocs);
+    for(i = 0; i < state.platform.rows; ++i) {
+        for(j = 0; j < state.platform.cols; ++j) {
+            e_write(&state.dev,
+                    i, j,
+                    (off_t)(REGISTERMAP_ADDRESS + state.num_vars_registered * state.nprocs),
+                    buf,
+                    (size_t)(state.nprocs * sizeof(void*)));
+        }
+    }
+    state.num_vars_registered++;
+
+    // Reset registermap_buffer
+    void* buffer=calloc(sizeof(void*),state.nprocs);
+    e_write(&state.registermap_buffer, 0u, 0u, (off_t) 0, buffer, state.nprocs*sizeof(void*));
+}

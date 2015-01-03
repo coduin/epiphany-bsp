@@ -1,10 +1,10 @@
-#include <bsp_host.h>
+#include <host_bsp.h>
 #include <stdlib.h>
 #include <stdio.h> 
 
 int main(int argc, char **argv)
 {
-    bsp_init("bin/dotproduct.srec", argc, argv);
+    bsp_init("bin/e_dot_product.srec", argc, argv);
     bsp_begin(bsp_nprocs());
 
     // for loops

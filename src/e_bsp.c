@@ -22,7 +22,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
-#include "bsp.h"
+#include "e_bsp.h"
 #include <e-lib.h>
 
 #define _NPROCS 16
@@ -41,6 +41,12 @@ void bsp_begin()
 
     int* nprocs_loc = (int*)0x7500;
     _nprocs = (*nprocs_loc);
+
+    registermap=(void**)REGISTERMAP_ADDRESS;
+    //Set memory to 0 (dirty solution) TODO make clean solution
+    int i;
+    for(i = 0; i < MAX_N_REGISTER*_nprocs; i++)
+        registermap[i]=0;
 
     e_barrier_init(sync_bar, sync_bar_tgt);
 }
@@ -81,35 +87,31 @@ void bsp_sync()
 // Memory
 void bsp_push_reg(const void* variable, const int nbytes)
 {
-    void* offset=0;//TODO shoud write to void** registermap_buffer 
-    int voidSize=8;
-    int intSize=8;	
-    // @Abe: dit compileert niet
-    //e_write(e_emem_config, **variable, 0u, 0u, offset+(voidSize+intSize)*e_core_id(), 8);
-    //e_write(e_emem_config, *nbytes, 0u, 0u, offset+voidSize+(voidSize+intSize)*e_core_id(), 8);
+    e_memseg_t emem;
+    if( E_OK != e_shm_attach(&emem, REGISTERMAP_BUFFER_SHM_NAME) ) {
+        return;
+    }
+    e_write((void*)&emem,
+            &variable,
+            0u,
+            0u,
+            (void*)(sizeof(void*) * CORE_ID), // FIXME
+            sizeof(void*));
 }
 
 void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
 {
-    unsigned int row, col;
-    // @Abe: laten we hiervoor gebruik maken van een equivalent als _get_p_coords()
-    // want deze shit werkt maar rare core ids..
-    //e_coords_from_coreid(pid, &row, &col)
-
     int slotID;
     for(slotID=0; ; slotID++) {
 #ifdef DEBUG
         if(slotID >= MAX_N_REGISTER) {
-            fprintf(stderr,"PUTTING TO UNREGISTERED VARIABLE");
+            //fprintf(stderr,"PUTTING TO UNREGISTERED VARIABLE");//THIS COMMAND DOES NOT WORK
         }
 #endif
-        // @Abe: dit compileert niet
-        //if(registermap[slotID][e_core_id()] == dst)
-        //break;
+        if(registermap[_nprocs*slotID+CORE_ID] == dst)
+            break;
     }
 
-    void* actualDst=registermap[slotID][pid]+offset;
-
-    // @Abe: dit compileert niet
-    //e_write(e_group_config, src, row, col, actualDst, nbytes);	
+    void* actualDst=registermap[_nprocs*slotID+pid]+offset;
+    e_write(&e_group_config, src, CORE_ROW, CORE_COL, actualDst, nbytes);	
 }
