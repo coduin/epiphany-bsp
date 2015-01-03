@@ -97,15 +97,30 @@ int spmd_epiphany()
     usleep(100000); //10^6 microseconds
 
     // @abe: er zijn geen bools in C! voorlopig uitgecomment
-    /* while(true) {
-    //Listen for syncs
-    //Epiphany should somehow wait for global sync..
-    if(syncing) {
-    host_sync();	
-    syncing=false;
-    }	
-    } */
+	int i,j,counter,tmp, done;
+	done=0;
+	while(!done) {
+		counter=0;
+		for(i=0; i<state.platform.rows && !done; i++) {
+			for(j=0; j<state.platform.cols && !done; j++) {
+				e_read(&state.dev, i, j, (off_t)SYNC_STATE_ADDRESS, &tmp, sizeof(int));
+				if(tmp == STATE_FINISH)
+					done=1;
+				if(tmp == STATE_SYNC)
+					counter++;
+			}
+		}
+		if(counter == state.nprocs) {
+			host_sync();
 
+			tmp=STATE_CONTINUE;
+			for(i=0; i<state.platform.rows; i++) {
+				for(j=0; j<state.platform.cols; j++) {
+            		e_write(&state.dev, i, j, (off_t)SYNC_STATE_ADDRESS, &tmp, sizeof(int));
+				}
+			}
+		}
+	}
     printf("(BSP) INFO: Program finished\n");
 
     return 1;
@@ -155,7 +170,7 @@ int bsp_begin(int nprocs)
     int i, j;
     for(i = 0; i < state.platform.rows; ++i) {
         for(j = 0; j < state.platform.cols; ++j) {
-            e_write(&state.dev, i, j, (off_t)0x7500, &state.nprocs, sizeof(int));
+            e_write(&state.dev, i, j, (off_t)NPROCS_LOC_ADDRESS, &state.nprocs, sizeof(int));
         }
     }
 
