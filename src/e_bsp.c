@@ -35,7 +35,7 @@ int _pid = -1;
 e_barrier_t sync_bar[_NPROCS];
 e_barrier_t* sync_bar_tgt[_NPROCS];
 e_memseg_t emem;
-double initialTime;
+float initial_time;
 
 inline int row_from_pid(int pid)
 {
@@ -80,7 +80,7 @@ void bsp_begin()
 
     struct timeval start; 
     gettimeofday(&start, NULL);
-    initialTime=start.tv_sec*1000000.0+start.tv_usec*1.0;
+    initial_time = start.tv_sec * 1000000.0 + start.tv_usec;
 }
 
 void bsp_end()
@@ -100,12 +100,12 @@ int bsp_pid()
     return _pid;
 }
 
-double bsp_time()
+float bsp_time()
 {
     struct timeval current;    
     gettimeofday(&current, NULL);
-    double currentTime=current.tv_sec*1000000.0+current.tv_usec*1.0;
-    return currentTime-initialTime;
+    float current_time = current.tv_sec * 1000000.0 + current.tv_usec;
+    return current_time - initial_time;
 }
 
 // Sync

@@ -44,15 +44,15 @@ int bsp_nprocs();
 
 /** Returns the processor ID of the local core
  *
- *  @return pid: An integer indicating the id of the local core
+ *  pid: An integer indicating the id of the local core
  */
 int bsp_pid();
 
 /** Time in seconds that has passed since bsp_begin() was called
  *
- *  @return t: A floating point value indicating the passed time in seconds.
+ *  t: A floating point value indicating the passed time in seconds.
  */
-double bsp_time();
+float bsp_time();
 
 /** Terminates a superstep, and starts all communication. The computation is 
  *  halted until all communication has been performed.
