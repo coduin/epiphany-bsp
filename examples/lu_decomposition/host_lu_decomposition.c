@@ -16,18 +16,18 @@ char M = -1;
 char dim = 40;
 
 // "local to global" index
-int ltg(int& i, int& j, int l, int s, int t)
+int ltg(int* i, int* j, int l, int s, int t)
 {
-    i = s + (l % (dim / N)) * N;
-    j = t + (l % (dim / M)) * M;
+    (*i) = s + (l / (dim / N)) * N;
+    (*j) = t + (l % (dim / M)) * M;
 }
 
 // "global to local" index
-int gtl(int i, int j, int& l, int& s, int& t)
+int gtl(int i, int j, int* l, int* s, int* t)
 {
-    s = i % N;
-    t = j % M;
-    l = (i / (dim /  N)) * (dim / N) + (j / (dim / M));
+    (*s) = i % N;
+    (*t) = j % M;
+    (*l) = (i / M) * (dim / M) + (j / M);
 }
 
 int proc_id(int s, int t)
@@ -38,14 +38,17 @@ int proc_id(int s, int t)
 int main(int argc, char **argv)
 {
     // allocate and zero-initialize matrix
-    float* hilb = calloc(sizeof(float) * dim * dim);
+    float* mat = malloc(sizeof(float) * dim * dim);
 
-    // construct the matrix H, which is defined as H_ij = 1/(i+j-1)
+    // construct the matrix
     int i = 0; 
     int j = 0;
     for(i = 0; i < dim; ++i) {
         for(j = 0; j < dim; ++j) {
-            hilb[dim*i + j] = 1.0/(i+j+1) // store zero based (i.e. a_00 top-left)
+            if(i > j) 
+                mat[dim*i + j] = 1.0;
+            else 
+                mat[dim*i + j] = 2.0;
         }
     }
 
@@ -71,12 +74,13 @@ int main(int argc, char **argv)
             break;
     }
 
+    printf("LUD: Writing info on procs and matrix \n");
     // Write M, N and dim to every processor such that they can figure out 
     // the (s,t) pair, and gtl / ltg functions
     for(i = 0; i < bsp_nprocs(); ++i) {
-        co_write(i, M, LOC_M, sizeof(char));
-        co_write(i, N, LOC_N, sizeof(char));
-        co_write(i, dim, LOC_DIM, sizeof(char));
+        co_write(i, &M, (off_t)LOC_M, sizeof(char));
+        co_write(i, &N, (off_t)LOC_N, sizeof(char));
+        co_write(i, &dim, (off_t)LOC_DIM, sizeof(char));
     }
 
     int s = 0;
@@ -84,9 +88,9 @@ int main(int argc, char **argv)
     int l = 0;
     for(i = 0; i < dim; ++i) {
         for(j = 0; j < dim; ++j) {
-            gtl(i, j, l, s, t);
+            gtl(i, j, &l, &s, &t);
             co_write(proc_id(s, t),
-                    &hilb[dim*i + j],
+                    &mat[dim*i + j],
                     LOC_MATRIX + sizeof(float) * l,
                     sizeof(float));
         }
@@ -96,18 +100,19 @@ int main(int argc, char **argv)
 #ifdef DEBUG
     s = 2;
     t = 3;
-    for(l = 0; l < dim * dim; ++l) {
-            ltg(i, j, l, s, t);
+    printf("i.e. (s,t) = (2,3): \n");
+    for(l = 0; l < (dim * dim) / bsp_nprocs(); ++l) {
+            ltg(&i, &j, l, s, t);
             float val;
-            co_write(proc_id(s, t),
+            co_read(proc_id(s, t),
                     LOC_MATRIX + sizeof(float) * l,
                     &val,
                     sizeof(float));
-            printf("(%i, %i) %f\n", i, j, val);
+            printf("%i \t (%i, %i) \t %f \t 0x%x\n", l, i, j, val, LOC_MATRIX + sizeof(float) * l);
     }
 #endif
 
-    spmd_epiphany();
+    ebsp_spmd();
 
     // read L and U
     int pid = 0;
