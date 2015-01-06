@@ -1,4 +1,5 @@
-#include "bspedupack.h"
+#include <e_bsp.h>
+#include "e-lib.h"
  
 /*  This program measures p, r, g, and l of a BSP computer
     using bsp_put for communication.
@@ -49,15 +50,15 @@ void leastsquares(int h0, int h1, double *t, double *g, double *l){
 
 } /* end leastsquares */
 
-void bspbench(){
-    void leastsquares(int h0, int h1, double *t, double *g, double *l);
+int main(){ // bsp_bench
+    //void leastsquares(int h0, int h1, double *t, double *g, double *l);
     int p, s, s1, iter, i, n, h, destproc[MAXH], destindex[MAXH];
     double alpha, beta, x[MAXN], y[MAXN], z[MAXN], src[MAXH], *dest,
            time0, time1, time, *Time, mintime, maxtime,
            nflops, r, g0, l0, g, l, t[MAXH+1]; 
   
     /**** Determine p ****/
-    bsp_begin(P);
+    bsp_begin();
     p= bsp_nprocs(); /* p = number of processors obtained */
     s= bsp_pid();    /* s = processor number */
   
@@ -86,7 +87,7 @@ void bspbench(){
         }
         time1= bsp_time(); 
         time= time1-time0; 
-        bsp_put(0,&time,Time,s*SZDBL,SZDBL);
+        bsp_hpput(0,&time,Time,s*SZDBL,SZDBL);
         bsp_sync();
     
         /* Processor 0 determines minimum, maximum, average computing rate */
@@ -103,13 +104,12 @@ void bspbench(){
                 for(s1=0; s1<p; s1++)
                     r += nflops/Time[s1];
                 r /= p; 
-                printf("n= %5d min= %7.3lf max= %7.3lf av= %7.3lf Mflop/s ",
+                /*printf("n= %5d min= %7.3lf max= %7.3lf av= %7.3lf Mflop/s ",
                        n, nflops/(maxtime*MEGA),nflops/(mintime*MEGA), r/MEGA);
                 fflush(stdout);
-                /* Output for fooling benchmark-detecting compilers */
-                printf(" fool=%7.1lf\n",y[n-1]+z[n-1]);
-            } else
-                printf("minimum time is 0\n"); fflush(stdout);
+                // Output for fooling benchmark-detecting compilers
+                printf(" fool=%7.1lf\n",y[n-1]+z[n-1]);*/
+            } 
         }
     }
 
@@ -134,7 +134,7 @@ void bspbench(){
         time0= bsp_time(); 
         for (iter=0; iter<NITERS; iter++){
             for (i=0; i<h; i++)
-                bsp_put(destproc[i],&src[i],dest,destindex[i]*SZDBL,SZDBL);
+                bsp_hpput(destproc[i],&src[i],dest,destindex[i]*SZDBL,SZDBL);
             bsp_sync(); 
         }
         time1= bsp_time();
@@ -143,39 +143,32 @@ void bspbench(){
         /* Compute time of one h-relation */
         if (s==0){
             t[h]= (time*r)/NITERS;
-            printf("Time of %5d-relation= %lf sec= %8.0lf flops\n",
-                   h, time/NITERS, t[h]); fflush(stdout);
+            /*printf("Time of %5d-relation= %lf sec= %8.0lf flops\n",
+                   h, time/NITERS, t[h]); fflush(stdout);*/
         }
     }
 
     if (s==0){
-        printf("size of double = %d bytes\n",(int)SZDBL);
+        //printf("size of double = %d bytes\n",(int)SZDBL);
         leastsquares(0,p,t,&g0,&l0); 
-        printf("Range h=0 to p   : g= %.1lf, l= %.1lf\n",g0,l0);
+        //printf("Range h=0 to p   : g= %.1lf, l= %.1lf\n",g0,l0);
         leastsquares(p,MAXH,t,&g,&l);
-        printf("Range h=p to HMAX: g= %.1lf, l= %.1lf\n",g,l);
-
-        printf("The bottom line for this BSP computer is:\n");
-        printf("p= %d, r= %.3lf Mflop/s, g= %.1lf, l= %.1lf\n",
-               p,r/MEGA,g,l);
-        fflush(stdout);
+        //printf("Range h=p to HMAX: g= %.1lf, l= %.1lf\n",g,l);
+        int* pOut = (void*)0x6000;
+        int* rOut = (void*)0x6010;
+        int* gOut = (void*)0x6020;
+        int* lOut = (void*)0x6030;
+        (*pOut)=p;
+        (*rOut)=r;
+        (*gOut)=g;
+        (*lOut)=l;
+        //fflush(stdout);
     }
-    bsp_pop_reg(dest); vecfreed(dest);
-    bsp_pop_reg(Time); vecfreed(Time);
+    //bsp_pop_reg(dest); vecfreed(dest);
+    //bsp_pop_reg(Time); vecfreed(Time);
  
     bsp_end();
+    
+    return 0;
 } /* end bspbench */
 
-int main(int argc, char **argv){
-
-    bsp_init(bspbench, argc, argv);
-    printf("How many processors do you want to use?\n"); fflush(stdout);
-    scanf("%d",&P);
-    if (P > bsp_nprocs()){
-        printf("Sorry, not enough processors available.\n");
-        exit(1);
-    }
-    bspbench();
-    exit(0);
-
-} /* end main */
