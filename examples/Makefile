@@ -20,7 +20,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: hello e_hello dot_product puttest
+all: hello e_hello dot_product memtest
 
 ########################################################
 
@@ -72,6 +72,19 @@ bin/e_lu_decomposition.elf: lu_decomposition/e_lu_decomposition.c
 	e-gcc -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
 
 bin/e_lu_decomposition.srec: bin/e_lu_decomposition.elf
+	e-objcopy --srec-forceS3 --output-target srec $< $@
+
+########################################################
+
+memtest: bin/host_memtest bin/e_memtest.elf bin/e_memtest.srec
+
+bin/host_memtest: memtest/host_memtest.c
+	gcc $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
+	
+bin/e_memtest.elf: memtest/e_memtest.c
+	e-gcc -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
+
+bin/e_memtest.srec: bin/e_memtest.elf
 	e-objcopy --srec-forceS3 --output-target srec $< $@
 
 ########################################################

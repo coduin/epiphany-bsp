@@ -33,15 +33,23 @@ see the files COPYING and COPYING.LESSER. If not, see
 // Global state
 bsp_state_t state;
 
-void _get_p_coords(int pid, int* row, int* col)
+
+void co_write(int pid, void* src, off_t dst, int size)
 {
-    (*row) = pid / state.cols;
-    (*col) = pid % state.cols;
+    int prow, pcol;
+    _get_p_coords(pid, &prow, &pcol);
+    e_write(&state.dev,
+            prow, pcol,
+            dst, src, size);
 }
 
-bsp_state_t* _get_state()
+void co_read(int pid, off_t src, void* dst, int size)
 {
-    return &state;
+    int prow, pcol;
+    _get_p_coords(pid, &prow, &pcol);
+    e_read(&state.dev,
+           prow, pcol,
+           src, dst, size);
 }
 
 int bsp_init(const char* _e_name,
@@ -72,55 +80,6 @@ int bsp_init(const char* _e_name,
     // Copy the name to the state
     state.e_name = (char*)malloc(MAX_NAME_SIZE);
     strcpy(state.e_name, _e_name);
-
-    // Allocate registermap_buffer
-    if(e_shm_alloc(&state.registermap_buffer,
-                REGISTERMAP_BUFFER_SHM_NAME,
-                state.nprocs*sizeof(void*)) != E_OK) {
-        fprintf(stderr, "ERROR: Could not allocate registermap_buffer.\n");
-        return 0; 
-    }
-
-    //Set registermap_buffer to zero
-    void* buf=calloc(sizeof(void*),state.nprocs);
-    e_write(&state.registermap_buffer, 0u, 0u, (off_t) 0, buf, state.nprocs * sizeof(void*));
-
-    return 1;
-}
-
-int spmd_epiphany()
-{
-    // Start the program
-    e_start_group(&state.dev);
-
-    // sleep for 1.0 seconds
-    usleep(100000); //10^6 microseconds
-
-	int i,j,counter,tmp,done;
-	done=0;
-	while(!done) {
-		counter=0;
-		for(i=0; i<state.platform.rows && !done; i++) {
-			for(j=0; j<state.platform.cols && !done; j++) {
-				e_read(&state.dev, i, j, (off_t)SYNC_STATE_ADDRESS, &tmp, sizeof(int));
-				if(tmp == STATE_FINISH)
-					done=1;
-				if(tmp == STATE_SYNC)
-					counter++;
-			}
-		}
-		if(counter == state.nprocs) {
-			host_sync();
-
-			tmp=STATE_CONTINUE;
-			for(i=0; i<state.platform.rows; i++) {
-				for(j=0; j<state.platform.cols; j++) {
-            		e_write(&state.dev, i, j, (off_t)SYNC_STATE_ADDRESS, &tmp, sizeof(int));
-				}
-			}
-		}
-	}
-    printf("(BSP) INFO: Program finished\n");
 
     return 1;
 }
@@ -173,15 +132,86 @@ int bsp_begin(int nprocs)
         }
     }
 
+    // Allocate registermap_buffers
+    for(i = 0; i < state.nprocs; ++i) {
+        char rm_name[10];
+        strcpy(rm_name, REGISTERMAP_BUFFER_SHM_NAME);
+        char id[3] = { 0 };
+        sprintf(id, "_%i", i);
+        strcat(rm_name, id);
+
+        if(e_shm_alloc(&state.registermap_buffer[i],
+                    rm_name, sizeof(void*)) != E_OK) {
+            fprintf(stderr, "ERROR: Could not allocate registermap_buffer %s.\n", rm_name);
+            return 0; 
+        }
+    }
+
+    //Set registermap_buffer to zero
+    void* buf = 0;
+    for(i = 0; i < state.nprocs; ++i)  {
+        e_write(&state.registermap_buffer[i], 0, 0, (off_t) 0, &buf, sizeof(void*));
+    }
+
     return 1;
 }
 
+int spmd_epiphany()
+{
+    // Start the program
+    e_start_group(&state.dev);
+
+    // sleep for 1.0 seconds
+    usleep(100000); //10^6 microseconds
+
+    int i = 0;
+    int j = 0;
+    int counter = 0;
+    int tmp = 0;
+    int done = 0; 
+    int rand = 0;
+    while(done != state.nprocs) {
+        counter = 0;
+        done = 0;
+        for(i = 0; i < state.platform.rows; i++) {
+            for(j = 0; j < state.platform.cols; j++) {
+                e_read(&state.dev, i, j, (off_t)SYNC_STATE_ADDRESS, &tmp, sizeof(int));
+                if(tmp == STATE_FINISH) {
+                    done++;
+                }
+                if(tmp == STATE_SYNC)
+                    counter++;
+            }
+        }
+        if(counter == state.nprocs) {
+#ifdef DEBUG
+            printf("(BSP) DEBUG: Syncing on host...\n");
+#endif
+            _host_sync();
+
+#ifdef DEBUG
+            printf("(BSP) DEBUG: Continuing...\n");
+#endif
+            tmp = STATE_CONTINUE;
+            for(i = 0; i < state.platform.rows; i++) {
+                for(j = 0; j < state.platform.cols; j++) {
+                    e_write(&state.dev, i, j, (off_t)SYNC_STATE_ADDRESS, &tmp, sizeof(int));
+                }
+            }
+        }
+    }
+    printf("(BSP) INFO: Program finished\n");
+
+    return 1;
+}
 int bsp_end()
 {
-    if(E_OK != e_shm_release(REGISTERMAP_BUFFER_SHM_NAME) ) {
+
+    // FIXME release all
+    /* if(E_OK != e_shm_release(REGISTERMAP_BUFFER_SHM_NAME) ) {
         fprintf(stderr, "ERROR: Could not relese registermap_buffer\n");
         return 0;
-    }
+    } */
     if(E_OK != e_finalize()) {
         fprintf(stderr, "ERROR: Could not finalize the Epiphany connection.\n");
         return 0;
@@ -194,24 +224,24 @@ int bsp_nprocs()
     return state.nprocs;
 }
 
-void _host_sync() {
-    _mem_sync();
-}
+//------------------
+// Private functions
+//------------------
 
 // Memory
-void _mem_sync() {
+void _host_sync() {
     // TODO: Right now bsp_pop_reg is ignored
     // Check if overwrite is necessary => this gives no problems
-	
-	printf("_mem_sync\n");
+    
+    printf("_mem_sync\n");
     int i, j;
     int new_vars=0;
     // Check if variables were registered TODO: make nicer solution using register?
     for (i = 0; i < state.nprocs; ++i) {
         void* buf;
-        e_read(&state.registermap_buffer, 0u, 0u, (off_t) i*sizeof(void*), &buf, sizeof(void*));
+        e_read(&state.registermap_buffer[i], 0, 0, 0, &buf, sizeof(void*));
         if(buf != NULL) {
-            new_vars=1;
+            new_vars = 1;
             break;
         }
     }
@@ -219,21 +249,38 @@ void _mem_sync() {
         return; // No registration took place; we are done
     }
 
-    // Broadcast registermap_buffer to registermap 
-    void** buf = (void**) malloc(sizeof(void*)*state.nprocs);
-    e_read(&state.registermap_buffer, 0u, 0u, (off_t) 0, buf, sizeof(void*)*state.nprocs);
-    for(i = 0; i < state.platform.rows; ++i) {
-        for(j = 0; j < state.platform.cols; ++j) {
-            e_write(&state.dev,
-                    i, j,
-                    (off_t)(REGISTERMAP_ADDRESS + state.num_vars_registered * state.nprocs),
-                    buf,
-                    (size_t)(state.nprocs * sizeof(void*)));
-        }
+#ifdef DEBUG
+    printf("(BSP) DEBUG: New variables registered.\n");
+#endif
+
+    //Broadcast registermap_buffer to registermap 
+    void** buf = (void**) malloc(sizeof(void*) * state.nprocs);
+    for(i = 0; i < state.nprocs; ++i) {
+        e_read(&state.registermap_buffer[i], 0, 0, (off_t) 0, buf + i, sizeof(void*));
+    }
+
+    for(i = 0; i < state.nprocs; ++i) {
+        co_write(i, buf,
+                (off_t)(REGISTERMAP_ADDRESS + state.num_vars_registered * state.nprocs), 
+                sizeof(void*) * state.nprocs);
     }
     state.num_vars_registered++;
 
     // Reset registermap_buffer
-    void* buffer=calloc(sizeof(void*),state.nprocs);
-    e_write(&state.registermap_buffer, 0u, 0u, (off_t) 0, buffer, state.nprocs*sizeof(void*));
+    void* buffer = calloc(sizeof(void*), state.nprocs);
+    //e_write(&state.registermap_buffer[i], 0, 0, (off_t) 0, buffer, state.nprocs*sizeof(void*));
+
+    free(buf);
+    free(buffer);
+}
+
+void _get_p_coords(int pid, int* row, int* col)
+{
+    (*row) = pid / state.cols;
+    (*col) = pid % state.cols;
+}
+
+bsp_state_t* _get_state()
+{
+    return &state;
 }

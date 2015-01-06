@@ -28,8 +28,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <e-loader.h>
 #include "common.h"
 
-//const char registermap_buffer_shm_name[] = REGISTERMAP_BUFFER_SHM_NAME;
-
 typedef struct _bsp_state_t
 {
     // The number of processors available
@@ -46,7 +44,8 @@ typedef struct _bsp_state_t
     int nprocs_used;
 
     // Register map
-    e_mem_t registermap_buffer;
+    e_mem_t registermap_buffer[MAX_NCORES];
+    // need seperate region for each proc
     int num_vars_registered;
 
     // Epiphany specific variables
@@ -54,15 +53,34 @@ typedef struct _bsp_state_t
     e_epiphany_t dev;
 } bsp_state_t;
 
-bsp_state_t* _get_state();
+/** This writes data from the host processor to the co-processor.
+ *  This can be useful for distributing initial data, or when dividing work
+ *  betewen the host and the Epiphany.
+ *
+ *  pid: The processor ID in the BSP system.
+ *  src: A pointer to the source of the data to write.
+ *  dst: The destination on the chip processor. (e.g. 0x2000)
+ *  size: Amount of data to write in bytes.
+ */
+void co_write(int pid, void* src, off_t dst, int size);
+
+/** This reads data from the co-processor to the host processor.
+ *  This can be useful for distributing initial data, or when dividing work
+ *
+ *  pid: The processor ID in the BSP system.
+ *  src: The source of the data on the co-processor (e.g. 0x2000)
+ *  dst: A destination pointer on the host processor.
+ *  size: Amount of data to read in bytes.
+ */
+void co_read(int pid, off_t src, void* dst, int size);
 
 /** Initializes the BSP system. This sets up all the BSP variables and loads
  *  the epiphany BSP program.
  *
- *  @param e_name: A string containing the name of the eBSP program.
- *  @param argc: An integer containing the number of input arguments
- *  @param argv: An array of strings containg the input flags.
- *  @return flag: An integer indicating whether the function finished
+ *  e_name: A string containing the name of the eBSP program.
+ *  argc: An integer containing the number of input arguments
+ *  argv: An array of strings containg the input flags.
+ *  flag: An integer indicating whether the function finished
  *                succesfully, in which case it is 1, or 0 otherwise.
  */
 int bsp_init(const char* e_name,
@@ -71,36 +89,41 @@ int bsp_init(const char* e_name,
 
 /** Starts the SPMD program on the Epiphany cores.
  *
- *  @return flag: An integer indicating whether the function finished
+ *  flag: An integer indicating whether the function finished
  *                succesfully, in which case it is 1, or 0 otherwise.
  */
+// TODO: rename to ebsp_spmd();
 int spmd_epiphany();
 
 /** Starts the BSP program.
  *
- *  @param nprocs: An integer indicating the number of processors to run on.
- *  @return flag: An integer indicating whether the function finished
+ *  nprocs: An integer indicating the number of processors to run on.
+ *  flag: An integer indicating whether the function finished
  *                succesfully, in which case it is 1, or 0 otherwise.
  */
 int bsp_begin(int nprocs);
 
 /** Finalizes and cleans up the BSP program.
- *  @return flag: An integer indicating whether the function finished
+ *  flag: An integer indicating whether the function finished
  *                succesfully, in which case it is 1, or 0 otherwise.
  */
 int bsp_end();
 
 /** Returns the number of available processors.
  *
- *  @return nprocs: An integer indicating the number of available processors.
+ *  nprocs: An integer indicating the number of available processors.
  */
 int bsp_nprocs();
 
-/** host_sync is called on bsp_sync() in epiphany
- */
+// TODO: Consider function ebsp_push_result()
+
+//------------------
+// Private functions
+//------------------
+
+// For synchronization between host and co
 void _host_sync();
 
-/** The part of host_sync responsible for registering variables
- *  This broadcasts void** registermap_buffer to void*** registermap
- */
-void _mem_sync();
+// Convenience functions
+void _get_p_coords(int pid, int* row, int* col);
+bsp_state_t* _get_state();

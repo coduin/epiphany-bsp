@@ -10,16 +10,20 @@ int main()
 
     const char* hmsg = "Hello world! BSP";
 
-    // set char */
     char* a = (void*)0x7050;
     (*a) = hmsg[p];
     
+    bsp_push_reg(&regvar, sizeof(int));
+    bsp_sync();
+    int regvar=registermap[n*0+p];
+    if(p == 4) {
+        int tmp=999;
+        //bsp_hpput(5, &tmp, &regvar, 0, sizeof(int));
+    }
     bsp_sync();
     
-
     int* po = (void*)0x7100;
-    int tmp=CORE_ID;
-    (*po) = tmp;
+    (*po) = regvar;
 
 
     return 0;
