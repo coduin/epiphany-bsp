@@ -96,8 +96,7 @@ int spmd_epiphany()
     // sleep for 1.0 seconds
     usleep(100000); //10^6 microseconds
 
-    // @abe: er zijn geen bools in C! voorlopig uitgecomment
-	int i,j,counter,tmp, done;
+	int i,j,counter,tmp,done;
 	done=0;
 	while(!done) {
 		counter=0;
@@ -203,7 +202,8 @@ void _host_sync() {
 void _mem_sync() {
     // TODO: Right now bsp_pop_reg is ignored
     // Check if overwrite is necessary => this gives no problems
-
+	
+	printf("_mem_sync\n");
     int i, j;
     int new_vars=0;
     // Check if variables were registered TODO: make nicer solution using register?
