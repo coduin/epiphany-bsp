@@ -13,7 +13,7 @@ char M = -1;
 
 // always choose dim 40 such that we dont have to worry about heterogeneous
 // distributions
-char dim = 20;
+char dim = 40;
 
 // "local to global" index
 int ltg(int* i, int* j, int l, int s, int t)
@@ -27,7 +27,7 @@ int gtl(int i, int j, int* l, int* s, int* t)
 {
     (*s) = i % N;
     (*t) = j % M;
-    (*l) = (i / M) * M + (j / M);
+    (*l) = (i / M) * (dim / M) + (j / M);
 }
 
 int proc_id(int s, int t)
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 #ifdef DEBUG
     s = 2;
     t = 3;
-    printf("e.g. (s,t) = (2,3): \n");
+    printf("i.e. (s,t) = (2,3): \n");
     for(l = 0; l < (dim * dim) / bsp_nprocs(); ++l) {
             ltg(&i, &j, l, s, t);
             float val;
@@ -112,7 +112,7 @@ int main(int argc, char **argv)
     }
 #endif
 
-    spmd_epiphany();
+    ebsp_spmd();
 
     // read L and U
     int pid = 0;

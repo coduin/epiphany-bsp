@@ -93,7 +93,8 @@ int bsp_init(const char* e_name,
  *                succesfully, in which case it is 1, or 0 otherwise.
  */
 // TODO: rename to ebsp_spmd();
-int spmd_epiphany();
+#define spmd_epiphany ebsp_spmd
+int ebsp_spmd();
 
 /** Starts the BSP program.
  *
@@ -116,14 +117,3 @@ int bsp_end();
 int bsp_nprocs();
 
 // TODO: Consider function ebsp_push_result()
-
-//------------------
-// Private functions
-//------------------
-
-// For synchronization between host and co
-void _host_sync();
-
-// Convenience functions
-void _get_p_coords(int pid, int* row, int* col);
-bsp_state_t* _get_state();

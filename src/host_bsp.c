@@ -233,7 +233,6 @@ void _host_sync() {
     // TODO: Right now bsp_pop_reg is ignored
     // Check if overwrite is necessary => this gives no problems
     
-    printf("_mem_sync\n");
     int i, j;
     int new_vars=0;
     // Check if variables were registered TODO: make nicer solution using register?

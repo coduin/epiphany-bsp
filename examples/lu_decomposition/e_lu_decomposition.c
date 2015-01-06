@@ -20,8 +20,8 @@ int ltg(int* i, int* j, int l)
 // "global to local" index
 inline int gtl(int i, int j)
 {
-    // assume correct processor
-    return (i / (dim /  N)) * (dim / N) + (j / (dim / M));
+    // here we assume correct processor
+    return (i / M) * (dim / M) + (j / M);
 }
 
 inline float a(int i, int j) {
@@ -44,24 +44,24 @@ int main()
     s = p / M;
     t = p % M;
 
-    /* for (k = 0; k < dim; ++k) {
-        // stage k
-        if (k % M == t) {
-            int max_value = -1;
-            int rs = -1;
-            for (i = k; i < dim; ++i) {
-                if (i % N == s) {
-                    int val = abs(a(i,k));
-                    if (val > max_value) {
-                        max_value = val;
-                        rs = i;
-                    }
-                }
-            }
-        }
-    } */
+    // register variable to store r and a_rk
+    bsp_push_reg((void*)LOC_RS, sizeof(int) * bsp_nprocs());
+    bsp_sync();
 
-    //bsp_sync();
+    bsp_push_reg((void*)LOC_ARK, sizeof(int) * bsp_nprocs());
+    bsp_sync();
+
+    for (k = 0; k < dim; ++k) {
+        //
+        if(k % t == 0) {
+            // ...
+            //bsp_sync();
+        }
+        else {
+            //bsp_sync();
+        }
+    }
+
 
     int* result = (int*)LOC_RESULT;
     (*result) = s;
