@@ -5,21 +5,34 @@
     using bsp_put for communication.
 */
 
+/* This program needs order 6*MAXH+3*MAXN memory */
 #define NITERS 100     /* number of iterations */
 #define MAXN 1024      /* maximum length of DAXPY computation */
 #define MAXH 256       /* maximum h in h-relation */
 #define MEGA 1000000.0
+
+
+/* A subset of bspedupack starts here */
+
+#define SZDBL (sizeof(double))
+#define SZINT (sizeof(int))
+#define TRUE (1)
+#define FALSE (0)
+#define MAX(a,b) ((a)>(b) ? (a) : (b))
+#define MIN(a,b) ((a)<(b) ? (a) : (b))
+#define SZULL (sizeof( long long))
+#define ulong long long
 
 double *vecallocd(int n){ 
     /* This function allocates a vector of doubles of length n */ 
     double *pd; 
  
     if (n==0){ 
-        pd= NULL; 
+        pd= NULL;//0x4000 - 0x6000 
     } else { 
         pd= (double *)malloc(n*SZDBL); 
         if(pd==NULL) 
-            return NULL;//Error!
+            return NULL;/* Error! */
     } 
     return pd; 
 } /* end vecallocd */ 
@@ -32,10 +45,9 @@ void vecfreed(double *pd){
 
 } /* end vecfreed */
 
+/* end bspedupack */
 
 
-
-int P; /* number of processors requested */
 
 void leastsquares(int h0, int h1, double *t, double *g, double *l){
     /* This function computes the parameters g and l of the 
@@ -75,8 +87,9 @@ void leastsquares(int h0, int h1, double *t, double *g, double *l){
 
 } /* end leastsquares */
 
-int main(){ // bsp_bench
-    //void leastsquares(int h0, int h1, double *t, double *g, double *l);
+
+int main(){ /*  bsp_bench */
+    /* void leastsquares(int h0, int h1, double *t, double *g, double *l); */
     int p, s, s1, iter, i, n, h, destproc[MAXH], destindex[MAXH];
     double alpha, beta, x[MAXN], y[MAXN], z[MAXN], src[MAXH], *dest,
            time0, time1, time, *Time, mintime, maxtime,
@@ -88,7 +101,7 @@ int main(){ // bsp_bench
     s= bsp_pid();    /* s = processor number */
   
     Time= vecallocd(p); bsp_push_reg(Time,p*SZDBL);
-    dest= vecallocd(2*MAXH+p); bsp_push_reg(dest,(2*MAXH+p)*SZDBL;
+    dest= vecallocd(2*MAXH+p); bsp_push_reg(dest,(2*MAXH+p)*SZDBL);
     bsp_sync();
 
     /**** Determine r ****/
@@ -132,7 +145,7 @@ int main(){ // bsp_bench
                 /*printf("n= %5d min= %7.3lf max= %7.3lf av= %7.3lf Mflop/s ",
                        n, nflops/(maxtime*MEGA),nflops/(mintime*MEGA), r/MEGA);
                 fflush(stdout);
-                // Output for fooling benchmark-detecting compilers
+                /*  Output for fooling benchmark-detecting compilers */
                 printf(" fool=%7.1lf\n",y[n-1]+z[n-1]);*/
             } 
         }
@@ -174,13 +187,13 @@ int main(){ // bsp_bench
     }
 
     if (s==0){
-        //printf("size of double = %d bytes\n",(int)SZDBL);
+        /* printf("size of double = %d bytes\n",(int)SZDBL); */
         leastsquares(0,p,t,&g0,&l0); 
-        //printf("Range h=0 to p   : g= %.1lf, l= %.1lf\n",g0,l0);
+        /* printf("Range h=0 to p   : g= %.1lf, l= %.1lf\n",g0,l0); */
         leastsquares(p,MAXH,t,&g,&l);
-        //printf("Range h=p to HMAX: g= %.1lf, l= %.1lf\n",g,l);
+        /* printf("Range h=p to HMAX: g= %.1lf, l= %.1lf\n",g,l); */
 
-        //Write essential results!
+        /* Write essential results! */
         int* pOut = (void*)0x6000;
         int* rOut = (void*)0x6010;
         int* gOut = (void*)0x6020;
@@ -189,11 +202,11 @@ int main(){ // bsp_bench
         (*rOut)=r;
         (*gOut)=g;
         (*lOut)=l;
-        //fflush(stdout);
+        /* fflush(stdout); */
     }
     vecfreed(dest);
     vecfreed(Time);
-    //No need tot pop register in our implementation...
+    /* No need tot pop register in our implementation... */
     bsp_end();
     
     return 0;

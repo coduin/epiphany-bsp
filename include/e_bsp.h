@@ -52,7 +52,7 @@ int bsp_pid();
  *
  *  @return t: A floating point value indicating the passed time in seconds.
  */
-float bsp_time();
+double bsp_time();
 
 /** Terminates a superstep, and starts all communication. The computation is 
  *  halted until all communication has been performed.
