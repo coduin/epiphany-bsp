@@ -10,6 +10,31 @@
 #define MAXH 256       /* maximum h in h-relation */
 #define MEGA 1000000.0
 
+double *vecallocd(int n){ 
+    /* This function allocates a vector of doubles of length n */ 
+    double *pd; 
+ 
+    if (n==0){ 
+        pd= NULL; 
+    } else { 
+        pd= (double *)malloc(n*SZDBL); 
+        if(pd==NULL) 
+            return NULL;//Error!
+    } 
+    return pd; 
+} /* end vecallocd */ 
+
+void vecfreed(double *pd){
+    /* This function frees a vector of doubles */
+
+    if (pd!=NULL)
+        free(pd);
+
+} /* end vecfreed */
+
+
+
+
 int P; /* number of processors requested */
 
 void leastsquares(int h0, int h1, double *t, double *g, double *l){
@@ -63,7 +88,7 @@ int main(){ // bsp_bench
     s= bsp_pid();    /* s = processor number */
   
     Time= vecallocd(p); bsp_push_reg(Time,p*SZDBL);
-    dest= vecallocd(2*MAXH+p); bsp_push_reg(dest,(2*MAXH+p)*SZDBL);
+    dest= vecallocd(2*MAXH+p); bsp_push_reg(dest,(2*MAXH+p)*SZDBL;
     bsp_sync();
 
     /**** Determine r ****/
@@ -154,6 +179,8 @@ int main(){ // bsp_bench
         //printf("Range h=0 to p   : g= %.1lf, l= %.1lf\n",g0,l0);
         leastsquares(p,MAXH,t,&g,&l);
         //printf("Range h=p to HMAX: g= %.1lf, l= %.1lf\n",g,l);
+
+        //Write essential results!
         int* pOut = (void*)0x6000;
         int* rOut = (void*)0x6010;
         int* gOut = (void*)0x6020;
@@ -164,9 +191,9 @@ int main(){ // bsp_bench
         (*lOut)=l;
         //fflush(stdout);
     }
-    //bsp_pop_reg(dest); vecfreed(dest);
-    //bsp_pop_reg(Time); vecfreed(Time);
- 
+    vecfreed(dest);
+    vecfreed(Time);
+    //No need tot pop register in our implementation...
     bsp_end();
     
     return 0;
