@@ -20,7 +20,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: hello e_hello dot_product memtest
+all: hello e_hello dot_product memtest bspbench
 
 ########################################################
 
@@ -89,18 +89,19 @@ bin/e_memtest.srec: bin/e_memtest.elf
 
 ########################################################
 
-puttest: bin/host_puttest bin/e_puttest.elf bin/e_puttest.srec
+bspbench: bin/host_bspbench bin/e_bspbench.elf bin/e_bspbench.srec
 
-bin/host_puttest: puttest/host_puttest.c
+bin/host_bspbench: bspbench/host_bspbench.c
 	gcc $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
 	
-bin/e_puttest.elf: puttest/e_puttest.c
+bin/e_bspbench.elf: bspbench/e_bspbench.c
 	e-gcc -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
 
-bin/e_puttest.srec: bin/e_puttest.elf
+bin/e_bspbench.srec: bin/e_bspbench.elf
 	e-objcopy --srec-forceS3 --output-target srec $< $@
 
 ########################################################
+
 
 clean:
 	rm bin/*
