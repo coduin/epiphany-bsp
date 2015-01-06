@@ -21,7 +21,7 @@ with the Epiphany architecture, without necessarily having to resort to the Epip
 
 # Library
 
-Programs written with the eBSP library contain a *host processor* and a or *co-processor* part. This is indicated using `host_` and `e_` prefixes resepectively. A minimal eBSP program looks like this on the host:
+Programs written with the eBSP library contain a *host processor* and a or *co-processor* part. This is indicated using `host_` and `e_` prefixes respectively. A minimal eBSP program looks like this on the host:
 
 ```C
 // on host
