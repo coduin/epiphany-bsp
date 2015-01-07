@@ -33,6 +33,9 @@ see the files COPYING and COPYING.LESSER. If not, see
 // Global state
 bsp_state_t state;
 
+void _host_sync();
+void _get_p_coords(int pid, int* row, int* col);
+bsp_state_t* _get_state();
 
 void co_write(int pid, void* src, off_t dst, int size)
 {
