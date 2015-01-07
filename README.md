@@ -24,21 +24,21 @@ to the Epiphany SDK.
 
 Implementations of the BSP model expose a small set of public functions which are refered to as *primitives*. Programs written with the eBSP library contain a *host processor* and a or *co-processor* part also called *guest*. This is indicated using `host_` and `e_` prefixes respectively. The primitives and their status in the eBSP library are summarized below:
 
-Name          | Description                                                                | Implemented
-------------- | -------------------------------------------------------------------------- | -----------
-`bsp_init`    | Initializes the BSP system (host).                                         | Yes
-`bsp_begin`   | Loads the BSP program and sets up . (host / guest)                         | Yes
-`bsp_end`     | Finalizes the BSP program. (host / guest)                                  | Yes
-`bsp_pid`     | Returns the processor id. (guest)                                          | Yes
-`bsp_nprocs`  | Returns the number of processors available or in use. (host / guest)       | Yes
-`bsp_time`    | Returns the elapsed (wall)time in seconds. (guest)                         | Planned
-`bsp_sync`    | Denotes the end of a superstep, performs all staged communication. (guest) | Yes
-`bsp_push_reg`| Registers a new variable to the BSP system. (guest)                        | Yes
-`bsp_put`     | Sends data to another processor using registered variables. (guest)        | Planned
-`bsp_hpput`   | Unbuffered version of bsp_put, performed immediately. (guest)              | Yes
-...           | ...                                                                        | ...
+Name          | Description                                                                | On  | Implemented
+------------- | -------------------------------------------------------------------------- | --- | -----------
+`bsp_init`    | Initializes the BSP system.                                                | H   | Yes
+`bsp_begin`   | Loads the BSP program and sets up.                                         | H/G | Yes
+`bsp_end`     | Finalizes the BSP program.                                                 | H/G | Yes
+`bsp_pid`     | Returns the processor id.                                                  | G   | Yes
+`bsp_nprocs`  | Returns the number of processors available or in use.                      | H/G | Yes
+`bsp_time`    | Returns the elapsed (wall)time in seconds.                                 | G   | Planned
+`bsp_sync`    | Denotes the end of a superstep, performs all staged communication.         | G   | Yes
+`bsp_push_reg`| Registers a new variable to the BSP system.                                | G   | Yes
+`bsp_put`     | Sends data to another processor using registered variables.                | G   | Planned
+`bsp_hpput`   | Unbuffered version of `bsp_put`, performed immediately.                    | G   | Yes
+...           | ...                                                                        | ... | ...
 
-Besides these primitives we have introduced the function `ebsp_smpd` which starts the program on the co-processor. The host part of a minimal eBSP program looks like this:
+Where H denotes host, and G denotes guest. Besides these primitives we have introduced the function `ebsp_smpd` which starts the program on the co-processor. The host part of a minimal eBSP program looks like this:
 
 ```C
 // on host
