@@ -11,8 +11,9 @@
 char N = -1;
 char M = -1;
 
-// always choose dim 40 such that we dont have to worry about heterogeneous
-// distributions
+// always choose multiple of 4 such that we dont have to worry
+// about heterogeneous distributions, too much,
+// which makes a lot of things much easier
 char dim = 40;
 
 // "local to global" index
@@ -46,9 +47,9 @@ int main(int argc, char **argv)
     for(i = 0; i < dim; ++i) {
         for(j = 0; j < dim; ++j) {
             if(i > j) 
-                mat[dim*i + j] = 1.0;
+                mat[dim*i + j] = (float)i / j;
             else 
-                mat[dim*i + j] = 2.0;
+                mat[dim*i + j] = (float)j / i;
         }
     }
 
@@ -108,7 +109,9 @@ int main(int argc, char **argv)
                     LOC_MATRIX + sizeof(float) * l,
                     &val,
                     sizeof(float));
-            printf("%i \t (%i, %i) \t %f \t 0x%x\n", l, i, j, val, LOC_MATRIX + sizeof(float) * l);
+            printf("%i \t (%i, %i) \t %f \t 0x%x\n",
+                    l, i, j, val,
+                    LOC_MATRIX + sizeof(float) * l);
     }
 #endif
 
