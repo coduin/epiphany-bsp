@@ -26,6 +26,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <e-lib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/time.h>
 
 #define _NPROCS 16
 
@@ -34,6 +35,7 @@ int _pid = -1;
 e_barrier_t sync_bar[_NPROCS];
 e_barrier_t* sync_bar_tgt[_NPROCS];
 e_memseg_t emem;
+float initial_time;
 
 inline int row_from_pid(int pid)
 {
@@ -72,9 +74,13 @@ void bsp_begin()
 
     //Set memory to 0 (dirty solution) TODO make clean solution
     for(i = 0; i < MAX_N_REGISTER*_nprocs; i++)
-        registermap[i]=0;
+        registermap[i] = 0;
 
     e_barrier_init(sync_bar, sync_bar_tgt);
+
+    struct timeval start; 
+    gettimeofday(&start, NULL);
+    initial_time = start.tv_sec * 1000000.0 + start.tv_usec;
 }
 
 void bsp_end()
@@ -92,6 +98,14 @@ int bsp_nprocs()
 int bsp_pid()
 {
     return _pid;
+}
+
+float bsp_time()
+{
+    struct timeval current;    
+    gettimeofday(&current, NULL);
+    float current_time = current.tv_sec * 1000000.0 + current.tv_usec;
+    return current_time - initial_time;
 }
 
 // Sync

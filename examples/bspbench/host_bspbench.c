@@ -1,13 +1,10 @@
 #include <host_bsp.h>
-#include <studio.h>
+#include <stdio.h>
  
 /*  This program measures p, r, g, and l of a BSP computer
     using bsp_put for communication.
 */
 
-#define NITERS 100     /* number of iterations */
-#define MAXN 1024      /* maximum length of DAXPY computation */
-#define MAXH 256       /* maximum h in h-relation */
 #define MEGA 1000000.0
 
 int P; /* number of processors requested */
@@ -21,7 +18,7 @@ int main(int argc, char **argv){
     scanf("%d",&P);
     if (P > bsp_nprocs()){
         printf("Sorry, not enough processors available.\n");
-        exit(1);
+        return -1;
     } //
     if(!bsp_begin(bsp_nprocs())) {
         fprintf(stderr, "[BSPBENCH] bsp_begin() failed\n");
@@ -39,6 +36,6 @@ int main(int argc, char **argv){
     printf("p= %d, r= %.3lf Mflop/s, g= %.1lf, l= %.1lf\n",
          p,r/MEGA,g,l);
     bsp_end();
-    exit(0);
-
+    
+    return 0;
 } /* end main */
