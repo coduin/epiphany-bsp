@@ -81,7 +81,7 @@ void bsp_begin()
 
     e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
     e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);
-    initial_time = e_ctimer_get(E_CTIMER_0);//start.tv_sec * 1000000.0 + start.tv_usec;
+    _initial_time = e_ctimer_get(E_CTIMER_0);//start.tv_sec * 1000000.0 + start.tv_usec;
 }
 
 void bsp_end()
