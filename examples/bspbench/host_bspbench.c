@@ -1,5 +1,5 @@
 #include <host_bsp.h>
-#include <studio.h>
+#include <stdio.h>
  
 /*  This program measures p, r, g, and l of a BSP computer
     using bsp_put for communication.

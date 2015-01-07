@@ -24,26 +24,20 @@
 #define ulong long long
 
 double *vecallocd(int n){ 
+    static int address=0x4000;/* FIXME HARDCODE WARNING */
     /* This function allocates a vector of doubles of length n */ 
     double *pd; 
  
-    if (n==0){ 
-        pd= NULL;//0x4000 - 0x6000 
+    if (n == 0){ 
+        pd = NULL; 
     } else { 
-        pd= (double *)malloc(n*SZDBL); 
-        if(pd==NULL) 
-            return NULL;/* Error! */
+        pd = (double *) address;
+        address += (n*SZDBL); 
+        if(address >= 0x6000) /* FIXME HARDCODE WARNING */
+            return NULL; /* OUT OF MEMORY (in 0x4000 - 0x6000) */
     } 
     return pd; 
 } /* end vecallocd */ 
-
-void vecfreed(double *pd){
-    /* This function frees a vector of doubles */
-
-    if (pd!=NULL)
-        free(pd);
-
-} /* end vecfreed */
 
 /* end bspedupack */
 
@@ -144,9 +138,9 @@ int main(){ /*  bsp_bench */
                 r /= p; 
                 /*printf("n= %5d min= %7.3lf max= %7.3lf av= %7.3lf Mflop/s ",
                        n, nflops/(maxtime*MEGA),nflops/(mintime*MEGA), r/MEGA);
-                fflush(stdout);
+                fflush(stdout); */
                 /*  Output for fooling benchmark-detecting compilers */
-                printf(" fool=%7.1lf\n",y[n-1]+z[n-1]);*/
+                /* printf(" fool=%7.1lf\n",y[n-1]+z[n-1]); */
             } 
         }
     }
@@ -204,9 +198,7 @@ int main(){ /*  bsp_bench */
         (*lOut)=l;
         /* fflush(stdout); */
     }
-    vecfreed(dest);
-    vecfreed(Time);
-    /* No need tot pop register in our implementation... */
+    /* No need tot pop register/free vectors in our implementation... */
     bsp_end();
     
     return 0;
