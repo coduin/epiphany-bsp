@@ -49,9 +49,8 @@ int main()
     s = p / M;
     t = p % M;
 
-    // STAGE 1: Pivoting
     // register variable to store r and a_rk
-    // need arrays equal to number of procs in our proc row
+    // need arrays equal to number of procs in our proc column
     bsp_push_reg((void*)LOC_RS, sizeof(int) * N);
     bsp_sync();
 
@@ -61,7 +60,19 @@ int main()
     bsp_push_reg((void*)LOC_R, sizeof(int));
     bsp_sync();
 
+    // FIXME: PI is actually distributed as well.
+    bsp_push_reg((void*)LOC_PI_IN, sizeof(int));
+    bsp_sync();
+
+    // also initialize pi as identity
+    if (t == 0)
+        for (i = 0; i < N; ++i)
+            *((int*)LOC_PI + i) = i;
+
     for (k = 0; k < dim; ++k) {
+        //----------------------
+        // STAGE 1: Pivot search
+        //----------------------
         if (k % M == 0) {
             int rs = -1;
             float a_rk = -1.0;
@@ -109,6 +120,63 @@ int main()
             bsp_sync(); // (0) + (1)
             bsp_sync(); // (2) + (3)
         }
+
+        // ----------------------------
+        // STAGE 2: Index and row swaps
+        // ----------------------------
+        int r = *((int*)LOC_R);
+        if (k % N == s && t == 0) {
+            bsp_hpput(proc(r % N, 0),
+                    &((int*)LOC_PI + k), (void*)LOC_PI_IN,
+                    0, sizeof(int));
+        }
+        if (r % N == s && t == 0) {
+            bsp_hpput(proc(k % N, 0),
+                    &((int*)LOC_PI + r), (void*)LOC_PI_IN,
+                    sizeof(int), sizeof(int));
+        }
+        bsp_sync(); // (4)
+
+        if (k % N == s && t == 0)
+            *((int*)LOC_PI + k) = *((int*)LOC_PI_IN + 1);
+        if (r % N == s && t == 0)
+            *((int*)LOC_PI + r) = *((int*)LOC_PI_IN);
+
+        if (k % N == s) { // need to swap rows with row r
+            for (j = t; j < dim; j += M) {
+                 bsp_hpput(proc(r % N, t),
+                        &a(k, j), (void*)LOC_ROW_IN,
+                        sizeof(float) * (j - t) / M, sizeof(float));
+            }
+        }
+
+        if (r % N == s) { // need to swap rows with row r
+            for (j = t; j < dim; j += M) {
+                 bsp_hpput(proc(k % N, t),
+                        &a(r, j), (void*)LOC_ROW_IN,
+                        sizeof(float) * (j - t) / M, sizeof(float));
+            }
+        }
+ 
+        bsp_sync(); // (5) + (6)
+
+        if (k % N == s) {
+            for (j = t; j < dim; j += M) {
+                a(k, j) = ((float*)LOC_ROW_IN + (j - t)/M)
+            }
+        }
+        if (r % N == s) {
+            for (j = t; j < dim; j += M) {
+                a(r, j) = ((float*)LOC_ROW_IN + (j - t)/M)
+            }
+        }
+
+        bsp_sync(); // (7)
+
+        // ----------------------
+        // STAGE 3: Matrix update
+        // ----------------------
+
     }
 
 
