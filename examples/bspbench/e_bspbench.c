@@ -1,3 +1,4 @@
+#define DEBUG
 #include <e_bsp.h>
 #include "e-lib.h"
  
@@ -6,9 +7,9 @@
 */
 
 /* This program needs order 6*MAXH+3*MAXN memory */
-#define NITERS 100     /* number of iterations */
-#define MAXN 1024      /* maximum length of DAXPY computation */
-#define MAXH 256       /* maximum h in h-relation */
+#define NITERS 3    /* number of iterations. Default: 100 */
+#define MAXN 32      /* maximum length of DAXPY computation. Default: 1024 */
+#define MAXH 8       /* maximum h in h-relation. Default: 256 */
 #define MEGA 1000000.0
 
 
@@ -20,6 +21,7 @@
 #define FALSE (0)
 #define MAX(a,b) ((a)>(b) ? (a) : (b))
 #define MIN(a,b) ((a)<(b) ? (a) : (b))
+#define fabs(a) ((a)>0 ? (a) : -1.0*(a))
 #define SZULL (sizeof( long long))
 #define ulong long long
 
@@ -40,7 +42,6 @@ double *vecallocd(int n){
 } /* end vecallocd */ 
 
 /* end bspedupack */
-
 
 
 void leastsquares(int h0, int h1, double *t, double *g, double *l){
@@ -93,9 +94,16 @@ int main(){ /*  bsp_bench */
     bsp_begin();
     p= bsp_nprocs(); /* p = number of processors obtained */
     s= bsp_pid();    /* s = processor number */
-  
-    Time= vecallocd(p); bsp_push_reg(Time,p*SZDBL);
-    dest= vecallocd(2*MAXH+p); bsp_push_reg(dest,(2*MAXH+p)*SZDBL);
+    
+    bsp_sync();
+
+    Time= vecallocd(p); 
+
+    bsp_push_reg(Time,p*SZDBL);
+    bsp_sync();
+    dest= vecallocd(2*MAXH+p); 
+
+    bsp_push_reg(dest,(2*MAXH+p)*SZDBL);
     bsp_sync();
 
     /**** Determine r ****/
@@ -189,9 +197,9 @@ int main(){ /*  bsp_bench */
 
         /* Write essential results! */
         int* pOut = (void*)0x6000;
-        int* rOut = (void*)0x6010;
-        int* gOut = (void*)0x6020;
-        int* lOut = (void*)0x6030;
+        double* rOut = (void*)0x6010;
+        double* gOut = (void*)0x6020;
+        double* lOut = (void*)0x6030;
         (*pOut)=p;
         (*rOut)=r;
         (*gOut)=g;

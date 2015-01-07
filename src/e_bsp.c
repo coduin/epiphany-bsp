@@ -119,7 +119,7 @@ void bsp_sync()
     e_barrier(sync_bar, sync_bar_tgt);
 	
 	//Reset state
-	(*syncstate)=STATE_RUN;
+	(*syncstate) = STATE_RUN;
 }
 
 // Memory
