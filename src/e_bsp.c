@@ -26,16 +26,17 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <e-lib.h>
 #include <stdio.h>
 #include <string.h>
-//#include <sys/time.h>
 
 #define _NPROCS 16
+//clockspeed in cycles/second
+#define CLOCKSPEED 800000000.
 
 int _nprocs = -1;
 int _pid = -1;
 e_barrier_t sync_bar[_NPROCS];
 e_barrier_t* sync_bar_tgt[_NPROCS];
 e_memseg_t emem;
-//float initial_time;
+unsigned int _initial_time;
 
 inline int row_from_pid(int pid)
 {
@@ -78,9 +79,9 @@ void bsp_begin()
 
     e_barrier_init(sync_bar, sync_bar_tgt);
 
-    //struct timeval start; 
-    //gettimeofday(&start, NULL);
-    //initial_time = start.tv_sec * 1000000.0 + start.tv_usec;
+    e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
+    e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);
+    initial_time = e_ctimer_get(E_CTIMER_0);//start.tv_sec * 1000000.0 + start.tv_usec;
 }
 
 void bsp_end()
@@ -100,13 +101,15 @@ int bsp_pid()
     return _pid;
 }
 
-//float bsp_time()
-//{
-//    struct timeval current;    
-//    gettimeofday(&current, NULL);
-//    float current_time = current.tv_sec * 1000000.0 + current.tv_usec;
-//    return current_time - initial_time;
-//}
+float bsp_time()
+{
+    unsigned int _current_time = e_ctimer_get(E_CTIMER_0);
+#ifdef DEBUG
+    if(_current_time == 0)
+        return -1.0;
+#endif
+    return (_initial_time - _current_time)/CLOCKSPEED;
+}
 
 // Sync
 void bsp_sync()

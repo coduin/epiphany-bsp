@@ -1,4 +1,3 @@
-#define DEBUG
 #include <e_bsp.h>
 #include "e-lib.h"
  
