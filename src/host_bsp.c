@@ -159,13 +159,13 @@ int bsp_begin(int nprocs)
     return 1;
 }
 
-int spmd_epiphany()
+int ebsp_spmd()
 {
     // Start the program
     e_start_group(&state.dev);
 
-    // sleep for 1.0 seconds
-    usleep(100000); //10^6 microseconds
+    // sleep for 0.01 seconds
+    usleep(1000);
 
     int i = 0;
     int j = 0;
@@ -182,8 +182,9 @@ int spmd_epiphany()
                 if(tmp == STATE_FINISH) {
                     done++;
                 }
-                if(tmp == STATE_SYNC)
+                if(tmp == STATE_SYNC) {
                     counter++;
+                }
             }
         }
         if(counter == state.nprocs) {
@@ -202,6 +203,8 @@ int spmd_epiphany()
                 }
             }
         }
+
+        usleep(1000);
     }
     printf("(BSP) INFO: Program finished\n");
 
