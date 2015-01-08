@@ -96,15 +96,6 @@ int bsp_begin(int nprocs)
             state.rows,
             state.cols);
 
-#ifdef DEBUG
-    if(state.nprocs != state.rows * state.cols || state.nprocs != nprocs) {
-        printf("(BSP) DEBUG: INCONSISTENT state.NPROCS... AUTOFIXING...\n");
-        state.nprocs=nprocs;
-    }
-    if(state.nprocs != state.rows * state.cols ) {
-        printf("(BSP) DEBUG: STILL INCONSISTENT state.NPROCS!!\n");
-    }
-#endif
     state.nprocs_used = nprocs;
     state.num_vars_registered = 0;
 
@@ -165,9 +156,6 @@ int bsp_begin(int nprocs)
         e_write(&state.registermap_buffer[i], 0, 0, (off_t) 0, &buf, sizeof(void*));
     }
 
-#ifdef DEBUG
-    printf("(BSP) DEBUG: bsp_begin() succesfull!\n");
-#endif
     return 1;
 }
 
@@ -191,7 +179,7 @@ int ebsp_spmd()
         for(i = 0; i < state.platform.rows; i++) {
             for(j = 0; j < state.platform.cols; j++) {
                 e_read(&state.dev, i, j, (off_t)SYNC_STATE_ADDRESS, &tmp, sizeof(int));
-                if(tmp == STATE_FINISH)
+                if(tmp == STATE_FINISH) {
                     done++;
                 }
                 if(tmp == STATE_SYNC) {
@@ -235,9 +223,6 @@ int bsp_end()
         fprintf(stderr, "ERROR: Could not finalize the Epiphany connection.\n");
         return 0;
     }
-#ifdef DEBUG
-    printf("(BSP) DEBUG: bsp_end() succesfull...\n");
-#endif
     return 1;
 }
 
@@ -271,7 +256,7 @@ void _host_sync() {
     }
 
 #ifdef DEBUG
-    printf("(BSP) DEBUG: New variables registered...");
+    printf("(BSP) DEBUG: New variables registered.\n");
 #endif
 
     //Broadcast registermap_buffer to registermap 
@@ -293,10 +278,6 @@ void _host_sync() {
 
     free(buf);
     free(buffer);
-
-#ifdef DEBUG
-    printf("...and broadcasted!\n");
-#endif
 }
 
 void _get_p_coords(int pid, int* row, int* col)
