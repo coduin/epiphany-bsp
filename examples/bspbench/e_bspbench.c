@@ -6,9 +6,9 @@
 */
 
 /* This program needs order 6*MAXH+3*MAXN memory */
-#define NITERS 100     /* number of iterations */
-#define MAXN 1024      /* maximum length of DAXPY computation */
-#define MAXH 256       /* maximum h in h-relation */
+#define NITERS 3    /* number of iterations. Default: 100 */
+#define MAXN 32      /* maximum length of DAXPY computation. Default: 1024 */
+#define MAXH 8       /* maximum h in h-relation. Default: 256 */
 #define MEGA 1000000.0
 
 
@@ -20,33 +20,27 @@
 #define FALSE (0)
 #define MAX(a,b) ((a)>(b) ? (a) : (b))
 #define MIN(a,b) ((a)<(b) ? (a) : (b))
+#define fabs(a) ((a)>0 ? (a) : -1.0*(a))
 #define SZULL (sizeof( long long))
 #define ulong long long
 
 double *vecallocd(int n){ 
+    static int address=0x4000;/* FIXME HARDCODE WARNING */
     /* This function allocates a vector of doubles of length n */ 
     double *pd; 
  
-    if (n==0){ 
-        pd= NULL;//0x4000 - 0x6000 
+    if (n == 0){ 
+        pd = NULL; 
     } else { 
-        pd= (double *)malloc(n*SZDBL); 
-        if(pd==NULL) 
-            return NULL;/* Error! */
+        pd = (double *) address;
+        address += (n*SZDBL); 
+        if(address >= 0x6000) /* FIXME HARDCODE WARNING */
+            return NULL; /* OUT OF MEMORY (in 0x4000 - 0x6000) */
     } 
     return pd; 
 } /* end vecallocd */ 
 
-void vecfreed(double *pd){
-    /* This function frees a vector of doubles */
-
-    if (pd!=NULL)
-        free(pd);
-
-} /* end vecfreed */
-
 /* end bspedupack */
-
 
 
 void leastsquares(int h0, int h1, double *t, double *g, double *l){
@@ -99,9 +93,16 @@ int main(){ /*  bsp_bench */
     bsp_begin();
     p= bsp_nprocs(); /* p = number of processors obtained */
     s= bsp_pid();    /* s = processor number */
-  
-    Time= vecallocd(p); bsp_push_reg(Time,p*SZDBL);
-    dest= vecallocd(2*MAXH+p); bsp_push_reg(dest,(2*MAXH+p)*SZDBL);
+    
+    bsp_sync();
+
+    Time= vecallocd(p); 
+
+    bsp_push_reg(Time,p*SZDBL);
+    bsp_sync();
+    dest= vecallocd(2*MAXH+p); 
+
+    bsp_push_reg(dest,(2*MAXH+p)*SZDBL);
     bsp_sync();
 
     /**** Determine r ****/
@@ -144,9 +145,9 @@ int main(){ /*  bsp_bench */
                 r /= p; 
                 /*printf("n= %5d min= %7.3lf max= %7.3lf av= %7.3lf Mflop/s ",
                        n, nflops/(maxtime*MEGA),nflops/(mintime*MEGA), r/MEGA);
-                fflush(stdout);
+                fflush(stdout); */
                 /*  Output for fooling benchmark-detecting compilers */
-                printf(" fool=%7.1lf\n",y[n-1]+z[n-1]);*/
+                /* printf(" fool=%7.1lf\n",y[n-1]+z[n-1]); */
             } 
         }
     }
@@ -195,18 +196,16 @@ int main(){ /*  bsp_bench */
 
         /* Write essential results! */
         int* pOut = (void*)0x6000;
-        int* rOut = (void*)0x6010;
-        int* gOut = (void*)0x6020;
-        int* lOut = (void*)0x6030;
+        double* rOut = (void*)0x6010;
+        double* gOut = (void*)0x6020;
+        double* lOut = (void*)0x6030;
         (*pOut)=p;
         (*rOut)=r;
         (*gOut)=g;
         (*lOut)=l;
         /* fflush(stdout); */
     }
-    vecfreed(dest);
-    vecfreed(Time);
-    /* No need tot pop register in our implementation... */
+    /* No need tot pop register/free vectors in our implementation... */
     bsp_end();
     
     return 0;

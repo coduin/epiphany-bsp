@@ -1,5 +1,5 @@
 #include <host_bsp.h>
-#include <studio.h>
+#include <stdio.h>
  
 /*  This program measures p, r, g, and l of a BSP computer
     using bsp_put for communication.
@@ -23,11 +23,14 @@ int main(int argc, char **argv){
     if(!bsp_begin(bsp_nprocs())) {
         fprintf(stderr, "[BSPBENCH] bsp_begin() failed\n");
     }
-    printf("Using %i processors!", bsp_nprocs()); fflush(stdout);
+    printf("Using %i processors!\n", bsp_nprocs()); fflush(stdout);
+    printf("DEBUG Starting spmd\n");
     spmd_epiphany(); 
+    printf("DEBUG Done with spmd\n");
 
     //Get p, r, g and l
-    int p,r,g,l;
+    int p;
+    double r,g,l;
     co_read(0, (off_t)0x6000, &p, 1);
     co_read(0, (off_t)0x6010, &r, 1);
     co_read(0, (off_t)0x6020, &g, 1);

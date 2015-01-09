@@ -19,17 +19,15 @@ int main(int argc, char **argv)
     }
 
     // run the SPMD on the e-cores
-    spmd_epiphany();
+    ebsp_spmd();
 
     // read messages
     int pid = 0;
     for(pid = 0; pid < bsp_nprocs(); pid++) {
         char msg;
         int p;
-        int pcol, prow;
-        _get_p_coords(pid, &prow, &pcol);
-        e_read(&(_get_state()->dev), prow, pcol, (off_t)0x7050, &msg, 1);
-        e_read(&(_get_state()->dev), prow, pcol, (off_t)0x7100, &p, sizeof(int));
+        co_read(pid, (off_t)0x6000, &msg, sizeof(char));
+        co_read(pid, (off_t)0x6004, &p, sizeof(int));
         printf("%i: %c\n", p, msg);
     }
 

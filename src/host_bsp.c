@@ -33,6 +33,9 @@ see the files COPYING and COPYING.LESSER. If not, see
 // Global state
 bsp_state_t state;
 
+void _host_sync();
+void _get_p_coords(int pid, int* row, int* col);
+bsp_state_t* _get_state();
 
 void co_write(int pid, void* src, off_t dst, int size)
 {
@@ -156,13 +159,13 @@ int bsp_begin(int nprocs)
     return 1;
 }
 
-int spmd_epiphany()
+int ebsp_spmd()
 {
     // Start the program
     e_start_group(&state.dev);
 
-    // sleep for 1.0 seconds
-    usleep(100000); //10^6 microseconds
+    // sleep for 0.01 seconds
+    usleep(1000);
 
     int i = 0;
     int j = 0;
@@ -179,8 +182,9 @@ int spmd_epiphany()
                 if(tmp == STATE_FINISH) {
                     done++;
                 }
-                if(tmp == STATE_SYNC)
+                if(tmp == STATE_SYNC) {
                     counter++;
+                }
             }
         }
         if(counter == state.nprocs) {
@@ -199,11 +203,14 @@ int spmd_epiphany()
                 }
             }
         }
+
+        usleep(1000);
     }
     printf("(BSP) INFO: Program finished\n");
 
     return 1;
 }
+
 int bsp_end()
 {
 
