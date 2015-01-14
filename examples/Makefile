@@ -20,7 +20,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: hello e_hello dot_product memtest bspbench
+all: hello e_hello dot_product memtest bspbench lu_decomposition
 
 ########################################################
 

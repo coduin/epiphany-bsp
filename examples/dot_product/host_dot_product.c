@@ -28,16 +28,15 @@ int main(int argc, char **argv)
     int base = 0x6000;
     for(pid = 0; pid < bsp_nprocs(); pid++) {
         int prow, pcol;
-        _get_p_coords(pid, &prow, &pcol);
-        e_write(&(_get_state()->dev), prow, pcol, (off_t)base, &chunk, sizeof(int));
+        co_write(pid, &chunk, (off_t)base, sizeof(int));
         for(i = 0; i < chunk; ++i) {
-            e_write(&(_get_state()->dev), prow, pcol, (off_t)(base + 4 + 4*i), &a[i + chunk*pid], 4);
-            e_write(&(_get_state()->dev), prow, pcol, (off_t)(base + 4 + 4*chunk + 4*i), &b[i + chunk*pid], 4);
+            co_write(pid, &a[i + chunk*pid], (off_t)(base + 4 + 4*i), sizeof(int));
+            co_write(pid, &b[i + chunk*pid], (off_t)(base + 4 + 4*chunk + 4*i), sizeof(int));
         }
     }
     
     // run dotproduct
-    spmd_epiphany();
+    ebsp_spmd();
 
     // read output
     int* result = malloc(sizeof(int) * bsp_nprocs());
@@ -46,9 +45,7 @@ int main(int argc, char **argv)
     printf("---- \t ------- \t -----------\n");
     for(pid = 0; pid < bsp_nprocs(); pid++) {
         char msg;
-        int pcol, prow;
-        _get_p_coords(pid, &prow, &pcol);
-        e_read(&(_get_state()->dev), prow, pcol, (off_t)(base + 4 + 8*chunk), &result[pid], sizeof(int));
+        co_read(pid, (off_t)(base + 4 + 8*chunk), &result[pid], sizeof(int));
         printf("%i: \t 0x%x \t %i\n", pid, base + 4 + 8*chunk, result[pid]);
         sum += result[pid];
     }

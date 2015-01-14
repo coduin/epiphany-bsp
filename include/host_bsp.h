@@ -92,7 +92,6 @@ int bsp_init(const char* e_name,
  *  flag: An integer indicating whether the function finished
  *                succesfully, in which case it is 1, or 0 otherwise.
  */
-// TODO: rename to ebsp_spmd();
 #define spmd_epiphany ebsp_spmd
 int ebsp_spmd();
 

@@ -58,7 +58,7 @@ int main(int argc, char **argv)
     bsp_begin(bsp_nprocs());
 
     // distribute the matrix
-    switch(bsp_nprocs()) {
+    switch (bsp_nprocs()) {
         case 16:
             N = 4;
             M = 4;
@@ -87,8 +87,8 @@ int main(int argc, char **argv)
     int s = 0;
     int t = 0;
     int l = 0;
-    for(i = 0; i < dim; ++i) {
-        for(j = 0; j < dim; ++j) {
+    for (i = 0; i < dim; ++i) {
+        for (j = 0; j < dim; ++j) {
             gtl(i, j, &l, &s, &t);
             co_write(proc_id(s, t),
                     &mat[dim*i + j],
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
     s = 2;
     t = 3;
     printf("i.e. (s,t) = (2,3): \n");
-    for(l = 0; l < (dim * dim) / bsp_nprocs(); ++l) {
+    for (l = 0; l < (dim * dim) / bsp_nprocs(); ++l) {
             ltg(&i, &j, l, s, t);
             float val;
             co_read(proc_id(s, t),
@@ -117,14 +117,37 @@ int main(int argc, char **argv)
 
     ebsp_spmd();
 
-    // read L and U
-    int pid = 0;
-    for(pid = 0; pid < bsp_nprocs(); pid++) {
-        //co_read
-        //printf
+    printf("----------------------------: \n");
+    printf("Matrix: \n");
+    for (i = 0; i < dim; ++i) {
+        for (j = 0; j < dim; ++j) {
+            printf("%f ", mat[dim * i + j]);
+        }
+        printf("\n");
     }
 
-    // show decomposition
+    printf("----------------------------: \n");
+    printf("LU decomposition: \n");
+
+    for (s = 0; s < N; ++s) {
+        for (t = 0; t < M; ++t) {
+            for (l = 0; l < (dim * dim) / bsp_nprocs(); ++l) {
+                    ltg(&i, &j, l, s, t);
+                    co_read(proc_id(s, t),
+                            LOC_MATRIX + sizeof(float) * l,
+                            &mat[dim*i + j], sizeof(float));
+            }
+        }
+    }
+
+    for (i = 0; i < dim; ++i) {
+        for (j = 0; j < dim; ++j) {
+            printf("%f ", mat[dim * i + j]);
+        }
+        printf("\n");
+    }
+
+    printf("----------------------------: \n");
 
     // finalize
     bsp_end();

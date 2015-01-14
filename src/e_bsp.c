@@ -116,9 +116,11 @@ void bsp_sync()
 {
 	//Signal host that epiphany is syncing, wait until host is done
 	(*syncstate) = STATE_SYNC;
-	while(*syncstate != STATE_CONTINUE); // Add delay?
 
-	//Sync to flush epiphany commands
+	while(*syncstate != STATE_CONTINUE) {
+        e_wait(E_CTIMER_1, 10000);
+    }
+
     e_barrier(sync_bar, sync_bar_tgt);
 	
 	//Reset state

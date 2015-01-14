@@ -18,7 +18,6 @@ int main()
         (*a) = 'y';
         bsp_hpput(3, a, a, 0, 1);
     }
-    bsp_sync();
 
     bsp_end();
 

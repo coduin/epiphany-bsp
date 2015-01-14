@@ -18,5 +18,7 @@ int main()
     int* loc = (int*)(base + 4 + 32*8);
     (*loc) = sum;
 
+    bsp_end();
+
     return 0;
 }

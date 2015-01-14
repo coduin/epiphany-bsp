@@ -96,15 +96,6 @@ int bsp_begin(int nprocs)
             state.rows,
             state.cols);
 
-#ifdef DEBUG
-    if(state.nprocs != state.rows * state.cols || state.nprocs != nprocs) {
-        printf("(BSP) DEBUG: INCONSISTENT state.NPROCS... AUTOFIXING...\n");
-        state.nprocs=nprocs;
-    }
-    if(state.nprocs != state.rows * state.cols ) {
-        printf("(BSP) DEBUG: STILL INCONSISTENT state.NPROCS!!\n");
-    }
-#endif
     state.nprocs_used = nprocs;
     state.num_vars_registered = 0;
 
@@ -165,19 +156,16 @@ int bsp_begin(int nprocs)
         e_write(&state.registermap_buffer[i], 0, 0, (off_t) 0, &buf, sizeof(void*));
     }
 
-#ifdef DEBUG
-    printf("(BSP) DEBUG: bsp_begin() succesfull!\n");
-#endif
     return 1;
 }
 
-int spmd_epiphany()
+int ebsp_spmd()
 {
     // Start the program
     e_start_group(&state.dev);
 
-    // sleep for 1.0 seconds
-    usleep(100000); //10^6 microseconds
+    // sleep for 0.01 seconds
+    usleep(1000);
 
     int i = 0;
     int j = 0;
@@ -191,10 +179,12 @@ int spmd_epiphany()
         for(i = 0; i < state.platform.rows; i++) {
             for(j = 0; j < state.platform.cols; j++) {
                 e_read(&state.dev, i, j, (off_t)SYNC_STATE_ADDRESS, &tmp, sizeof(int));
-                if(tmp == STATE_FINISH)
+                if(tmp == STATE_FINISH) {
                     done++;
-                if(tmp == STATE_SYNC)
+                }
+                if(tmp == STATE_SYNC) {
                     counter++;
+                }
             }
         }
         if(counter == state.nprocs) {
@@ -216,6 +206,8 @@ int spmd_epiphany()
             printf("(BSP) DEBUG: Continuing...\n");
 #endif
         }
+
+        usleep(1000);
     }
     printf("(BSP) INFO: Program finished\n");
 
@@ -234,9 +226,6 @@ int bsp_end()
         fprintf(stderr, "ERROR: Could not finalize the Epiphany connection.\n");
         return 0;
     }
-#ifdef DEBUG
-    printf("(BSP) DEBUG: bsp_end() succesfull...\n");
-#endif
     return 1;
 }
 
@@ -269,9 +258,6 @@ void _host_sync() {
         return; // No registration took place; we are done
     }
 
-#ifdef DEBUG
-    printf("(BSP) DEBUG: New variables registered...");
-#endif
 
     //Broadcast registermap_buffer to registermap 
     void** buf = (void**) malloc(sizeof(void*) * state.nprocs);
@@ -284,7 +270,11 @@ void _host_sync() {
                 (off_t)(REGISTERMAP_ADDRESS + state.num_vars_registered * state.nprocs), 
                 sizeof(void*) * state.nprocs);
     }
+
     state.num_vars_registered++;
+#ifdef DEBUG
+    printf("(BSP) DEBUG: New variables registered: %i/%i\n",state.num_vars_registered,MAX_N_REGISTER);
+#endif
 
     // Reset registermap_buffer
     void* buffer = calloc(sizeof(void*), state.nprocs);
@@ -292,10 +282,6 @@ void _host_sync() {
 
     free(buf);
     free(buffer);
-
-#ifdef DEBUG
-    printf("...and broadcasted!\n");
-#endif
 }
 
 void _get_p_coords(int pid, int* row, int* col)
