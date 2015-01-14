@@ -194,7 +194,7 @@ int ebsp_spmd()
             _host_sync();
 
 #ifdef DEBUG
-            printf("(BSP) DEBUG: Continuing...\n");
+            printf("(BSP) DEBUG: Writing STATE_CONTINUE to processors...\n");
 #endif
             tmp = STATE_CONTINUE;
             for(i = 0; i < state.platform.rows; i++) {
@@ -202,6 +202,9 @@ int ebsp_spmd()
                     e_write(&state.dev, i, j, (off_t)SYNC_STATE_ADDRESS, &tmp, sizeof(int));
                 }
             }
+#ifdef DEBUG
+            printf("(BSP) DEBUG: Continuing...\n");
+#endif
         }
 
         usleep(1000);
@@ -255,9 +258,6 @@ void _host_sync() {
         return; // No registration took place; we are done
     }
 
-#ifdef DEBUG
-    printf("(BSP) DEBUG: New variables registered.\n");
-#endif
 
     //Broadcast registermap_buffer to registermap 
     void** buf = (void**) malloc(sizeof(void*) * state.nprocs);
@@ -270,7 +270,11 @@ void _host_sync() {
                 (off_t)(REGISTERMAP_ADDRESS + state.num_vars_registered * state.nprocs), 
                 sizeof(void*) * state.nprocs);
     }
+
     state.num_vars_registered++;
+#ifdef DEBUG
+    printf("(BSP) DEBUG: New variables registered: %i/%i\n",state.num_vars_registered,MAX_N_REGISTER);
+#endif
 
     // Reset registermap_buffer
     void* buffer = calloc(sizeof(void*), state.nprocs);

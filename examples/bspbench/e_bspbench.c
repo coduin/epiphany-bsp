@@ -6,9 +6,9 @@
 */
 
 /* This program needs order 6*MAXH+3*MAXN memory */
-#define NITERS 3    /* number of iterations. Default: 100 */
-#define MAXN 32      /* maximum length of DAXPY computation. Default: 1024 */
-#define MAXH 8       /* maximum h in h-relation. Default: 256 */
+#define NITERS 100    /* number of iterations. Default: 100 */
+#define MAXN 16      /* maximum length of DAXPY computation. Default: 1024 */
+#define MAXH 4       /* maximum h in h-relation. Default: 256 */
 #define MEGA 1000000.0
 
 
