@@ -8,7 +8,7 @@ int main()
     int n = bsp_nprocs(); 
     int p = bsp_pid();
 
-    char* a = (void*)0x6000;
+    char* a = (void*)0x7000;
     (*a) = 0;
 
     bsp_push_reg(a, 0);
@@ -18,7 +18,6 @@ int main()
         (*a) = 'y';
         bsp_hpput(3, a, a, 0, 1);
     }
-
     bsp_sync();
 
     bsp_end();

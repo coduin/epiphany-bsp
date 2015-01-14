@@ -204,7 +204,7 @@ int spmd_epiphany()
             _host_sync();
 
 #ifdef DEBUG
-            printf("(BSP) DEBUG: Continuing...\n");
+            printf("(BSP) DEBUG: Writing STATE_CONTINUE to processors...\n");
 #endif
             tmp = STATE_CONTINUE;
             for(i = 0; i < state.platform.rows; i++) {
@@ -212,6 +212,9 @@ int spmd_epiphany()
                     e_write(&state.dev, i, j, (off_t)SYNC_STATE_ADDRESS, &tmp, sizeof(int));
                 }
             }
+#ifdef DEBUG
+            printf("(BSP) DEBUG: Continuing...\n");
+#endif
         }
     }
     printf("(BSP) INFO: Program finished\n");
