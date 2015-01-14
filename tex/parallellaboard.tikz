@@ -10,7 +10,7 @@
 \filldraw[fill=black, draw=black] (3.0, 0.5) rectangle (7.0, 1.5);
 \node[minimum width=1.5cm, text width=1.6cm] at (3, 3.5) {Zynq 7000 series ARM processor};
 \node[minimum width=1.5cm, text width=1.6cm] at (7, 3.5) {Epiphany processor};
-\node[minimum width=3.0cm, text width=2.1cm] at (5, 1.0) {\textbf{\textcolor{white}{1GB SD RAM}}};
+\node[minimum width=3.0cm, text width=2.1cm] at (5, 1.0) {\textbf{\textcolor{white}{1GB SDRAM}}};
 \end{tikzpicture}
 \end{subfigure}
 \caption{A simple schematic showing the processor- and memory structure of the Parallella board.}
