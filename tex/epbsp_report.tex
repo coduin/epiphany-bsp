@@ -117,7 +117,7 @@ The major benefit of the BSP model and its implementations is that it has a stra
 
 \section{The Bulk Synchronous Parallel model}
 
-The Bulk Synchronous Parallel (BSP) model was developed by Leslie Valiant in the 1980s. It was introduced in an article in 1990 \cite{bsp:valiant}. The BSP model is intended as a briding model between parallel hardware and software. It is an elegant and simple model that has a small and easy to understand interface.
+The Bulk Synchronous Parallel (BSP) model was developed by Leslie Valiant in the 1980s. It was introduced in an article in 1990 \cite{bsp:valiant}. The BSP model is intended as a bridging model between parallel hardware and software. It is an elegant and simple model that has a small and easy to understand interface.
 
 The BSP model is defined on an abstract computer called a BSP computer. This computer has three important requirements.
 \begin{enumerate}[1.]
@@ -132,7 +132,8 @@ An important part of a BSP algorithm is the associated cost function. To this en
 
 An $h$-relation is a superstep in which each processor sends or receives a maximum of $h$ words of data.We commonly denote with $p$ the id of a processor such that we can write for the $h$-relation:
 $$h = \max_{p} ~ \max \{ (h_p)_\text{sent} ,  (h_p)_\text{received} \}$$
-Where $h_p$ denotes the number of words received or sent by processor $p$. Similarly we define the work $w$ done in a superstep as the maximum number of flops (\emph{flo}ating \emph{p}oint operation\emph{s})  performed by all processors. Finally we define the \emph{latency} $l$ of a superstep as the fixed constant overhead, used primarily to account for the barrier synchronisation. The values for $g$ and $l$ are computer-specific constants that are found emperically. The values for $w$ and $h$ are superstep specific and commonly obtained analytically.
+Where $h_p$ denotes the number of words received or sent by processor $p$. Similarly we define the work $w$ done in a superstep as the maximum number of flops (\emph{flo}ating \emph{p}oint operation\emph{s})  performed by all processors. Finally we define the \emph{latency} $l$ of a superstep as the fixed constant overhead, used primarily to account for the barrier synchronisation. The values for $g$ and $l$ are computer-specific constants that are found emperically. The values for $w$ and $h$ are superstep specific and commonly obtained analytically. The total cost of a BSP algorithm is then:
+$$ \sum_{i \in \text{supersteps}} \( w_i + g h_i + l \)$$
 
 The BSP model has gained significant interest in the last couple of years. Most notably because Google has adopted the model and has developed some technologies based on BSP such as MapReduce \cite{goo:mapreduce} and Pregel \cite{goo:pregel}. The standard for BSP implementations is BSPlib\footnote{\url{http://bsp-worldwide}} which will be discussed in more detail when we introduce the library later in this report. Modern implementations of the BSP model include BSPonMPI \cite{bsponmpi}, which simulates the BSP model on top of MPI, and MulticoreBSP \cite{multicorebsp} which provides a BSP implementation for shared-memory multi-core computers.
 
@@ -148,7 +149,7 @@ The local memory on the EA uses an adress space that consists of $2^{32}$ bytes 
 
 \input{localspace.tikz}
 
-The memory is freely accessible and one can choose where to store the data and code (i.e.\ parts of the binary), however it is best for performance to use seperate banks for data and code. To achieve this one currently has to use linker scripts in order to explicitely place data and code \cite{ep:sdkdoc}. However, more convenient methods are planned for future SDK releases. There is also an interface available for setting the memory-mapped registers. For a complete overview of these registers we refer to \cite{ep:archdoc}.
+The memory is freely accessible and one can choose where to store the data and code (i.e.\ parts of the binary), however it is best for performance to use separate banks for data and code. To achieve this one currently has to use linker scripts in order to explicitely place data and code \cite{ep:sdkdoc}. However, more convenient methods are planned for future SDK releases. There is also an interface available for setting the memory-mapped registers. For a complete overview of these registers we refer to \cite{ep:archdoc}.
 
 \section{Parallella Board}
 
