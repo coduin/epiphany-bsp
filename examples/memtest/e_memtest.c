@@ -11,7 +11,7 @@ int main()
     char* a = (void*)0x7000;
     (*a) = 0;
 
-    bsp_push_reg(a, 0);
+    bsp_push_reg(a, -1);
     bsp_sync();
 
     if(p == 0) {

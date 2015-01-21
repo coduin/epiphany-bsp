@@ -13,6 +13,7 @@ int main(int argc, char **argv)
     spmd_epiphany();
 
     // read messages
+    printf("Reading results...\n");
     int pid = 0;
     for(pid = 0; pid < bsp_nprocs(); pid++) {
         char msg;
