@@ -150,7 +150,7 @@ int bsp_begin(int nprocs)
         }
     }
 
-    //Set registermap_buffer to zero
+    //Set registermap_buffer to zero FIXME: IT ALWAYS REGISTERS
     void* buf = 0;
     for(i = 0; i < state.nprocs; ++i)  {
         e_write(&state.registermap_buffer[i], 0, 0, (off_t) 0, &buf, sizeof(void*));
@@ -187,8 +187,16 @@ int ebsp_spmd()
                 }
             }
         }
+#ifdef DEBUG
+        if(done > rand || counter > rand) {
+            if(done > rand) rand = done;
+            if(counter > rand) rand = counter;
+            printf("(BSP) DEBUG: Almost syncing on host: %i sync, %i done..\n", counter, done);
+        }
+#endif
         if(counter == state.nprocs) {
 #ifdef DEBUG
+            rand=0;
             printf("(BSP) DEBUG: Syncing on host...\n");
 #endif
             _host_sync();
@@ -241,19 +249,33 @@ int bsp_nprocs()
 // Memory
 void _host_sync() {
     // TODO: Right now bsp_pop_reg is ignored
+    // TODO: ALWAYS THINKS NEW REGISTRATION IS REQUIRED
     // Check if overwrite is necessary => this gives no problems
     
     int i, j;
     int new_vars=0;
+#ifdef DEBUG
+    printf("(BSP) DEBUG: registermapbuffer contents: ");
+#endif
     // Check if variables were registered TODO: make nicer solution using register?
     for (i = 0; i < state.nprocs; ++i) {
         void* buf;
         e_read(&state.registermap_buffer[i], 0, 0, 0, &buf, sizeof(void*));
+        
+#ifdef DEBUG
+        printf("%i,\t",(int)buf);
+#endif
         if(buf != NULL) {
             new_vars = 1;
+#ifdef DEBUG
+            continue;
+#endif
             break;
         }
     }
+#ifdef DEBUG
+    printf("\n");
+#endif
     if(!new_vars) {
         return; // No registration took place; we are done
     }
@@ -262,7 +284,7 @@ void _host_sync() {
     //Broadcast registermap_buffer to registermap 
     void** buf = (void**) malloc(sizeof(void*) * state.nprocs);
     for(i = 0; i < state.nprocs; ++i) {
-        e_read(&state.registermap_buffer[i], 0, 0, (off_t) 0, buf + i, sizeof(void*));
+        e_read(&state.registermap_buffer[i], &buf, 0, 0, (void*)0, sizeof(void*) * state.nprocs);
     }
 
     for(i = 0; i < state.nprocs; ++i) {
@@ -278,7 +300,9 @@ void _host_sync() {
 
     // Reset registermap_buffer
     void* buffer = calloc(sizeof(void*), state.nprocs);
-    //e_write(&state.registermap_buffer[i], 0, 0, (off_t) 0, buffer, state.nprocs*sizeof(void*));
+    for(i = 0; i < state.nprocs; ++i) {
+        e_write(&state.registermap_buffer[i], buffer, 0, 0, (off_t) 0, sizeof(void*) * state.nprocs);
+    }
 
     free(buf);
     free(buffer);

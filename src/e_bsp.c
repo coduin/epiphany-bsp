@@ -81,7 +81,7 @@ void bsp_begin()
 
     e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
     e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);
-    _initial_time = e_ctimer_get(E_CTIMER_0);//start.tv_sec * 1000000.0 + start.tv_usec;
+    _initial_time = e_ctimer_get(E_CTIMER_0);
 }
 
 void bsp_end()
@@ -125,6 +125,7 @@ void bsp_sync()
 	
 	//Reset state
 	(*syncstate) = STATE_RUN;
+    e_wait(E_CTIMER_1, 100000);
 }
 
 // Memory
@@ -132,7 +133,7 @@ void bsp_push_reg(const void* variable, const int nbytes)
 {
     e_write((void*)&emem,
             &variable,
-            0, 0, 0, //(void*)(sizeof(void*) * CORE_ID), // FIXME
+            0, 0, 0, 
             sizeof(void*));
 }
 
@@ -143,7 +144,6 @@ void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
 #ifdef DEBUG
         if(slotID >= MAX_N_REGISTER) {
             break;
-            //fprintf(stderr,"PUTTING TO UNREGISTERED VARIABLE");//THIS COMMAND DOES NOT WORK
         }
 #endif
         if(registermap[_nprocs*slotID+pid] == dst)
