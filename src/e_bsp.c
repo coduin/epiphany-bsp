@@ -125,7 +125,6 @@ void bsp_sync()
 	
 	//Reset state
 	(*syncstate) = STATE_RUN;
-    e_wait(E_CTIMER_1, 100000);
 }
 
 // Memory
