@@ -144,6 +144,7 @@ int bsp_begin(int nprocs)
         sprintf(id, "_%i", i);
         strcat(rm_name, id);
 
+        printf("DEBUG: Writing to registermap_buffer[%i], rm_name=%s\n",i, rm_name);
         if(e_shm_alloc(&state.registermap_buffer[i],
                     rm_name, sizeof(void*)) != E_OK) {
             fprintf(stderr, "ERROR: Could not allocate registermap_buffer %s.\n", rm_name);
@@ -152,10 +153,10 @@ int bsp_begin(int nprocs)
     }
 
     //Set registermap_buffer to zero FIXME: IT ALWAYS REGISTERS
-    void* buf = 0;
+    int buf=0;
     printf("DEBUG: Setting registermap_buffer to zero..\n");
     for(i = 0; i < state.nprocs; ++i)  {
-        e_write(&state.registermap_buffer[i], 0, 0, (off_t) 0, &buf, sizeof(void*));
+        e_write(&state.registermap_buffer[i], 0, 0, (off_t) 0, (void*)&buf, sizeof(void*));
     }
 
     printf("DEBUG: Registering DONE..\n");
@@ -288,11 +289,14 @@ void _host_sync() {
     //Broadcast registermap_buffer to registermap 
     printf("DEBUG: Broadcastring registermap_buffer to registermap, read phase\n");//FIXME; ee_mread_buf(): Address is out of bounds.
 
-    void** buf = (void**) malloc(sizeof(void*) * state.nprocs);
+    for(i = 0; i<state.nprocs; ++i)
+        printf("%i:  %i", i, state.registermap_buffer[i]);
+
+    void** buf = (void*) malloc(sizeof(void*) * state.nprocs);
     printf("buf: %i\n",(int)buf);
     for(i = 0; i < state.nprocs; ++i) {
-        printf("e_read(%i, %i, 0, 0, 0, %i)\n",(int)&state.registermap_buffer[i], (int) &buf, (int) sizeof(void*)*state.nprocs);
-        e_read(&state.registermap_buffer[i], &buf, 0, 0, (void*)0, sizeof(void*) * state.nprocs);
+        printf("e_read(%i, 0, 0, 0, %i, %i)\n",(int)&state.registermap_buffer[i], (int) buf, (int) sizeof(void*)*state.nprocs);
+        e_read(&state.registermap_buffer[i], 0, 0, (void*)0, &buf, sizeof(void*) * state.nprocs);
     }
 
     printf("DEBUG: Broadcastring registermap_buffer to registermap, write phase\n");
@@ -312,8 +316,8 @@ void _host_sync() {
     void* buffer = calloc(sizeof(void*), state.nprocs);
     printf("buffer: %i\n",(int)buffer);
     for(i = 0; i < state.nprocs; ++i) {
-        printf("e_write(%i, %i, 0, 0, 0, %i)\n",(int)&state.registermap_buffer[i], (int) buffer, (int) sizeof(void*)*state.nprocs);
-        e_write(&state.registermap_buffer[i], buffer, 0, 0, (off_t) 0, sizeof(void*) * state.nprocs);
+        printf("e_write(%i, 0, 0, 0, %i, %i)\n",(int)&state.registermap_buffer[i], (int) buffer, (int) sizeof(void*)*state.nprocs);
+        e_write(&state.registermap_buffer[i], 0, 0, 0, buffer, sizeof(void*) * state.nprocs);
     }
 
     printf("DEBUG: Freeing memory\n");
