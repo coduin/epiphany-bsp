@@ -67,9 +67,9 @@
 \newcommand{\ceil}[1]{\lceil #1 \rceil}
 \newcommand{\floor}[1]{\lfloor #1 \rfloor}
 
-%\newcommand{\tm}{\textsuperscript{\texttrademark}}
-\def\tm{$^{\hbox{\tiny TM}}$~}
-\renewcommand{\tm}{ }
+\newcommand{\tm}{\textsuperscript{\texttrademark}}
+%\def\tm{$^{\hbox{\tiny TM}}$~}
+%\renewcommand{\tm}{ }
 
 \newtheorem{lem}{Lemma}
 
@@ -151,46 +151,36 @@ The local memory on the EA uses an adress space that consists of $2^{32}$ bytes 
 
 The memory is freely accessible and one can choose where to store the data and code (i.e.\ parts of the binary), however it is best for performance to use separate banks for data and code. To achieve this one currently has to use linker scripts in order to explicitely place data and code \cite{ep:sdkdoc}. However, more convenient methods are planned for future SDK releases. There is also an interface available for setting the memory-mapped registers. For a complete overview of these registers we refer to \cite{ep:archdoc}.
 
+\subsection{Epiphany\tm Efficiency}
+The 16-core Epiphany-III\tm can do roughly 5.0 GFLOPs/W, the 64 core Epiphany-IV\tm can do 50 GFLOPs/W (both single precision). This makes the 64-core Epiphany-IV\tm chip one of the most energy efficient processors currently available \cite{ep:power}. The most efficient supercomputer can do only 3.0 GFLOPs/W. However, the total amount of GFLOPs is relatively low. Adapteva (the developing company) claims that the techniques used are scalable, and more powerful chips with comparable power consumption are developed. If Adapteva can deliver on its promises, Epiphany\tm chips could play a role in embedded systems; for example drones, phones or tablets. It could, for example, make advanced image processing possible in mobile devices for a wide array of applications.
+
+
 \section{Parallella Board}
 
 The Parallella board was introduced by Adapteva in a Kickstarter\footnote{Kickstarter is a crowd-funding website. See \url{http://www.kickstarter.com} for more information} campaign. Inspired by projects such as the Arduino and the Raspberry Pi, the Parallella is a credit-sized computer that is designed to be energy-efficient, and to have high-performance \cite{par:manual}. Besides this, both the board design and the available software, are completely open source. In this section we will provide a short introduction to the capabilities of the board from a High Performance Computing (HPS) point-of-view. This means that we will focus on the processors and the different types of memory that are involved, and refer to the documentation for details on the peripherals (USB, HDMI, GPIO, SD Card, etc.) which are particularly of interest for hardware projects. 
 
-The original Parallella boards consist of a Zynq-7000 series Dual Core ARM processor, a 16 or 64 core Epiphany processor and has 1GB of SDRAM available. The 16 core variant is available in high volume, while the Parallella with a 64 core Epiphany processor has so far only been available in very limited quantities. Below we present a schematic overview of the Parallella board.
+The original Parallella boards consist of a Zynq-7000 series Dual Core ARM processor, a 16 or 64 core Epiphany processor and has 1GB of SDRAM available. The 16 core variant is available in high volume, while the Parallella with a 64 core Epiphany processor has so far only been available in very limited quantities. Below we present a schematic overview of the Parallella board, and some useful facts about the ARM and Epiphany-III processor.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{l|ll}
+Scope & Global & Local \\
+\hline
+Processor type & ARM & Epiphany-III\tm \\
+Library & eHAL & eLib \\
+Memory & 1 GB & 32 KB \\
+\# of cores & 2 & 16 \\
+Clock speed & 677 MHz & 600 MHz\\
+
+\end{tabular}
+\caption{Some useful facts about the Parallella board}
+\end{table}
+
 
 \input{parallellaboard.tikz}
 
 The Parallella board runs Ubuntu and is programmable through the Parallella SDK.
-
-\subsection{GFlops/Watt etc.}
-
-\todo{ABE: Fixme}
-
-The 64-core Epiphany\tm-IV chip is (one of the) most efficient processors measured in single precision GFLOPs/W. However, the total amount of GFLOPs is relatively low. Adapteva (the developing company) claims that the techniques used are scalable, and more powerfull chips with comparable power consumption are developed. If Adapteva can deliver on its promices, Epiphany\tm chips could play a role in future super computers.
-
-16 core Parallela has roughly 5.0 GFLOPs/W, 64 core Epiphany\tm-IV 50 GFLOPs/W. (wiki)
-16 core Parallela costs about 94 euros
-\#1 of Green500 computers is at about 3.0 GFLOPs/W (2013)
-Epiphany\tm-IV is the most efficient according to this source:
-http://streamcomputing.eu/blog/2012-08-27/processors-that-can-do-20-gflops-watt/
-
 \subsection{Memory}
-
-\todo{ABE: FIXME}
-
-We will divide the Parallella board into a global and a local part:
-
-\begin{tabular}{l|ll}
-Scope & Global & Local \\
-\hline
-Processor & ARM & Epiphany\tm \\
-Library & eHAL & eLib \\
-Memory & 1 GB & 32 KB \\
-Alloc & e\_alloc & ... \\
-Get & e\_read & e\_read \\
-Put & e\_write & e\_write \\
-
-\end{tabular}
-
 Note that only a very small amount of memory is available locally! This small local cache also contains the executable, leaving little memory for our algorithm; the Hello World implementation provided by Adapteva has a binary of 14KB, that is more than 40 percent of the memory available locally. The global memory can be used to store larger variables, but doing this in an efficient way is non-trivial and does not adhere to the BSP-model. One possible way to use bigger programs is to split it into several smaller programs, leaving supersteps intact. The cost of loading a new program image could be seen as additional synchronisation cost, increasing $l$.
 
 Direct communication between cores is essential to the BSP model; if all communication has to go through the ARM processors and/or local memory, the central assumption that communication speed is determined by the largest amount of data sent/received by one processor breaks down. Instead we would get (semi)linear behaviour, reducing the advantages of parallel computing. Also, efficient usage of the Parallella board would require thoughtful modification of the regular optimal BSP-algorithms. 
@@ -210,10 +200,7 @@ The SPMD program in part (2) will not differ much from their counterparts in the
 
 \subsection{Variable registration}
 
-\todo{ABE: FIXME}
-
 First we will present how variable registration works in BSP:
-\\
 \begin{lstlisting}
 void bsp_push_reg (const void *ident, int size);
 void bsp_put(int pid,const void *src,void *dst,int offset,int nbytes);
@@ -235,9 +222,9 @@ With this approach, we need only $\mathcal{O}(\log(n))$ time to get the correct 
 
 Instead we use only one datastructure:
 \begin{lstlisting}
-void*** registermap;
+void** registermap;
 \end{lstlisting}
-\texttt{registermap[slotID][pid]} is the pointer to the \texttt{slotID}th variable in processor pid.
+\texttt{registermap[slotID*nProcs+pid]} is the pointer to the \texttt{slotID}th variable in processor pid.
 We get the correct \texttt{slotID} by finding \texttt{*dst} among all variables registered by our current processor, this takes $\mathcal{O}(n)$ time, but since it is very likely that $n$ is small, this is acceptable. It is not as flexible; to resize we need to allocate new memory, this is relatively expensive and clumbsy in such small memory. However, the number of variables that has to be registered is usually known beforehand. This is the only structure we need, and it uses only 640 bytes for 16 processors and 10 registered variables.
 
 \subsection{Primitives}
@@ -345,7 +332,7 @@ int main() {
 }
 \end{lstlisting}
 \section{Performance Measurements}
-
+We ported BSP-bench (from BSPedupack) to do measurements of $g$ and $l$ on the Epiphany chip. 
 \todo{ABE: FIXME}
 
 \subsection{BSP parameters / benchmark}
@@ -387,6 +374,10 @@ The library has been tested with the 2014.11 version of the ESDK. Details for in
 
 \bibitem{bsp:bisseling}
     Parallel Scientific Computing. A structured approach using BSP and MPI. Prof. Rob H. Bisseling, Utrecht University. Oxford University Press.
+
+\bibitem{ep:power}
+    Vincent Hindriksen, Processors that can do 20+ GFLOPS per Watt, http://streamcomputing.eu/blog/2012-08-27/processors-that-can-do-20-gflops-watt/
+
 
 \end{thebibliography}
 
