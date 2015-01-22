@@ -191,9 +191,11 @@ void bsp_sync()
 	while(*syncstate != STATE_CONTINUE) {
         e_wait(E_CTIMER_1, 10000);
     }
-    e_barrier_init(sync_bar, sync_bar_tgt);
-    e_barrier_mega(sync_bar, sync_bar_tgt);
+
+    //e_barrier_mega(sync_bar, sync_bar_tgt);
 	
+    e_barrier(sync_bar, sync_bar_tgt);
+
 	//Reset state
 	(*syncstate) = STATE_RUN;
 }

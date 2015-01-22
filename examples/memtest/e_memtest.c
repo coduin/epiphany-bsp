@@ -8,11 +8,11 @@ int main()
     int n = bsp_nprocs(); 
     int p = bsp_pid();
 
-    e_barrier_t sync_bar[_NPROCS];
+    /*e_barrier_t sync_bar[_NPROCS];
     e_barrier_t* sync_bar_tgt[_NPROCS];
     e_barrier_init(sync_bar, sync_bar_tgt);
     e_barrier(sync_bar, sync_bar_tgt);
-    e_barrier_init(sync_bar, sync_bar_tgt);
+    e_barrier_init(sync_bar, sync_bar_tgt);*/
 
     bsp_sync();
 
