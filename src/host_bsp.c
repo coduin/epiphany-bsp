@@ -194,15 +194,17 @@ int ebsp_spmd()
             if (state_flag == STATE_CONTINUE) continue_counter++;
         }
 
+#ifdef DEBUG
         if (iter % 1000 == 0) {
             printf("sync \t finish \t continue \t 16th stateflag \n");
-            printf("%i \t %i \t %i \t %i\n", 
+            printf("%i \t %i \t\t %i \t\t %i\n", 
                 sync_counter,
                 finish_counter,
                 continue_counter,
                 state_flag);
         }
         ++iter;
+#endif
 
         if (sync_counter == state.nprocs) {
 #ifdef DEBUG
@@ -216,6 +218,7 @@ int ebsp_spmd()
             state_flag = STATE_CONTINUE;
             for(i = 0; i < state.nprocs; i++) {
                 co_write(i, &state_flag, (off_t)SYNC_STATE_ADDRESS, sizeof(int));
+                //co_write(i, &state_flag, (off_t)SYNC_STATE_ADDRESS, sizeof(int));
             }
 #ifdef DEBUG
             printf("(BSP) DEBUG: Continuing...\n");
