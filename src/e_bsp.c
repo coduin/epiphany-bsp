@@ -30,84 +30,11 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 int _nprocs = -1;
 int _pid = -1;
-volatile e_barrier_t  sync_bar[_NPROCS]      SECTION("section_core");
-         e_barrier_t* sync_bar_tgt[_NPROCS]  SECTION("section_core");
+volatile e_barrier_t*  sync_bar = (e_barrier_t*)LOC_BAR_ARRAY;
+         e_barrier_t** sync_bar_tgt = (e_barrier_t**)LOC_BAR_TGT_ARRAY;
 e_memseg_t emem;
 
 unsigned int _initial_time;
-
-
-void e_barrier_ultra(volatile e_barrier_t bar_array[], e_barrier_t *tgt_bar_array[])
-{
-    int corenum, numcores, i;
-    numcores = e_group_config.group_rows * e_group_config.group_cols;
-    corenum = e_group_config.core_row * e_group_config.group_cols + e_group_config.core_col;
-    // Barrier as a Flip-Flop
-    // Flip pass
-    if (corenum == 0)
-    {
-        // set "my" slot
-        bar_array[corenum] = 1;
-        // poll on all slots
-        for (i=1; i<numcores; i++)
-            while (bar_array[i] == 0) {};
-    } else {
-        // set "my" remote slot
-        *(tgt_bar_array[corenum]) = 1;
-    }
-    // Flop pass
-    if (corenum == 0)
-    {
-        // clear all local slots
-        for (i=0; i<numcores; i++)
-            bar_array[i] = 0;
-        // set remote slots
-        for (i=1; i<numcores; i++)
-            *(tgt_bar_array[i]) = 1;
-    } else {
-        // poll on "my" local slot
-        while (bar_array[corenum] == 0) {};
-        // clear "my" local slot
-        bar_array[corenum] = 0;
-    }
-    return;
-}
-
-void e_barrier_mega(volatile e_barrier_t bar_array[], e_barrier_t *tgt_bar_array[])
-{
-    int corenum, numcores, i;
-    numcores = e_group_config.group_rows * e_group_config.group_cols;
-    corenum = e_group_config.core_row * e_group_config.group_cols + e_group_config.core_col;
-    // Barrier as a Flip-Flop
-    if (corenum == 0)
-    {
-        // Flip pass
-        // set "my" slot
-        bar_array[corenum] = 1;
-        // poll on all slots
-        for (i=1; i<numcores; i++)
-            while (bar_array[i] == 0) {};
-        // Flop pass
-        // clear all local slots
-        for (i=0; i<numcores; i++)
-            bar_array[i] = 0;
-        // set remote slots
-        for (i=1; i<numcores; i++)
-            *(tgt_bar_array[i]) = 1;
-    } else {
-        // Flip pass
-        // set "my" remote slot
-        *(tgt_bar_array[0]) = 1;
-        // Flop pass
-        // poll on "my" local slot
-        while (bar_array[0] == 0) {};
-        // clear "my" local slot
-        bar_array[0] = 0;
-    }
-    return;
-}
-
-
 
 inline int row_from_pid(int pid)
 {
@@ -175,6 +102,7 @@ int bsp_pid()
 float bsp_time()
 {
     unsigned int _current_time = e_ctimer_get(E_CTIMER_0);
+    return _current_time;
 #ifdef DEBUG
     if(_current_time == 0)
         return -1.0;
@@ -189,11 +117,9 @@ void bsp_sync()
 	(*syncstate) = STATE_SYNC;
 
 	while(*syncstate != STATE_CONTINUE) {
-        e_wait(E_CTIMER_1, 10000);
+        //e_wait(E_CTIMER_1, 10000);
     }
 
-    //e_barrier_mega(sync_bar, sync_bar_tgt);
-	
     e_barrier(sync_bar, sync_bar_tgt);
 
 	//Reset state

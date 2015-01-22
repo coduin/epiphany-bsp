@@ -10,6 +10,8 @@
 #define REGISTERMAP_ADDRESS 0x6150
 #define SYNC_STATE_ADDRESS 0x6100
 #define NPROCS_LOC_ADDRESS 0x6050
+#define LOC_BAR_ARRAY 0x6200
+#define LOC_BAR_TGT_ARRAY 0x6300
 
 #define CORE_ID _pid
 #define CORE_ROW e_group_config.core_row
