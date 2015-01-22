@@ -27,9 +27,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdio.h>
 #include <string.h>
 
-#define _NPROCS 16
-//clockspeed in cycles/second
-#define CLOCKSPEED 800000000.
 
 int _nprocs = -1;
 int _pid = -1;
@@ -125,7 +122,6 @@ void bsp_sync()
 	
 	//Reset state
 	(*syncstate) = STATE_RUN;
-    e_wait(E_CTIMER_1, 100000);
 }
 
 // Memory

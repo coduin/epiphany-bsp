@@ -7,7 +7,7 @@ int main()
     int n = bsp_nprocs(); 
     int p = bsp_pid();
 
-    int base = 0x6000;
+    int base = 0x4000;
     int chunk = (*(int*)(base));
     int i = 0;
     int sum = 0;

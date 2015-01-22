@@ -22,3 +22,7 @@
 
 #define NCORES (e_group_config.group_rows*e_group_config.group_cols)
 #define MAX_NCORES 64
+
+#define _NPROCS 16
+//clockspeed of Epiphany in cycles/second
+#define CLOCKSPEED 800000000.

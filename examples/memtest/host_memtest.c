@@ -17,7 +17,7 @@ int main(int argc, char **argv)
     int pid = 0;
     for(pid = 0; pid < bsp_nprocs(); pid++) {
         char msg;
-        co_read(pid, (off_t)0x7000, &msg, 1);
+        co_read(pid, (off_t)0x4000, &msg, 1);
         printf("%i: %c\n", pid, msg);
     }
 

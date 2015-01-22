@@ -173,34 +173,39 @@ int ebsp_spmd()
 
     int i = 0;
     int j = 0;
-    int counter = 0;
-    int tmp = 0;
-    int done = 0; 
-    int rand = 0;
-    while(done != state.nprocs) {
-        counter = 0;
-        done = 0;
-        for(i = 0; i < state.platform.rows; i++) {
-            for(j = 0; j < state.platform.cols; j++) {
-                e_read(&state.dev, i, j, (off_t)SYNC_STATE_ADDRESS, &tmp, sizeof(int));
-                if(tmp == STATE_FINISH) {
-                    done++;
-                }
-                if(tmp == STATE_SYNC) {
-                    counter++;
-                }
-            }
+
+    int state_flag = 0;
+
+    int sync_counter     = 0;
+    int finish_counter   = 0; 
+    int continue_counter = 0;
+
+    int iter = 0;
+
+    while (finish_counter != state.nprocs) {
+        sync_counter     = 0;
+        finish_counter   = 0;
+        continue_counter = 0;
+        for (i = 0; i < state.nprocs; i++) {
+            co_read(i, (off_t)SYNC_STATE_ADDRESS, &state_flag, sizeof(int));
+
+            if (state_flag == STATE_SYNC    ) sync_counter++;
+            if (state_flag == STATE_FINISH  ) finish_counter++;
+            if (state_flag == STATE_CONTINUE) continue_counter++;
         }
-#ifdef DEBUG
-        if(done > rand || counter > rand) {
-            if(done > rand) rand = done;
-            if(counter > rand) rand = counter;
-            printf("(BSP) DEBUG: Almost syncing on host: %i sync, %i done..\n", counter, done);
+
+        if (iter % 1000 == 0) {
+            printf("sync \t finish \t continue \t 16th stateflag \n");
+            printf("%i \t %i \t %i \t %i\n", 
+                sync_counter,
+                finish_counter,
+                continue_counter,
+                state_flag);
         }
-#endif
-        if(counter == state.nprocs) {
+        ++iter;
+
+        if (sync_counter == state.nprocs) {
 #ifdef DEBUG
-            rand=0;
             printf("(BSP) DEBUG: Syncing on host...\n");
 #endif
             _host_sync();
@@ -208,11 +213,9 @@ int ebsp_spmd()
 #ifdef DEBUG
             printf("(BSP) DEBUG: Writing STATE_CONTINUE to processors...\n");
 #endif
-            tmp = STATE_CONTINUE;
-            for(i = 0; i < state.platform.rows; i++) {
-                for(j = 0; j < state.platform.cols; j++) {
-                    e_write(&state.dev, i, j, (off_t)SYNC_STATE_ADDRESS, &tmp, sizeof(int));
-                }
+            state_flag = STATE_CONTINUE;
+            for(i = 0; i < state.nprocs; i++) {
+                co_write(i, &state_flag, (off_t)SYNC_STATE_ADDRESS, sizeof(int));
             }
 #ifdef DEBUG
             printf("(BSP) DEBUG: Continuing...\n");
@@ -256,47 +259,30 @@ void _host_sync() {
     // TODO: Right now bsp_pop_reg is ignored
     // TODO: ALWAYS THINKS NEW REGISTRATION IS REQUIRED
     // Check if overwrite is necessary => this gives no problems
-    
+
     int i, j;
-    int new_vars=0;
+    int new_vars = 0;
 #ifdef DEBUG
     printf("(BSP) DEBUG: registermapbuffer contents: ");
 #endif
-    // Check if variables were registered TODO: make nicer solution using register?
-    for (i = 0; i < state.nprocs; ++i) {
-        void* buf;
-        e_read(&state.registermap_buffer[i], 0, 0, 0, &buf, sizeof(void*));
+
+    void* var_loc;
+    e_read(&state.registermap_buffer[0], 0, 0, 0, &var_loc, sizeof(void*));
         
 #ifdef DEBUG
-        printf("%i,\t",(int)buf);
+    printf("0x%x\n", (int)var_loc);
 #endif
-        if(buf != NULL) {
-            new_vars = 1;
-#ifdef DEBUG
-            continue;
-#endif
-            break;
-        }
-    }
-#ifdef DEBUG
-    printf("\n");
-#endif
-    if(!new_vars) {
-        return; // No registration took place; we are done
+
+    if(var_loc != NULL) {
+        new_vars = 1;
+    } else {
+        return;
     }
 
-
-    //Broadcast registermap_buffer to registermap 
-    printf("DEBUG: Broadcastring registermap_buffer to registermap, read phase\n");//FIXME; ee_mread_buf(): Address is out of bounds.
-
-    for(i = 0; i<state.nprocs; ++i)
-        printf("%i:  %i", i, state.registermap_buffer[i]);
-
-    void** buf = (void*) malloc(sizeof(void*) * state.nprocs);
-    printf("buf: %i\n",(int)buf);
+    // Broadcast registermap_buffer to registermap 
+    void** buf = (void**) malloc(sizeof(void*) * state.nprocs);
     for(i = 0; i < state.nprocs; ++i) {
-        printf("e_read(%i, 0, 0, 0, %i, %i)\n",(int)&state.registermap_buffer[i], (int) buf, (int) sizeof(void*)*state.nprocs);
-        e_read(&state.registermap_buffer[i], 0, 0, (void*)0, &buf, sizeof(void*) * state.nprocs);
+        e_read(&state.registermap_buffer[i], 0, 0, (off_t)0, buf + i, sizeof(void*));
     }
 
     printf("DEBUG: Broadcastring registermap_buffer to registermap, write phase\n");
@@ -316,8 +302,7 @@ void _host_sync() {
     void* buffer = calloc(sizeof(void*), state.nprocs);
     printf("buffer: %i\n",(int)buffer);
     for(i = 0; i < state.nprocs; ++i) {
-        printf("e_write(%i, 0, 0, 0, %i, %i)\n",(int)&state.registermap_buffer[i], (int) buffer, (int) sizeof(void*)*state.nprocs);
-        e_write(&state.registermap_buffer[i], 0, 0, 0, buffer, sizeof(void*) * state.nprocs);
+        e_write(&state.registermap_buffer[i], 0, 0, (off_t)0, buffer, sizeof(void*));
     }
 
     printf("DEBUG: Freeing memory\n");
