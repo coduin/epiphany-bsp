@@ -6,9 +6,9 @@
 */
 
 /* This program needs order 6*MAXH+3*MAXN memory */
-#define NITERS 50    /* number of iterations. Default: 100 */
+#define NITERS 1000    /* number of iterations. Default: 100 */
 #define MAXN 32      /* maximum length of DAXPY computation. Default: 1024 */
-#define MAXH 16       /* maximum h in h-relation. Default: 256 */
+#define MAXH 8      /* maximum h in h-relation. Default: 256 */
 #define MEGA 1000000.0
 
 
@@ -24,12 +24,13 @@
 #define SZULL (sizeof( long long))
 #define ulong long long
 
-float *vecallocd(int n){ 
+
+float *vecallocd(int n) { 
     static int address=0x4000;/* FIXME HARDCODE WARNING */
     /* This function allocates a vector of floats of length n */ 
     float *pd; 
  
-    if (n == 0){ 
+    if (n == 0) { 
         pd = NULL; 
     } else { 
         pd = (float *) address;
@@ -43,7 +44,7 @@ float *vecallocd(int n){
 /* end bspedupack */
 
 
-void leastsquares(int h0, int h1, float *t, float *g, float *l){
+void leastsquares(int h0, int h1, float *t, float *g, float *l) {
     /* This function computes the parameters g and l of the 
        linear function T(h)= g*h+l that best fits
        the data points (h,t[h]) with h0 <= h <= h1. */
@@ -58,7 +59,7 @@ void leastsquares(int h0, int h1, float *t, float *g, float *l){
         sumh  =         h
         sumhh =         h*h     */
     sumt = sumth = 0.0;
-    for (h=h0; h<=h1; h++){
+    for (h=h0; h<=h1; h++) {
         sumt  += t[h];
         sumth += t[h]*h;
     }
@@ -67,7 +68,7 @@ void leastsquares(int h0, int h1, float *t, float *g, float *l){
 
     /* Solve      nh*l +  sumh*g =  sumt 
                 sumh*l + sumhh*g = sumth */
-    if(fabs(nh)>fabs(sumh)){
+    if(fabs(nh)>fabs(sumh)) {
         a = sumh/nh;
         /* subtract a times first eqn from second eqn */
         *g = (sumth-a*sumt)/(sumhh-a*sumh);
@@ -82,7 +83,7 @@ void leastsquares(int h0, int h1, float *t, float *g, float *l){
 } /* end leastsquares */
 
 
-int main(){ /*  bsp_bench */
+int main() { /*  bsp_bench */
     /* void leastsquares(int h0, int h1, float *t, float *g, float *l); */
     int p, s, s1, iter, i, n, h, destproc[MAXH], destindex[MAXH];
     float alpha, beta, x[MAXN], y[MAXN], z[MAXN], src[MAXH], *dest,
@@ -109,42 +110,42 @@ int main(){ /*  bsp_bench */
 
     /* Set default rate of 0 */
     r = 0;
-    for (n=1; n <= MAXN; n *= 2){
+    r = 1000000.0; //DEBUG
+    for (n=1; n <= MAXN; n *= 2) {
         /* Initialize scalars and vectors */
         alpha = 1.0/3.0;
         beta = 4.0/9.0;
-        for (i=0; i<n; i++){
+        for (i=0; i<n; i++) {
             z[i] = y[i] = x[i] = (float)i;
         }
         /* Measure time of 2*NITERS DAXPY operations of length n */
-        time0=bsp_time();
-        for (iter=0; iter<NITERS; iter++){
+        time0 = bsp_remote_time();
+        for (iter=0; iter<NITERS; iter++) {
             for (i=0; i<n; i++)
                 y[i] += alpha*x[i];
             for (i=0; i<n; i++)
                 z[i] -= beta*x[i];
         }
-        time1 = bsp_time(); 
+        time1 = bsp_remote_time(); 
         time = time1-time0; 
         bsp_hpput(0,&time,Time,s*SZDBL,SZDBL);
         bsp_sync();
     
         /* Processor 0 determines minimum, maximum, average computing rate */
-        if (s==0){
+        if (s == 0) {
             mintime = maxtime = Time[0];
-            for(s1=1; s1<p; s1++){
+            for(s1=1; s1<p; s1++) {
                 mintime = MIN(mintime,Time[s1]);
                 maxtime = MAX(maxtime,Time[s1]);
             }
-            if (mintime>0.0){
+            if (mintime > 0.0) {
                 /* Compute r = average computing rate in flop/s */
                 nflops = 4*NITERS*n;
                 r = 0.0;
                 for(s1=0; s1<p; s1++)
-                    if(Time[s1] != 0)//DEBUG
-                        r += nflops/Time[s1];
-                if(p != 0)//DEBUG
-                    r /= p; 
+                    r += nflops/Time[s1];
+                r /= (float) p; 
+                r = 1000000.0;//DEBUG
                 /*printf("n = %5d min = %7.3lf max = %7.3lf av = %7.3lf Mflop/s ",
                        n, nflops/(maxtime*MEGA),nflops/(mintime*MEGA), r/MEGA);
                 fflush(stdout); */
@@ -155,45 +156,45 @@ int main(){ /*  bsp_bench */
     }
 
     /**** Determine g and l ****/
-    for (h=0; h<=MAXH; h++){
+    for (h=0; h<=MAXH; h++) {
         /* Initialize communication pattern */
-        for (i=0; i<h; i++){
-            src[i]= (float)i;
-            if (p==1){
-                destproc[i]=0;
-                destindex[i]=i;
+        for (i=0; i<h; i++) {
+            src[i] = (float)i;
+            if (p == 1) {
+                destproc[i] = 0;
+                destindex[i] = i;
             } else {
                 /* destination processor is one of the p-1 others */
-                destproc[i]= (s+1 + i%(p-1)) %p;
+                destproc[i] = (s+1 + i%(p-1)) % p;
                 /* destination index is in my own part of dest */
-                destindex[i]= s + (i/(p-1))*p;
+                destindex[i] = s + (i/(p-1))*p;
             }
         }
 
         /* Measure time of NITERS h-relations */
         bsp_sync(); 
-        time0= bsp_time(); 
-        for (iter=0; iter<NITERS; iter++){
+        time0 = bsp_remote_time(); 
+        for (iter=0; iter<NITERS; iter++) {
             for (i=0; i<h; i++)
-                bsp_hpput(destproc[i],&src[i],dest,destindex[i]*SZDBL,SZDBL);
+                bsp_hpput(destproc[i], &src[i], dest, destindex[i]*SZDBL, SZDBL);
             bsp_sync(); 
         }
-        time1= bsp_time();
-        time = time1-time0;
+        time1 = bsp_remote_time();
+        time = time1 - time0;
  
         /* Compute time of one h-relation */
-        if (s==0){
-            t[h]= (time*r)/NITERS;
+        if (s == 0) {
+            t[h] = (time*r)/(float)NITERS;
             /*printf("Time of %5d-relation = %lf sec = %8.0lf flops\n",
                    h, time/NITERS, t[h]); fflush(stdout);*/
         }
     }
 
-    if (s==0){
+    if (s == 0) {
         /* printf("size of float = %d bytes\n",(int)SZDBL); */
-        leastsquares(0,p,t,&g0,&l0); 
+        leastsquares(0, p, t, &g0, &l0); 
         /* printf("Range h=0 to p   : g = %.1lf, l = %.1lf\n",g0,l0); */
-        leastsquares(p,MAXH,t,&g,&l);
+        leastsquares(p, MAXH, t, &g, &l);
         /* printf("Range h=p to HMAX: g = %.1lf, l = %.1lf\n",g,l); */
 
         /* Write essential results! */
@@ -201,10 +202,15 @@ int main(){ /*  bsp_bench */
         float* rOut = (void*)0x6010;
         float* gOut = (void*)0x6020;
         float* lOut = (void*)0x6030;
-        (*pOut)=p;
-        (*rOut)=r;
-        (*gOut)=g;
-        (*lOut)=l;
+        (*pOut) = p;
+        (*rOut) = r;
+        (*gOut) = g;
+        (*lOut) = l;
+
+        (*pOut) = p;//DEBUG
+        (*rOut) = r;
+        (*gOut) = g;
+        (*lOut) = bsp_remote_time();
         /* fflush(stdout); */
     }
     /* No need tot pop register/free vectors in our implementation... */

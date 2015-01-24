@@ -29,6 +29,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 // Global state
 bsp_state_t state;
@@ -164,15 +165,23 @@ int bsp_begin(int nprocs)
 }
 
 int ebsp_spmd()
-{
+{   
+    int i = 0;
+    int j = 0;
+
+    clock_t start=clock(); 
+    clock_t end=clock(); 
+    float arm_timer;
+    arm_timer = (float)(end-start)/ARM_CLOCKSPEED;
+    for(i = 0; i < state.nprocs; i++) {
+        co_write(i, &arm_timer, (off_t)REMOTE_TIMER_ADDRESS, sizeof(int));
+    }
+    
     // Start the program
     e_start_group(&state.dev);
-
     // sleep for 0.01 seconds
     usleep(1000);
 
-    int i = 0;
-    int j = 0;
 
     int state_flag = 0;
 
@@ -183,6 +192,11 @@ int ebsp_spmd()
     int iter = 0;
 
     while (finish_counter != state.nprocs) {
+        end=clock(); 
+        arm_timer = (float)(end-start)/ARM_CLOCKSPEED;
+        for(i = 0; i < state.nprocs; i++) {
+            co_write(i, &arm_timer, (off_t)REMOTE_TIMER_ADDRESS, sizeof(int));
+        }
         sync_counter     = 0;
         finish_counter   = 0;
         continue_counter = 0;
@@ -195,7 +209,8 @@ int ebsp_spmd()
         }
 
 #ifdef DEBUG
-        if (iter % 1000 == 0) {
+        if (iter % 100 == 0) {
+           printf("Current time: %E seconds\n", arm_timer);
             printf("sync \t finish \t continue \t 16th stateflag \n");
             printf("%i \t %i \t\t %i \t\t %i\n", 
                 sync_counter,
@@ -260,20 +275,18 @@ int bsp_nprocs()
 // Memory
 void _host_sync() {
     // TODO: Right now bsp_pop_reg is ignored
-    // TODO: ALWAYS THINKS NEW REGISTRATION IS REQUIRED
-    // Check if overwrite is necessary => this gives no problems
 
     int i, j;
     int new_vars = 0;
 #ifdef DEBUG
-    printf("(BSP) DEBUG: registermapbuffer contents: ");
+    printf("(BSP) DEBUG: _host_sync() ............................... \n");
 #endif
 
     void* var_loc;
     e_read(&state.registermap_buffer[0], 0, 0, 0, &var_loc, sizeof(void*));
         
 #ifdef DEBUG
-    printf("0x%x\n", (int)var_loc);
+    printf("var_loc = 0x%x\n", (int)var_loc);
 #endif
 
     if(var_loc != NULL) {
