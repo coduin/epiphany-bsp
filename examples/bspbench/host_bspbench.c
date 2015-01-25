@@ -38,13 +38,13 @@ int main(int argc, char **argv){
     co_read(0, (off_t)0x6040, &g0, sizeof(float));
     co_read(0, (off_t)0x6050, &l0, sizeof(float));
 
-    /*int i;
+    int i;
     int j; 
     for(j=0; j<32; j++){
         float tmp;
-        co_read(0, (off_t)(0x6010+(j+1)*sizeof(float)), &tmp, sizeof(float));
+        co_read(0, (off_t)(0x6060+j*sizeof(float)), &tmp, sizeof(float));
         printf("h[%d]=%E\n",j,tmp);
-    }*/
+    }
 
     printf("The bottom line for this BSP computer is:\n");
     printf("p= %d, r= %.3lf Mflop/s, g= %E, l= %E, g0= %E, l0= %E\n",

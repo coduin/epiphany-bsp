@@ -210,12 +210,12 @@ int main() { /*  bsp_bench */
         (*lOut) = l;
         (*g0Out) = g0;
         (*l0Out) = l0;
-        /*int j;
-        for(j=0; j<MAXH; j++){
-            i=0x6010+(j+1)*sizeof(float);
+        int j;
+        for(j=0; j<=MAXH; j++){
+            i=0x6060+j*sizeof(float);
             float* tmp=(float*)i;
             (*tmp)=t[j];
-        }*/
+        }
         /*(*pOut) = p;//DEBUG
         (*rOut) = r;
         (*gOut) = t[5];
