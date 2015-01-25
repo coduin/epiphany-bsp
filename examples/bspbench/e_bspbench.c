@@ -7,8 +7,8 @@
 
 /* This program needs order 6*MAXH+3*MAXN memory */
 #define NITERS 1000    /* number of iterations. Default: 100 */
-#define MAXN 32      /* maximum length of DAXPY computation. Default: 1024 */
-#define MAXH 8      /* maximum h in h-relation. Default: 256 */
+#define MAXN 16      /* maximum length of DAXPY computation. Default: 1024 */
+#define MAXH 32      /* maximum h in h-relation. Default: 256 */
 #define MEGA 1000000.0
 
 
@@ -110,7 +110,7 @@ int main() { /*  bsp_bench */
 
     /* Set default rate of 0 */
     r = 0;
-    r = 1000000.0; //DEBUG
+    //r = 1000000.0; //DEBUG
     for (n=1; n <= MAXN; n *= 2) {
         /* Initialize scalars and vectors */
         alpha = 1.0/3.0;
@@ -145,7 +145,7 @@ int main() { /*  bsp_bench */
                 for(s1=0; s1<p; s1++)
                     r += nflops/Time[s1];
                 r /= (float) p; 
-                r = 1000000.0;//DEBUG
+                //r = 1000000.0;//DEBUG
                 /*printf("n = %5d min = %7.3lf max = %7.3lf av = %7.3lf Mflop/s ",
                        n, nflops/(maxtime*MEGA),nflops/(mintime*MEGA), r/MEGA);
                 fflush(stdout); */
@@ -202,15 +202,24 @@ int main() { /*  bsp_bench */
         float* rOut = (void*)0x6010;
         float* gOut = (void*)0x6020;
         float* lOut = (void*)0x6030;
+        float* g0Out = (void*)0x6040;
+        float* l0Out = (void*)0x6050;
         (*pOut) = p;
         (*rOut) = r;
         (*gOut) = g;
         (*lOut) = l;
-
-        (*pOut) = p;//DEBUG
+        (*g0Out) = g0;
+        (*l0Out) = l0;
+        /*int j;
+        for(j=0; j<MAXH; j++){
+            i=0x6010+(j+1)*sizeof(float);
+            float* tmp=(float*)i;
+            (*tmp)=t[j];
+        }*/
+        /*(*pOut) = p;//DEBUG
         (*rOut) = r;
-        (*gOut) = g;
-        (*lOut) = bsp_remote_time();
+        (*gOut) = t[5];
+        (*lOut) = t[6];*/
         /* fflush(stdout); */
     }
     /* No need tot pop register/free vectors in our implementation... */
