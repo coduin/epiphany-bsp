@@ -6,9 +6,9 @@
 */
 
 /* This program needs order 6*MAXH+3*MAXN memory */
-#define NITERS 1000    /* number of iterations. Default: 100 */
-#define MAXN 16      /* maximum length of DAXPY computation. Default: 1024 */
-#define MAXH 32      /* maximum h in h-relation. Default: 256 */
+#define NITERS 100    /* number of iterations. Default: 100 */
+#define MAXN 256      /* maximum length of DAXPY computation. Default: 1024 */
+#define MAXH 128      /* maximum h in h-relation. Default: 256 */
 #define MEGA 1000000.0
 
 
@@ -38,6 +38,7 @@ float *vecallocd(int n) {
         if(address >= 0x6000) /* FIXME HARDCODE WARNING */
             return NULL; /* OUT OF MEMORY (in 0x4000 - 0x6000) */
     } 
+    
     return pd; 
 } /* end vecallocd */ 
 
@@ -85,10 +86,10 @@ void leastsquares(int h0, int h1, float *t, float *g, float *l) {
 
 int main() { /*  bsp_bench */
     /* void leastsquares(int h0, int h1, float *t, float *g, float *l); */
-    int p, s, s1, iter, i, n, h, destproc[MAXH], destindex[MAXH];
-    float alpha, beta, x[MAXN], y[MAXN], z[MAXN], src[MAXH], *dest,
+    int p, s, s1, iter, i, n, h, *destproc, *destindex;
+    float alpha, beta, *x, *y, *z, *src, *dest,
            time0, time1, time, *Time, mintime, maxtime,
-           nflops, r, g0, l0, g, l, t[MAXH+1]; 
+           nflops, r, g0, l0, g, l, *t; 
   
     /**** Determine p ****/
     bsp_begin();
@@ -98,6 +99,14 @@ int main() { /*  bsp_bench */
     bsp_sync();
 
     Time = vecallocd(p); 
+    x = vecallocd(MAXN);
+    y = vecallocd(MAXN);
+    z = vecallocd(MAXN);
+    src = vecallocd(MAXH);
+    destproc = (int*) vecallocd(MAXH); 
+    destindex = (int*) vecallocd(MAXH); 
+    
+    t = vecallocd(MAXH+1);
 
     bsp_push_reg(Time,p*SZDBL);
     bsp_sync();
@@ -212,7 +221,7 @@ int main() { /*  bsp_bench */
         (*l0Out) = l0;
         int j;
         for(j=0; j<=MAXH; j++){
-            i=0x6060+j*sizeof(float);
+            i=0x4000+j*sizeof(float);
             float* tmp=(float*)i;
             (*tmp)=t[j];
         }
