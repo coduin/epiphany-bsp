@@ -164,9 +164,10 @@ The original Parallella boards consist of a Zynq-7000 series Dual Core ARM proce
 \begin{table}[h]
 \centering
 \begin{tabular}{l|ll}
-Scope & Global & Local \\
+& Host & Coprocessor \\
 \hline
 Processor type & ARM & Epiphany-III\tm \\
+Scope & Global & Local \\
 Library & eHAL & eLib \\
 Memory & 1 GB & 32 KB \\
 \# of cores & 2 & 16 \\
@@ -332,12 +333,36 @@ int main() {
 }
 \end{lstlisting}
 \section{Performance Measurements}
-We ported BSP-bench (from BSPedupack) to do measurements of $g$ and $l$ on the Epiphany chip. 
-\todo{ABE: FIXME}
+We ported BSP-bench (from BSPedupack) to do measurements of $g$ and $l$ on the Epiphany chip. Only some minor changes were required, mainly in memory management (replacing vecallocd and limiting the size of variables on the stack) and splitting code in some boilerplate on the ARM and the actual computations on Epiphany.
 
 \subsection{BSP parameters / benchmark}
+BSP-bench uses roughly $6*\mathtt{MAXH}+3*\mathtt{MAXN}$ floats, while there is room for about 2048 single precision floating point numbers. Because of this, we had to limit the size of $\mathtt{MAXH}$ and $\mathtt{MAXN}$. All measurements were taken using all 16 Epiphany cores.
 
-\todo{ABE: FIXME}
+\begin{table}[h]
+\centering
+\begin{tabular}{rrr|rrrrr}
+$\mathtt{MAXH}$ & $\mathtt{MAXN}$ & $\mathtt{NITER}$ & $r$ (Mflop/s) & $g$ & $l$ & $g_0$ & $l_0$ \\
+\hline
+256 & 128 & 100 & 4.248 & 229 & 10121 & 242 & 16992 \\
+128 & 256 & 100 & 5.008 & 284 & 10476 &  77 & 18890 \\
+128 & 256 & 100 & 4.611 & 262 &  9665 &  77 & 17356 \\
+ 64 & 256 & 100 & 4.146 & 234 &  8758 & 276 & 15668 \\
+ 64 & 256 & 100 & 4.095 & 247 &  8954 &  29 & 16375 \\
+\end{tabular}
+\caption{The results of BSP-bench measurements\\ $g$, $l$, $g_0$ and $l_0$ are time in flop units of communication and synchronisation.}
+\end{table}
+
+The values measured are consistent. The values of $g$ and $l$ are plausible, but $r$ is very low; a floating point operation has to take 100 clock cycles to get 5 Mflop/s on a chip with 600 MHz, this is an order of magnitude too high. Communication on Epiphany seems to have strange behavior as well; take a look at Figure \ref{fig:bspbench}. The time needed to sent a package jumps if $h$ increases by 57 words. One possible explanation is that the Epiphany architecture sends data in a fixed time communication phase.
+
+\begin{centering}
+\begin{figure}[h!]
+\centering
+\includegraphics[scale=0.8]{EpiphanyGandL.pdf}
+\caption{The time needed to sent packages of different size}
+\label{fig:bspbench}
+\end{figure}
+\end{centering}
+
 
 \section{Further Work}
 
