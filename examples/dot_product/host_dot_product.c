@@ -25,7 +25,7 @@ int main(int argc, char **argv)
     printf("chunk: %i\n", chunk);
 
     // write in memory bank 4
-    int base = 0x6000;
+    int base = 0x4000;
     for(pid = 0; pid < bsp_nprocs(); pid++) {
         int prow, pcol;
         co_write(pid, &chunk, (off_t)base, sizeof(int));

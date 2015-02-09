@@ -27,15 +27,14 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdio.h>
 #include <string.h>
 
-#define _NPROCS 16
-//clockspeed in cycles/second
-#define CLOCKSPEED 800000000.
 
 int _nprocs = -1;
 int _pid = -1;
-e_barrier_t sync_bar[_NPROCS];
-e_barrier_t* sync_bar_tgt[_NPROCS];
+volatile e_barrier_t*  sync_bar = (e_barrier_t*)LOC_BAR_ARRAY;
+         e_barrier_t** sync_bar_tgt = (e_barrier_t**)LOC_BAR_TGT_ARRAY;
 e_memseg_t emem;
+
+float* remote_timer;
 unsigned int _initial_time;
 
 inline int row_from_pid(int pid)
@@ -79,9 +78,9 @@ void bsp_begin()
 
     e_barrier_init(sync_bar, sync_bar_tgt);
 
-    e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
-    e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);
-    _initial_time = e_ctimer_get(E_CTIMER_0);//start.tv_sec * 1000000.0 + start.tv_usec;
+    e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);//E_CTIMER_CLK IS ONLY 255!?!?!?!??!?!?!?! FIXME
+    _initial_time = e_ctimer_get(E_CTIMER_0);
+    remote_timer=(float*)REMOTE_TIMER_ADDRESS;
 }
 
 void bsp_end()
@@ -101,6 +100,7 @@ int bsp_pid()
     return _pid;
 }
 
+
 float bsp_time()
 {
     unsigned int _current_time = e_ctimer_get(E_CTIMER_0);
@@ -111,18 +111,25 @@ float bsp_time()
     return (_initial_time - _current_time)/CLOCKSPEED;
 }
 
+float bsp_remote_time()
+{
+    return *remote_timer;
+}
+
+
 // Sync
 void bsp_sync()
 {
 	//Signal host that epiphany is syncing, wait until host is done
 	(*syncstate) = STATE_SYNC;
 
+    //e_wait(E_CTIMER_1, 10000);
 	while(*syncstate != STATE_CONTINUE) {
-        e_wait(E_CTIMER_1, 10000);
+        //e_wait(E_CTIMER_1, 10000);
     }
 
     e_barrier(sync_bar, sync_bar_tgt);
-	
+
 	//Reset state
 	(*syncstate) = STATE_RUN;
 }
@@ -132,7 +139,7 @@ void bsp_push_reg(const void* variable, const int nbytes)
 {
     e_write((void*)&emem,
             &variable,
-            0, 0, 0, //(void*)(sizeof(void*) * CORE_ID), // FIXME
+            0, 0, 0, 
             sizeof(void*));
 }
 
@@ -141,18 +148,16 @@ void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
     int slotID;
     for(slotID=0; ; slotID++) {
 #ifdef DEBUG
-        if(slotID >= MAX_N_REGISTER) {
-            break;
-            //fprintf(stderr,"PUTTING TO UNREGISTERED VARIABLE");//THIS COMMAND DOES NOT WORK
-        }
+        if(slotID >= MAX_N_REGISTER)
+            return;
 #endif
         if(registermap[_nprocs*slotID+pid] == dst)
             break;
     }
 
-    void* adj_dst = registermap[_nprocs * slotID + pid] + offset;
+    void* adj_dst = (void*)(((int)registermap[_nprocs * slotID + pid]) + offset);
     e_write(&e_group_config, src,
             row_from_pid(pid),
             col_from_pid(pid),
-            adj_dst, nbytes);	
+            adj_dst, nbytes);
 }

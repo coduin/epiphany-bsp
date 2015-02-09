@@ -10,6 +10,9 @@
 #define REGISTERMAP_ADDRESS 0x6150
 #define SYNC_STATE_ADDRESS 0x6100
 #define NPROCS_LOC_ADDRESS 0x6050
+#define REMOTE_TIMER_ADDRESS 0x6040
+#define LOC_BAR_ARRAY 0x6200
+#define LOC_BAR_TGT_ARRAY 0x6300
 
 #define CORE_ID _pid
 #define CORE_ROW e_group_config.core_row
@@ -22,3 +25,8 @@
 
 #define NCORES (e_group_config.group_rows*e_group_config.group_cols)
 #define MAX_NCORES 64
+
+#define _NPROCS 16
+//clockspeed of Epiphany in cycles/second
+#define CLOCKSPEED 800000000.
+#define ARM_CLOCKSPEED 20000.
