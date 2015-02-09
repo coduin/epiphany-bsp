@@ -70,6 +70,7 @@ int main()
             *((int*)LOC_PI + i) = i;
 
     for (k = 0; k < dim; ++k) {
+
         //----------------------
         // STAGE 1: Pivot search
         //----------------------
@@ -77,7 +78,7 @@ int main()
             int rs = -1;
             float a_rk = -1.0;
             for (i = k; i < dim; ++i) {
-                float a_ik = abs(*a(i,k));
+                float a_ik = abs(*a(i, k));
                 if (a_ik > a_rk) {
                     a_rk = a_ik;
                     rs = i;
@@ -225,7 +226,7 @@ int main()
         }
     }
 
-    bsp_end();
+    bsp_end(); // (11)
 
     return 0;
 }
