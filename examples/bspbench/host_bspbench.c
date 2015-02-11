@@ -1,3 +1,6 @@
+// This program is based on bspbench from BSPedupack by Rob Bisseling, copyrighted in 2004
+// BSPedupack is under the GNU General Public License
+
 #include <host_bsp.h>
 #include <stdio.h>
  
@@ -19,7 +22,7 @@ int main(int argc, char **argv){
     if (P > bsp_nprocs()){
         printf("Sorry, not enough processors available.\n");
         return -1;
-    } //
+    }
     if(!bsp_begin(bsp_nprocs())) {
         fprintf(stderr, "[BSPBENCH] bsp_begin() failed\n");
     }

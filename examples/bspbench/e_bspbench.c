@@ -1,3 +1,6 @@
+// This program is based on bspbench from BSPedupack by Rob Bisseling, copyrighted in 2004
+// BSPedupack is under the GNU General Public License
+
 #include <e_bsp.h>
 #include "e-lib.h"
  
