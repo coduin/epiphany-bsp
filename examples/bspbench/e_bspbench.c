@@ -1,3 +1,6 @@
+// This program is based on bspbench from BSPedupack by Rob Bisseling, copyrighted in 2004
+// BSPedupack is under the GNU General Public License
+
 #include <e_bsp.h>
 #include "e-lib.h"
  
@@ -6,9 +9,9 @@
 */
 
 /* This program needs order 6*MAXH+3*MAXN memory */
-#define NITERS 1000    /* number of iterations. Default: 100 */
-#define MAXN 32      /* maximum length of DAXPY computation. Default: 1024 */
-#define MAXH 8      /* maximum h in h-relation. Default: 256 */
+#define NITERS 100    /* number of iterations. Default: 100 */
+#define MAXN 128      /* maximum length of DAXPY computation. Default: 1024 */
+#define MAXH 256      /* maximum h in h-relation. Default: 256 */
 #define MEGA 1000000.0
 
 
@@ -38,6 +41,7 @@ float *vecallocd(int n) {
         if(address >= 0x6000) /* FIXME HARDCODE WARNING */
             return NULL; /* OUT OF MEMORY (in 0x4000 - 0x6000) */
     } 
+    
     return pd; 
 } /* end vecallocd */ 
 
@@ -85,10 +89,10 @@ void leastsquares(int h0, int h1, float *t, float *g, float *l) {
 
 int main() { /*  bsp_bench */
     /* void leastsquares(int h0, int h1, float *t, float *g, float *l); */
-    int p, s, s1, iter, i, n, h, destproc[MAXH], destindex[MAXH];
-    float alpha, beta, x[MAXN], y[MAXN], z[MAXN], src[MAXH], *dest,
+    int p, s, s1, iter, i, n, h, *destproc, *destindex;
+    float alpha, beta, *x, *y, *z, *src, *dest,
            time0, time1, time, *Time, mintime, maxtime,
-           nflops, r, g0, l0, g, l, t[MAXH+1]; 
+           nflops, r, g0, l0, g, l, *t; 
   
     /**** Determine p ****/
     bsp_begin();
@@ -98,6 +102,14 @@ int main() { /*  bsp_bench */
     bsp_sync();
 
     Time = vecallocd(p); 
+    x = vecallocd(MAXN);
+    y = vecallocd(MAXN);
+    z = vecallocd(MAXN);
+    src = vecallocd(MAXH);
+    destproc = (int*) vecallocd(MAXH); 
+    destindex = (int*) vecallocd(MAXH); 
+    
+    t = vecallocd(MAXH+1);
 
     bsp_push_reg(Time,p*SZDBL);
     bsp_sync();
@@ -110,7 +122,6 @@ int main() { /*  bsp_bench */
 
     /* Set default rate of 0 */
     r = 0;
-    r = 1000000.0; //DEBUG
     for (n=1; n <= MAXN; n *= 2) {
         /* Initialize scalars and vectors */
         alpha = 1.0/3.0;
@@ -145,7 +156,6 @@ int main() { /*  bsp_bench */
                 for(s1=0; s1<p; s1++)
                     r += nflops/Time[s1];
                 r /= (float) p; 
-                r = 1000000.0;//DEBUG
                 /*printf("n = %5d min = %7.3lf max = %7.3lf av = %7.3lf Mflop/s ",
                        n, nflops/(maxtime*MEGA),nflops/(mintime*MEGA), r/MEGA);
                 fflush(stdout); */
@@ -202,15 +212,24 @@ int main() { /*  bsp_bench */
         float* rOut = (void*)0x6010;
         float* gOut = (void*)0x6020;
         float* lOut = (void*)0x6030;
+        float* g0Out = (void*)0x6040;
+        float* l0Out = (void*)0x6050;
         (*pOut) = p;
         (*rOut) = r;
         (*gOut) = g;
         (*lOut) = l;
-
-        (*pOut) = p;//DEBUG
+        (*g0Out) = g0;
+        (*l0Out) = l0;
+        int j;
+        for(j=0; j<=MAXH; j++){
+            i=0x4000+j*sizeof(float);
+            float* tmp=(float*)i;
+            (*tmp)=t[j];
+        }
+        /*(*pOut) = p;//DEBUG
         (*rOut) = r;
-        (*gOut) = g;
-        (*lOut) = bsp_remote_time();
+        (*gOut) = t[5];
+        (*lOut) = t[6];*/
         /* fflush(stdout); */
     }
     /* No need tot pop register/free vectors in our implementation... */

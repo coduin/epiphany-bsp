@@ -60,12 +60,7 @@ void bsp_begin()
     _nprocs = (*nprocs_loc);
 
     char rm_name[10];
-    strcpy(rm_name, REGISTERMAP_BUFFER_SHM_NAME);
-    char id[4] = { 0 };
-    sprintf(id, "_%i", _pid);
-    for(i = 6; i <= 9; i++) {
-        rm_name[i] = id[i - 6];
-    }
+    sprintf(rm_name, "%s_%i", REGISTERMAP_BUFFER_SHM_NAME, _pid);
     e_shm_attach(&emem, rm_name);
 
     registermap = (void**)REGISTERMAP_ADDRESS;
