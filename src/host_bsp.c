@@ -137,7 +137,6 @@ int bsp_begin(int nprocs)
     }
 
     // Allocate registermap_buffers
-    printf("DEBUG: Allocate registermap_buffers..\n");
     for(i = 0; i < state.nprocs; ++i) {
         char rm_name[10];
         strcpy(rm_name, REGISTERMAP_BUFFER_SHM_NAME);
@@ -145,7 +144,6 @@ int bsp_begin(int nprocs)
         sprintf(id, "_%i", i);
         strcat(rm_name, id);
 
-        printf("DEBUG: Writing to registermap_buffer[%i], rm_name=%s\n",i, rm_name);
         if(e_shm_alloc(&state.registermap_buffer[i],
                     rm_name, sizeof(void*)) != E_OK) {
             fprintf(stderr, "ERROR: Could not allocate registermap_buffer %s.\n", rm_name);
@@ -155,12 +153,10 @@ int bsp_begin(int nprocs)
 
     //Set registermap_buffer to zero FIXME: IT ALWAYS REGISTERS
     int buf=0;
-    printf("DEBUG: Setting registermap_buffer to zero..\n");
     for(i = 0; i < state.nprocs; ++i)  {
         e_write(&state.registermap_buffer[i], 0, 0, (off_t) 0, (void*)&buf, sizeof(void*));
     }
 
-    printf("DEBUG: Registering DONE..\n");
     return 1;
 }
 
@@ -250,7 +246,6 @@ int ebsp_spmd()
 int bsp_end()
 {
 
-    printf("DEBUG: BSP_end..\n");
     // FIXME release all
     /* if(E_OK != e_shm_release(REGISTERMAP_BUFFER_SHM_NAME) ) {
         fprintf(stderr, "ERROR: Could not relese registermap_buffer\n");
@@ -301,7 +296,6 @@ void _host_sync() {
         e_read(&state.registermap_buffer[i], 0, 0, (off_t)0, buf + i, sizeof(void*));
     }
 
-    printf("DEBUG: Broadcastring registermap_buffer to registermap, write phase\n");
     for(i = 0; i < state.nprocs; ++i) {
         co_write(i, buf,
                 (off_t)(REGISTERMAP_ADDRESS + state.num_vars_registered * state.nprocs), 
@@ -314,17 +308,14 @@ void _host_sync() {
 #endif
 
     // Reset registermap_buffer
-    printf("DEBUG: Resetting registermap_buffer\n");//FIXME; ee_mwrite_buf(): Address is out of bounds.
+    //FIXME; ee_mwrite_buf(): Address is out of bounds.
     void* buffer = calloc(sizeof(void*), state.nprocs);
-    printf("buffer: %i\n",(int)buffer);
     for(i = 0; i < state.nprocs; ++i) {
         e_write(&state.registermap_buffer[i], 0, 0, (off_t)0, buffer, sizeof(void*));
     }
 
-    printf("DEBUG: Freeing memory\n");
     free(buf);
     free(buffer);
-    printf("DEBUG: _host_sync DONE\n");
 }
 
 void _get_p_coords(int pid, int* row, int* col)

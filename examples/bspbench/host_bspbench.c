@@ -24,9 +24,7 @@ int main(int argc, char **argv){
         fprintf(stderr, "[BSPBENCH] bsp_begin() failed\n");
     }
     printf("Using %i processors!\n", bsp_nprocs()); fflush(stdout);
-    printf("DEBUG Starting spmd\n");
     spmd_epiphany(); 
-    printf("DEBUG Done with spmd\n");
 
     //Get p, r, g and l
     int p;
