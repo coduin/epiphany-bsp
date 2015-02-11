@@ -30,13 +30,13 @@ int main(int argc, char **argv){
 
     //Get p, r, g and l
     int p;
-    double r,g,l;
-    co_read(0, (off_t)0x6000, &p, 1);
-    co_read(0, (off_t)0x6010, &r, 1);
-    co_read(0, (off_t)0x6020, &g, 1);
-    co_read(0, (off_t)0x6030, &l, 1);
+    float r,g,l;
+    co_read(0, (off_t)0x6000, &p, sizeof(int));
+    co_read(0, (off_t)0x6010, &r, sizeof(float));
+    co_read(0, (off_t)0x6020, &g, sizeof(float));
+    co_read(0, (off_t)0x6030, &l, sizeof(float));
     printf("The bottom line for this BSP computer is:\n");
-    printf("p= %d, r= %.3lf Mflop/s, g= %.1lf, l= %.1lf\n",
+    printf("p= %d, r= %.3lf Mflop/s, g= %E, l= %E\n",
          p,r/MEGA,g,l);
     bsp_end();
     

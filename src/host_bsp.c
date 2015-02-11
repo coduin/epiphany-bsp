@@ -29,6 +29,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 // Global state
 bsp_state_t state;
@@ -136,6 +137,7 @@ int bsp_begin(int nprocs)
     }
 
     // Allocate registermap_buffers
+    printf("DEBUG: Allocate registermap_buffers..\n");
     for(i = 0; i < state.nprocs; ++i) {
         char rm_name[10];
         strcpy(rm_name, REGISTERMAP_BUFFER_SHM_NAME);
@@ -143,6 +145,7 @@ int bsp_begin(int nprocs)
         sprintf(id, "_%i", i);
         strcat(rm_name, id);
 
+        printf("DEBUG: Writing to registermap_buffer[%i], rm_name=%s\n",i, rm_name);
         if(e_shm_alloc(&state.registermap_buffer[i],
                     rm_name, sizeof(void*)) != E_OK) {
             fprintf(stderr, "ERROR: Could not allocate registermap_buffer %s.\n", rm_name);
@@ -151,52 +154,75 @@ int bsp_begin(int nprocs)
     }
 
     //Set registermap_buffer to zero FIXME: IT ALWAYS REGISTERS
-    void* buf = 0;
+    int buf=0;
+    printf("DEBUG: Setting registermap_buffer to zero..\n");
     for(i = 0; i < state.nprocs; ++i)  {
-        e_write(&state.registermap_buffer[i], 0, 0, (off_t) 0, &buf, sizeof(void*));
+        e_write(&state.registermap_buffer[i], 0, 0, (off_t) 0, (void*)&buf, sizeof(void*));
     }
 
+    printf("DEBUG: Registering DONE..\n");
     return 1;
 }
 
 int ebsp_spmd()
-{
+{   
+    int i = 0;
+    int j = 0;
+
+    clock_t start=clock(); 
+    clock_t end=clock(); 
+    float arm_timer;
+    arm_timer = (float)(end-start)/ARM_CLOCKSPEED;
+    for(i = 0; i < state.nprocs; i++) {
+        co_write(i, &arm_timer, (off_t)REMOTE_TIMER_ADDRESS, sizeof(int));
+    }
+    
     // Start the program
     e_start_group(&state.dev);
-
     // sleep for 0.01 seconds
     usleep(1000);
 
-    int i = 0;
-    int j = 0;
-    int counter = 0;
-    int tmp = 0;
-    int done = 0; 
-    int rand = 0;
-    while(done != state.nprocs) {
-        counter = 0;
-        done = 0;
-        for(i = 0; i < state.platform.rows; i++) {
-            for(j = 0; j < state.platform.cols; j++) {
-                e_read(&state.dev, i, j, (off_t)SYNC_STATE_ADDRESS, &tmp, sizeof(int));
-                if(tmp == STATE_FINISH) {
-                    done++;
-                }
-                if(tmp == STATE_SYNC) {
-                    counter++;
-                }
-            }
+
+    int state_flag = 0;
+
+    int sync_counter     = 0;
+    int finish_counter   = 0; 
+    int continue_counter = 0;
+
+    int iter = 0;
+
+    while (finish_counter != state.nprocs) {
+        end=clock(); 
+        arm_timer = (float)(end-start)/ARM_CLOCKSPEED;
+        for(i = 0; i < state.nprocs; i++) {
+            co_write(i, &arm_timer, (off_t)REMOTE_TIMER_ADDRESS, sizeof(int));
         }
+        sync_counter     = 0;
+        finish_counter   = 0;
+        continue_counter = 0;
+        for (i = 0; i < state.nprocs; i++) {
+            co_read(i, (off_t)SYNC_STATE_ADDRESS, &state_flag, sizeof(int));
+
+            if (state_flag == STATE_SYNC    ) sync_counter++;
+            if (state_flag == STATE_FINISH  ) finish_counter++;
+            if (state_flag == STATE_CONTINUE) continue_counter++;
+        }
+
 #ifdef DEBUG
-        if(done > rand || counter > rand) {
-            if(done > rand) rand = done;
-            if(counter > rand) rand = counter;
-            printf("(BSP) DEBUG: Almost syncing on host: %i sync, %i done..\n", counter, done);
+        if (iter % 100 == 0) {
+           printf("Current time: %E seconds\n", arm_timer);
+            printf("sync \t finish \t continue \t 16th stateflag \n");
+            printf("%i \t %i \t\t %i \t\t %i\n", 
+                sync_counter,
+                finish_counter,
+                continue_counter,
+                state_flag);
         }
+        ++iter;
 #endif
-        if(counter == state.nprocs) {
+
+        if (sync_counter == state.nprocs) {
 #ifdef DEBUG
-            rand=0;
             printf("(BSP) DEBUG: Syncing on host...\n");
 #endif
             _host_sync();
@@ -204,11 +230,10 @@ int ebsp_spmd()
 #ifdef DEBUG
             printf("(BSP) DEBUG: Writing STATE_CONTINUE to processors...\n");
 #endif
-            tmp = STATE_CONTINUE;
-            for(i = 0; i < state.platform.rows; i++) {
-                for(j = 0; j < state.platform.cols; j++) {
-                    e_write(&state.dev, i, j, (off_t)SYNC_STATE_ADDRESS, &tmp, sizeof(int));
-                }
+            state_flag = STATE_CONTINUE;
+            for(i = 0; i < state.nprocs; i++) {
+                co_write(i, &state_flag, (off_t)SYNC_STATE_ADDRESS, sizeof(int));
+                //co_write(i, &state_flag, (off_t)SYNC_STATE_ADDRESS, sizeof(int));
             }
 #ifdef DEBUG
             printf("(BSP) DEBUG: Continuing...\n");
@@ -225,6 +250,7 @@ int ebsp_spmd()
 int bsp_end()
 {
 
+    printf("DEBUG: BSP_end..\n");
     // FIXME release all
     /* if(E_OK != e_shm_release(REGISTERMAP_BUFFER_SHM_NAME) ) {
         fprintf(stderr, "ERROR: Could not relese registermap_buffer\n");
@@ -249,44 +275,33 @@ int bsp_nprocs()
 // Memory
 void _host_sync() {
     // TODO: Right now bsp_pop_reg is ignored
-    // TODO: ALWAYS THINKS NEW REGISTRATION IS REQUIRED
-    // Check if overwrite is necessary => this gives no problems
-    
+
     int i, j;
-    int new_vars=0;
+    int new_vars = 0;
 #ifdef DEBUG
-    printf("(BSP) DEBUG: registermapbuffer contents: ");
+    printf("(BSP) DEBUG: _host_sync() ............................... \n");
 #endif
-    // Check if variables were registered TODO: make nicer solution using register?
-    for (i = 0; i < state.nprocs; ++i) {
-        void* buf;
-        e_read(&state.registermap_buffer[i], 0, 0, 0, &buf, sizeof(void*));
+
+    void* var_loc;
+    e_read(&state.registermap_buffer[0], 0, 0, 0, &var_loc, sizeof(void*));
         
 #ifdef DEBUG
-        printf("%i,\t",(int)buf);
+    printf("var_loc = 0x%x\n", (int)var_loc);
 #endif
-        if(buf != NULL) {
-            new_vars = 1;
-#ifdef DEBUG
-            continue;
-#endif
-            break;
-        }
-    }
-#ifdef DEBUG
-    printf("\n");
-#endif
-    if(!new_vars) {
-        return; // No registration took place; we are done
+
+    if(var_loc != NULL) {
+        new_vars = 1;
+    } else {
+        return;
     }
 
-
-    //Broadcast registermap_buffer to registermap 
+    // Broadcast registermap_buffer to registermap 
     void** buf = (void**) malloc(sizeof(void*) * state.nprocs);
     for(i = 0; i < state.nprocs; ++i) {
-        e_read(&state.registermap_buffer[i], &buf, 0, 0, (void*)0, sizeof(void*) * state.nprocs);
+        e_read(&state.registermap_buffer[i], 0, 0, (off_t)0, buf + i, sizeof(void*));
     }
 
+    printf("DEBUG: Broadcastring registermap_buffer to registermap, write phase\n");
     for(i = 0; i < state.nprocs; ++i) {
         co_write(i, buf,
                 (off_t)(REGISTERMAP_ADDRESS + state.num_vars_registered * state.nprocs), 
@@ -299,13 +314,17 @@ void _host_sync() {
 #endif
 
     // Reset registermap_buffer
+    printf("DEBUG: Resetting registermap_buffer\n");//FIXME; ee_mwrite_buf(): Address is out of bounds.
     void* buffer = calloc(sizeof(void*), state.nprocs);
+    printf("buffer: %i\n",(int)buffer);
     for(i = 0; i < state.nprocs; ++i) {
-        e_write(&state.registermap_buffer[i], buffer, 0, 0, (off_t) 0, sizeof(void*) * state.nprocs);
+        e_write(&state.registermap_buffer[i], 0, 0, (off_t)0, buffer, sizeof(void*));
     }
 
+    printf("DEBUG: Freeing memory\n");
     free(buf);
     free(buffer);
+    printf("DEBUG: _host_sync DONE\n");
 }
 
 void _get_p_coords(int pid, int* row, int* col)

@@ -1,3 +1,27 @@
+/*
+File: host_lu_decomposition.h
+
+This file is part of the Epiphany BSP library.
+
+Copyright (C) 2014 Buurlage Wits
+Support e-mail: <info@buurlagewits.nl>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License (LGPL)
+as published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+and the GNU Lesser General Public License along with this program,
+see the files COPYING and COPYING.LESSER. If not, see
+<http://www.gnu.org/licenses/>.
+*/
+
 #include <host_bsp.h>
 
 #include <stdlib.h>
@@ -12,9 +36,9 @@ char N = -1;
 char M = -1;
 
 // always choose multiple of 4 such that we dont have to worry
-// about heterogeneous distributions, too much,
+// about heterogeneous distributions too much,
 // which makes a lot of things much easier
-char dim = 40;
+char dim = 20;
 
 // "local to global" index
 int ltg(int* i, int* j, int l, int s, int t)
@@ -47,9 +71,9 @@ int main(int argc, char **argv)
     for(i = 0; i < dim; ++i) {
         for(j = 0; j < dim; ++j) {
             if(i > j) 
-                mat[dim*i + j] = (float)i / j;
+                mat[dim*i + j] = (float)i / (j+1);
             else 
-                mat[dim*i + j] = (float)j / i;
+                mat[dim*i + j] = (float)j / (i+1);
         }
     }
 
@@ -121,7 +145,7 @@ int main(int argc, char **argv)
     printf("Matrix: \n");
     for (i = 0; i < dim; ++i) {
         for (j = 0; j < dim; ++j) {
-            printf("%f ", mat[dim * i + j]);
+            printf("%.2f ", mat[dim * i + j]);
         }
         printf("\n");
     }
@@ -142,7 +166,7 @@ int main(int argc, char **argv)
 
     for (i = 0; i < dim; ++i) {
         for (j = 0; j < dim; ++j) {
-            printf("%f ", mat[dim * i + j]);
+            printf("%.2f ", mat[dim * i + j]);
         }
         printf("\n");
     }
