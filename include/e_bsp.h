@@ -1,5 +1,5 @@
 /*
-File: bsp.h
+File: e_bsp.h
 
 This file is part of the Epiphany BSP library.
 
@@ -54,6 +54,7 @@ int bsp_pid();
  */
 float bsp_time();
 
+float bsp_remote_time();
 /** Terminates a superstep, and starts all communication. The computation is 
  *  halted until all communication has been performed.
  *  Somehow host_sync() is called before all processes continue.

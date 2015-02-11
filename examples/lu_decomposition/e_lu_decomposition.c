@@ -1,3 +1,27 @@
+/*
+File: e_lu_decomposition.h
+
+This file is part of the Epiphany BSP library.
+
+Copyright (C) 2014 Buurlage Wits
+Support e-mail: <info@buurlagewits.nl>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License (LGPL)
+as published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+and the GNU Lesser General Public License along with this program,
+see the files COPYING and COPYING.LESSER. If not, see
+<http://www.gnu.org/licenses/>.
+*/
+
 #include <e_bsp.h>
 #include "e-lib.h"
 
@@ -70,6 +94,7 @@ int main()
             *((int*)LOC_PI + i) = i;
 
     for (k = 0; k < dim; ++k) {
+
         //----------------------
         // STAGE 1: Pivot search
         //----------------------
@@ -77,7 +102,7 @@ int main()
             int rs = -1;
             float a_rk = -1.0;
             for (i = k; i < dim; ++i) {
-                float a_ik = abs(*a(i,k));
+                float a_ik = abs(*a(i, k));
                 if (a_ik > a_rk) {
                     a_rk = a_ik;
                     rs = i;
@@ -225,7 +250,7 @@ int main()
         }
     }
 
-    bsp_end();
+    bsp_end(); // (11)
 
     return 0;
 }

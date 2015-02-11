@@ -1,3 +1,27 @@
+/*
+File: host_dot_product.c
+
+This file is part of the Epiphany BSP library.
+
+Copyright (C) 2014 Buurlage Wits
+Support e-mail: <info@buurlagewits.nl>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License (LGPL)
+as published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+and the GNU Lesser General Public License along with this program,
+see the files COPYING and COPYING.LESSER. If not, see
+<http://www.gnu.org/licenses/>.
+*/
+
 #include <host_bsp.h>
 #include <stdlib.h>
 #include <stdio.h> 
@@ -25,7 +49,7 @@ int main(int argc, char **argv)
     printf("chunk: %i\n", chunk);
 
     // write in memory bank 4
-    int base = 0x6000;
+    int base = 0x4000;
     for(pid = 0; pid < bsp_nprocs(); pid++) {
         int prow, pcol;
         co_write(pid, &chunk, (off_t)base, sizeof(int));

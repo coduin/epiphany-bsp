@@ -29,36 +29,55 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 // Global state
 bsp_state_t state;
+bool bsp_initialized = false;;
 
 void _host_sync();
 void _get_p_coords(int pid, int* row, int* col);
 bsp_state_t* _get_state();
 
-void co_write(int pid, void* src, off_t dst, int size)
+int co_write(int pid, void* src, off_t dst, int size)
 {
     int prow, pcol;
     _get_p_coords(pid, &prow, &pcol);
-    e_write(&state.dev,
+    if (e_write(&state.dev,
             prow, pcol,
-            dst, src, size);
+            dst, src, size) != size)
+    {
+        fprintf(stderr, "ERROR: e_write(dev,%d,%d,%p,%p,%d) failed in co_write.\n",
+                prow, pcol, dst, src, size);
+        return 0;
+    }
+    return 1;
 }
 
-void co_read(int pid, off_t src, void* dst, int size)
+int co_read(int pid, off_t src, void* dst, int size)
 {
     int prow, pcol;
     _get_p_coords(pid, &prow, &pcol);
-    e_read(&state.dev,
+    if (e_read(&state.dev,
            prow, pcol,
-           src, dst, size);
+           src, dst, size) != size)
+    {
+        fprintf(stderr, "ERROR: e_read(dev,%d,%d,%p,%p,%d) failed in co_read.\n",
+                prow, pcol, src, dst, size);
+        return 0;
+    }
+    return 1;
 }
 
 int bsp_init(const char* _e_name,
         int argc,
         char **argv)
 {
+    if (bsp_initialized) {
+        fprintf(stderr, "ERROR: bsp_init called when already initialized.\n");
+        return 0;
+    }
+
     // Initialize the Epiphany system for the working with the host application
     if(e_init(NULL) != E_OK) {
         fprintf(stderr, "ERROR: Could not initialize HAL data structures.\n");
@@ -84,11 +103,19 @@ int bsp_init(const char* _e_name,
     state.e_name = (char*)malloc(MAX_NAME_SIZE);
     strcpy(state.e_name, _e_name);
 
+    bsp_initialized = true;
+
     return 1;
 }
 
 int bsp_begin(int nprocs)
 {
+    if (nprocs < 1 || nprocs > 99 || nprocs > MAX_NCORES) {
+        fprintf(stderr, "ERROR: nprocs = %d.\n", nprocs);
+        return 0;
+    }
+
+    //TODO: non-rectangle
     state.rows = (nprocs / state.platform.rows);
     state.cols = nprocs / (nprocs / state.platform.rows);
 
@@ -114,7 +141,6 @@ int bsp_begin(int nprocs)
         return 0;
     }
 
-
     // Load the e-binary
     printf("(BSP) INFO: Loading: %s\n", state.e_name);
     if(e_load_group(state.e_name,
@@ -131,17 +157,18 @@ int bsp_begin(int nprocs)
     int i, j;
     for(i = 0; i < state.platform.rows; ++i) {
         for(j = 0; j < state.platform.cols; ++j) {
-            e_write(&state.dev, i, j, (off_t)NPROCS_LOC_ADDRESS, &state.nprocs, sizeof(int));
+            if (e_write(&state.dev, i, j, (off_t)NPROCS_LOC_ADDRESS,
+                        &state.nprocs, sizeof(int)) != sizeof(int)) {
+                fprintf(stderr, "ERROR: e_write(dev,%d,%d,..) failed in bsp_begin.\n",i,j);
+                return 0;
+            }
         }
     }
 
     // Allocate registermap_buffers
     for(i = 0; i < state.nprocs; ++i) {
         char rm_name[10];
-        strcpy(rm_name, REGISTERMAP_BUFFER_SHM_NAME);
-        char id[3] = { 0 };
-        sprintf(id, "_%i", i);
-        strcat(rm_name, id);
+        sprintf(rm_name, "%s_%i", REGISTERMAP_BUFFER_SHM_NAME, i);
 
         if(e_shm_alloc(&state.registermap_buffer[i],
                     rm_name, sizeof(void*)) != E_OK) {
@@ -150,44 +177,80 @@ int bsp_begin(int nprocs)
         }
     }
 
-    //Set registermap_buffer to zero
-    void* buf = 0;
+    //Set registermap_buffer to zero FIXME: IT ALWAYS REGISTERS
+    int buf=0;
     for(i = 0; i < state.nprocs; ++i)  {
-        e_write(&state.registermap_buffer[i], 0, 0, (off_t) 0, &buf, sizeof(void*));
+        if (e_write(&state.registermap_buffer[i], 0, 0, (off_t) 0,
+                    (void*)&buf, sizeof(void*)) != sizeof(void*)) {
+            fprintf(stderr, "ERROR: e_write(registemap_buffer[%d],..) failed in bsp_begin.\n",i);
+            return 0;
+        }
     }
 
     return 1;
 }
 
 int ebsp_spmd()
-{
-    // Start the program
-    e_start_group(&state.dev);
+{   
+    int i = 0;
+    int j = 0;
 
+    clock_t start=clock(); 
+    clock_t end=clock(); 
+    float arm_timer;
+    arm_timer = (float)(end-start)/ARM_CLOCKSPEED;
+    for(i = 0; i < state.nprocs; i++) {
+        co_write(i, &arm_timer, (off_t)REMOTE_TIMER_ADDRESS, sizeof(int));
+    }
+    
+    // Start the program
+    if (e_start_group(&state.dev) != E_OK) {
+        fprintf(stderr, "ERROR: e_start_group() failed.\n");
+        return 0;
+    }
     // sleep for 0.01 seconds
     usleep(1000);
 
-    int i = 0;
-    int j = 0;
-    int counter = 0;
-    int tmp = 0;
-    int done = 0; 
-    int rand = 0;
-    while(done != state.nprocs) {
-        counter = 0;
-        done = 0;
-        for(i = 0; i < state.platform.rows; i++) {
-            for(j = 0; j < state.platform.cols; j++) {
-                e_read(&state.dev, i, j, (off_t)SYNC_STATE_ADDRESS, &tmp, sizeof(int));
-                if(tmp == STATE_FINISH) {
-                    done++;
-                }
-                if(tmp == STATE_SYNC) {
-                    counter++;
-                }
-            }
+
+    int state_flag = 0;
+
+    int sync_counter     = 0;
+    int finish_counter   = 0; 
+    int continue_counter = 0;
+
+    int iter = 0;
+
+    while (finish_counter != state.nprocs) {
+        end=clock(); 
+        arm_timer = (float)(end-start)/ARM_CLOCKSPEED;
+        for(i = 0; i < state.nprocs; i++) {
+            co_write(i, &arm_timer, (off_t)REMOTE_TIMER_ADDRESS, sizeof(int));
         }
-        if(counter == state.nprocs) {
+        sync_counter     = 0;
+        finish_counter   = 0;
+        continue_counter = 0;
+        for (i = 0; i < state.nprocs; i++) {
+            co_read(i, (off_t)SYNC_STATE_ADDRESS, &state_flag, sizeof(int));
+
+            if (state_flag == STATE_SYNC    ) sync_counter++;
+            if (state_flag == STATE_FINISH  ) finish_counter++;
+            if (state_flag == STATE_CONTINUE) continue_counter++;
+        }
+
+#ifdef DEBUG
+        if (iter % 100 == 0) {
+           printf("Current time: %E seconds\n", arm_timer);
+            printf("sync \t finish \t continue \t 16th stateflag \n");
+            printf("%i \t %i \t\t %i \t\t %i\n", 
+                sync_counter,
+                finish_counter,
+                continue_counter,
+                state_flag);
+        }
+        ++iter;
+#endif
+
+        if (sync_counter == state.nprocs) {
 #ifdef DEBUG
             printf("(BSP) DEBUG: Syncing on host...\n");
 #endif
@@ -196,11 +259,10 @@ int ebsp_spmd()
 #ifdef DEBUG
             printf("(BSP) DEBUG: Writing STATE_CONTINUE to processors...\n");
 #endif
-            tmp = STATE_CONTINUE;
-            for(i = 0; i < state.platform.rows; i++) {
-                for(j = 0; j < state.platform.cols; j++) {
-                    e_write(&state.dev, i, j, (off_t)SYNC_STATE_ADDRESS, &tmp, sizeof(int));
-                }
+            state_flag = STATE_CONTINUE;
+            for(i = 0; i < state.nprocs; i++) {
+                co_write(i, &state_flag, (off_t)SYNC_STATE_ADDRESS, sizeof(int));
+                //co_write(i, &state_flag, (off_t)SYNC_STATE_ADDRESS, sizeof(int));
             }
 #ifdef DEBUG
             printf("(BSP) DEBUG: Continuing...\n");
@@ -216,6 +278,10 @@ int ebsp_spmd()
 
 int bsp_end()
 {
+    if (!bsp_initialized) {
+        fprintf(stderr, "ERROR: bsp_end called when bsp was not initialized.\n");
+        return 0;
+    }
 
     // FIXME release all
     /* if(E_OK != e_shm_release(REGISTERMAP_BUFFER_SHM_NAME) ) {
@@ -226,6 +292,11 @@ int bsp_end()
         fprintf(stderr, "ERROR: Could not finalize the Epiphany connection.\n");
         return 0;
     }
+
+    free(state.e_name);
+    memset(state, 0, sizeof(state));
+    bsp_initialized = false;
+
     return 1;
 }
 
@@ -241,47 +312,60 @@ int bsp_nprocs()
 // Memory
 void _host_sync() {
     // TODO: Right now bsp_pop_reg is ignored
-    // Check if overwrite is necessary => this gives no problems
-    
+
     int i, j;
-    int new_vars=0;
-    // Check if variables were registered TODO: make nicer solution using register?
-    for (i = 0; i < state.nprocs; ++i) {
-        void* buf;
-        e_read(&state.registermap_buffer[i], 0, 0, 0, &buf, sizeof(void*));
-        if(buf != NULL) {
-            new_vars = 1;
-            break;
-        }
+    int new_vars = 0;
+#ifdef DEBUG
+    printf("(BSP) DEBUG: _host_sync() ............................... \n");
+#endif
+
+    void* var_loc;
+    if (e_read(&state.registermap_buffer[0], 0, 0, 0, &var_loc, sizeof(void*))
+            != sizeof(void*)) {
+        fprintf(stderr, "ERROR: in host_sync() could not read registermap_buffer[0]");
+        return;
     }
-    if(!new_vars) {
-        return; // No registration took place; we are done
+        
+#ifdef DEBUG
+    printf("var_loc = 0x%x\n", (int)var_loc);
+#endif
+
+    if(var_loc != NULL) {
+        new_vars = 1;
+    } else {
+        return;
     }
 
-
-    //Broadcast registermap_buffer to registermap 
+    // Broadcast registermap_buffer to registermap 
     void** buf = (void**) malloc(sizeof(void*) * state.nprocs);
     for(i = 0; i < state.nprocs; ++i) {
-        e_read(&state.registermap_buffer[i], 0, 0, (off_t) 0, buf + i, sizeof(void*));
+        if (e_read(&state.registermap_buffer[i], 0, 0, (off_t)0, buf + i, sizeof(void*))
+                != sizeof(void*)) {
+            fprintf(stderr, "ERROR: in host_sync() could not read registermap_buffer[i]");
+            //dont return, because of malloc
+        }
     }
-
     for(i = 0; i < state.nprocs; ++i) {
         co_write(i, buf,
                 (off_t)(REGISTERMAP_ADDRESS + state.num_vars_registered * state.nprocs), 
                 sizeof(void*) * state.nprocs);
     }
+    free(buf);
 
     state.num_vars_registered++;
 #ifdef DEBUG
     printf("(BSP) DEBUG: New variables registered: %i/%i\n",state.num_vars_registered,MAX_N_REGISTER);
 #endif
 
-    // Reset registermap_buffer
-    void* buffer = calloc(sizeof(void*), state.nprocs);
-    //e_write(&state.registermap_buffer[i], 0, 0, (off_t) 0, buffer, state.nprocs*sizeof(void*));
-
-    free(buf);
-    free(buffer);
+    // Reset registermap_buffer to zero
+    void* buffer = 0;
+    //FIXME; ee_mwrite_buf(): Address is out of bounds.
+    for(i = 0; i < state.nprocs; ++i) {
+        if (e_write(&state.registermap_buffer[i], 0, 0, (off_t)0,
+                    (void*)&buffer, sizeof(void*)) != sizeof(void*)) {
+            fprintf(stderr, "ERROR: in host_sync() could not write registermap_buffer[i]");
+        }
+    }
 }
 
 void _get_p_coords(int pid, int* row, int* col)
