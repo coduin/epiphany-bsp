@@ -166,12 +166,10 @@ int bsp_begin(int nprocs)
     }
 
     // Allocate registermap_buffers
-    printf("DEBUG: Allocate registermap_buffers..\n");
     for(i = 0; i < state.nprocs; ++i) {
         char rm_name[10];
         sprintf(rm_name, "%s_%i", REGISTERMAP_BUFFER_SHM_NAME, i);
 
-        printf("DEBUG: Writing to registermap_buffer[%i], rm_name=%s\n",i, rm_name);
         if(e_shm_alloc(&state.registermap_buffer[i],
                     rm_name, sizeof(void*)) != E_OK) {
             fprintf(stderr, "ERROR: Could not allocate registermap_buffer %s.\n", rm_name);
@@ -181,7 +179,6 @@ int bsp_begin(int nprocs)
 
     //Set registermap_buffer to zero FIXME: IT ALWAYS REGISTERS
     int buf=0;
-    printf("DEBUG: Setting registermap_buffer to zero..\n");
     for(i = 0; i < state.nprocs; ++i)  {
         if (e_write(&state.registermap_buffer[i], 0, 0, (off_t) 0,
                     (void*)&buf, sizeof(void*)) != sizeof(void*)) {
@@ -190,7 +187,6 @@ int bsp_begin(int nprocs)
         }
     }
 
-    printf("DEBUG: Registering DONE..\n");
     return 1;
 }
 
@@ -287,7 +283,6 @@ int bsp_end()
         return 0;
     }
 
-    printf("DEBUG: BSP_end..\n");
     // FIXME release all
     /* if(E_OK != e_shm_release(REGISTERMAP_BUFFER_SHM_NAME) ) {
         fprintf(stderr, "ERROR: Could not relese registermap_buffer\n");
@@ -350,7 +345,6 @@ void _host_sync() {
             //dont return, because of malloc
         }
     }
-    printf("DEBUG: Broadcastring registermap_buffer to registermap, write phase\n");
     for(i = 0; i < state.nprocs; ++i) {
         co_write(i, buf,
                 (off_t)(REGISTERMAP_ADDRESS + state.num_vars_registered * state.nprocs), 
@@ -364,8 +358,8 @@ void _host_sync() {
 #endif
 
     // Reset registermap_buffer to zero
-    printf("DEBUG: Resetting registermap_buffer\n");//FIXME; ee_mwrite_buf(): Address is out of bounds.
     void* buffer = 0;
+    //FIXME; ee_mwrite_buf(): Address is out of bounds.
     for(i = 0; i < state.nprocs; ++i) {
         if (e_write(&state.registermap_buffer[i], 0, 0, (off_t)0,
                     (void*)&buffer, sizeof(void*)) != sizeof(void*)) {

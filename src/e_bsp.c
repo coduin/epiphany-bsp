@@ -1,5 +1,5 @@
 /*
-File: bsp.h
+File: e_bsp.c
 
 This file is part of the Epiphany BSP library.
 
