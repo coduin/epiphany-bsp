@@ -40,7 +40,7 @@ int main(int argc, char **argv){
 
     int i;
     int j; 
-    for(j=0; j<=128; j++){
+    for(j=0; j<=256; j++){
         float tmp;
         co_read(0, (off_t)(0x4000+j*sizeof(float)), &tmp, sizeof(float));
         printf("h[%d]=%E\n",j,tmp);

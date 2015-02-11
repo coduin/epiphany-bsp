@@ -7,8 +7,8 @@
 
 /* This program needs order 6*MAXH+3*MAXN memory */
 #define NITERS 100    /* number of iterations. Default: 100 */
-#define MAXN 256      /* maximum length of DAXPY computation. Default: 1024 */
-#define MAXH 128      /* maximum h in h-relation. Default: 256 */
+#define MAXN 128      /* maximum length of DAXPY computation. Default: 1024 */
+#define MAXH 256      /* maximum h in h-relation. Default: 256 */
 #define MEGA 1000000.0
 
 
@@ -119,7 +119,6 @@ int main() { /*  bsp_bench */
 
     /* Set default rate of 0 */
     r = 0;
-    //r = 1000000.0; //DEBUG
     for (n=1; n <= MAXN; n *= 2) {
         /* Initialize scalars and vectors */
         alpha = 1.0/3.0;
@@ -154,7 +153,6 @@ int main() { /*  bsp_bench */
                 for(s1=0; s1<p; s1++)
                     r += nflops/Time[s1];
                 r /= (float) p; 
-                //r = 1000000.0;//DEBUG
                 /*printf("n = %5d min = %7.3lf max = %7.3lf av = %7.3lf Mflop/s ",
                        n, nflops/(maxtime*MEGA),nflops/(mintime*MEGA), r/MEGA);
                 fflush(stdout); */
