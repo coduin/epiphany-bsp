@@ -278,8 +278,9 @@ int ebsp_spmd()
             state_flag = STATE_CONTINUE;
             for(i = 0; i < state.nprocs; i++) {
                 //shared mem, to reset flag
+                int derp = 5;
                 if (e_write(&state.syncflag_buffer[i], 0, 0, 0,
-                            &state_flag, sizeof(int)) != sizeof(int))
+                            &derp, sizeof(int)) != sizeof(int))
                     fprintf(stderr, "ERROR: e_write(syncflag_buffer[%d],..) failed in ebsp_spmd.\n",i);
                 //to core, will cause execution to continue
                 co_write(i, &state_flag, (off_t)SYNC_STATE_ADDRESS, sizeof(int));

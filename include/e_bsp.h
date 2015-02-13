@@ -61,19 +61,6 @@ float bsp_remote_time();
  */
 void bsp_sync();
 
-/** Variable with value STATE_RUN, STATE_SYNC or STATE_CONTINUE
- *  This is needed to allow synchronisation on the ARM.
- */
-int* syncstate;
-
-/** The above variable is for ARM->Epiphany communication
- * This function is for Epiphany->ARM communication
- */
-void write_syncstate(int state);
-
-//void*** registermap;//registermap[slotID][pid]=void*
-void** registermap;//registermap[nprocs*slotID+pid]=void*
-
 /** Registers a variable by putting to static memory location in host memory
  *  Registration maps are updated at next sync.
  */

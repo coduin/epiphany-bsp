@@ -35,8 +35,21 @@ volatile e_barrier_t*  sync_bar = (e_barrier_t*)LOC_BAR_ARRAY;
 e_memseg_t emem_registermap;
 e_memseg_t emem_syncflag;
 
+void** registermap;
+
 float* remote_timer;
 unsigned int _initial_time;
+
+/** Variable with value STATE_RUN, STATE_SYNC or STATE_CONTINUE
+ *  This is needed to allow synchronisation on the ARM.
+ */
+int* syncstate;
+
+/** The above variable is for ARM->Epiphany communication
+ * This function is for Epiphany->ARM communication
+ */
+void write_syncstate(int state);
+
 
 inline int row_from_pid(int pid)
 {
@@ -123,7 +136,7 @@ void bsp_sync()
 
     //Read result
     //e_wait(E_CTIMER_1, 10000);
-	while(*syncstate != STATE_CONTINUE) {
+	while (*syncstate != STATE_CONTINUE) {
         //e_wait(E_CTIMER_1, 10000);
     }
 
