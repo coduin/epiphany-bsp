@@ -32,7 +32,8 @@ int _nprocs = -1;
 int _pid = -1;
 volatile e_barrier_t*  sync_bar = (e_barrier_t*)LOC_BAR_ARRAY;
          e_barrier_t** sync_bar_tgt = (e_barrier_t**)LOC_BAR_TGT_ARRAY;
-e_memseg_t emem;
+e_memseg_t emem_registermap;
+e_memseg_t emem_syncflag;
 
 float* remote_timer;
 unsigned int _initial_time;
@@ -61,11 +62,13 @@ void bsp_begin()
 
     char rm_name[10];
     sprintf(rm_name, "%s_%i", REGISTERMAP_BUFFER_SHM_NAME, _pid);
-    e_shm_attach(&emem, rm_name);
+    e_shm_attach(&emem_registermap, rm_name);
+    sprintf(rm_name, "%s_%i", SYNCFLAG_SHM_NAME, _pid);
+    e_shm_attach(&emem_syncflag, rm_name);
 
     registermap = (void**)REGISTERMAP_ADDRESS;
 	syncstate = (int*)SYNC_STATE_ADDRESS;
-    (*syncstate) = STATE_RUN;
+    write_syncstate(STATE_RUN);
 
     //Set memory to 0 (dirty solution) TODO make clean solution
     for(i = 0; i < MAX_N_REGISTER*_nprocs; i++)
@@ -81,7 +84,7 @@ void bsp_begin()
 void bsp_end()
 {
     bsp_sync();
-	(*syncstate) = STATE_FINISH;
+    write_syncstate(STATE_FINISH);
 }
 
 int bsp_nprocs()
@@ -116,8 +119,9 @@ float bsp_remote_time()
 void bsp_sync()
 {
 	//Signal host that epiphany is syncing, wait until host is done
-	(*syncstate) = STATE_SYNC;
+    write_syncstate(STATE_SYNC);
 
+    //Read result
     //e_wait(E_CTIMER_1, 10000);
 	while(*syncstate != STATE_CONTINUE) {
         //e_wait(E_CTIMER_1, 10000);
@@ -126,13 +130,19 @@ void bsp_sync()
     e_barrier(sync_bar, sync_bar_tgt);
 
 	//Reset state
-	(*syncstate) = STATE_RUN;
+	write_syncstate(STATE_RUN);
+}
+
+void write_syncstate(int state)
+{
+    *syncstate = state;
+    e_write((void*)&emem_syncflag, syncstate, 0, 0, 0, sizeof(int));
 }
 
 // Memory
 void bsp_push_reg(const void* variable, const int nbytes)
 {
-    e_write((void*)&emem,
+    e_write((void*)&emem_registermap,
             &variable,
             0, 0, 0, 
             sizeof(void*));

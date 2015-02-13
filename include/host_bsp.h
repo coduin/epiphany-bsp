@@ -48,6 +48,9 @@ typedef struct _bsp_state_t
     // need seperate region for each proc
     int num_vars_registered;
 
+    // Sync flags
+    e_mem_t syncflag_buffer[MAX_NCORES];
+
     // Epiphany specific variables
     e_platform_t platform;
     e_epiphany_t dev;

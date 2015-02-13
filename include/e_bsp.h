@@ -66,6 +66,11 @@ void bsp_sync();
  */
 int* syncstate;
 
+/** The above variable is for ARM->Epiphany communication
+ * This function is for Epiphany->ARM communication
+ */
+void write_syncstate(int state);
+
 //void*** registermap;//registermap[slotID][pid]=void*
 void** registermap;//registermap[nprocs*slotID+pid]=void*
 

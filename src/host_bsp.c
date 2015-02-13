@@ -165,24 +165,35 @@ int bsp_begin(int nprocs)
         }
     }
 
-    // Allocate registermap_buffers
+    // Allocate shared memory buffers
+    char rm_name[10];
     for(i = 0; i < state.nprocs; ++i) {
-        char rm_name[10];
         sprintf(rm_name, "%s_%i", REGISTERMAP_BUFFER_SHM_NAME, i);
-
-        if(e_shm_alloc(&state.registermap_buffer[i],
-                    rm_name, sizeof(void*)) != E_OK) {
-            fprintf(stderr, "ERROR: Could not allocate registermap_buffer %s.\n", rm_name);
+        if (e_shm_alloc(&state.registermap_buffer[i],
+                    rm_name, sizeof(void*)) != E_OK)
+        {
+            fprintf(stderr, "ERROR: e_shm_alloc failed on %s.\n", rm_name);
             return 0; 
+        }
+        sprintf(rm_name, "%s_%i", SYNCFLAG_SHM_NAME, i);
+        if (e_shm_alloc(&state.syncflag_buffer, rm_name, sizeof(int)) != E_OK)
+        {
+            fprintf(stderr, "ERROR: e_shm_alloc failed on %s.\n", rm_name);
+            return 0;
         }
     }
 
-    //Set registermap_buffer to zero FIXME: IT ALWAYS REGISTERS
+    //Set shared memory buffers to zero
     int buf=0;
     for(i = 0; i < state.nprocs; ++i)  {
         if (e_write(&state.registermap_buffer[i], 0, 0, (off_t) 0,
                     (void*)&buf, sizeof(void*)) != sizeof(void*)) {
             fprintf(stderr, "ERROR: e_write(registemap_buffer[%d],..) failed in bsp_begin.\n",i);
+            return 0;
+        }
+        if (e_write(&state.syncflag_buffer[i], 0, 0, 0, &buf, sizeof(int)))
+        {
+            fprintf(stderr, "ERROR: e_write(syncflag_buffer[%d],..) failed in bsp_begin.\n",i);
             return 0;
         }
     }
@@ -230,7 +241,11 @@ int ebsp_spmd()
         finish_counter   = 0;
         continue_counter = 0;
         for (i = 0; i < state.nprocs; i++) {
-            co_read(i, (off_t)SYNC_STATE_ADDRESS, &state_flag, sizeof(int));
+            state_flag = 0;
+            //co_read(i, (off_t)SYNC_STATE_ADDRESS, &state_flag, sizeof(int));
+            if (e_read(&state.syncflag_buffer[i], 0, 0, 0,
+                        &state_flag, sizeof(int)) != sizeof(int))
+                fprintf(stderr, "ERROR: shm syncflag read failed.\n");
 
             if (state_flag == STATE_SYNC    ) sync_counter++;
             if (state_flag == STATE_FINISH  ) finish_counter++;
@@ -239,13 +254,13 @@ int ebsp_spmd()
 
 #ifdef DEBUG
         if (iter % 100 == 0) {
-           printf("Current time: %E seconds\n", arm_timer);
+            printf("Current time: %E seconds\n", arm_timer);
             printf("sync \t finish \t continue \t 16th stateflag \n");
             printf("%i \t %i \t\t %i \t\t %i\n", 
-                sync_counter,
-                finish_counter,
-                continue_counter,
-                state_flag);
+                    sync_counter,
+                    finish_counter,
+                    continue_counter,
+                    state_flag);
         }
         ++iter;
 #endif
@@ -262,7 +277,6 @@ int ebsp_spmd()
             state_flag = STATE_CONTINUE;
             for(i = 0; i < state.nprocs; i++) {
                 co_write(i, &state_flag, (off_t)SYNC_STATE_ADDRESS, sizeof(int));
-                //co_write(i, &state_flag, (off_t)SYNC_STATE_ADDRESS, sizeof(int));
             }
 #ifdef DEBUG
             printf("(BSP) DEBUG: Continuing...\n");
@@ -282,12 +296,19 @@ int bsp_end()
         fprintf(stderr, "ERROR: bsp_end called when bsp was not initialized.\n");
         return 0;
     }
+    
+    //Release shared memory
+    char rm_name[10];
+    for(i = 0; i < state.nprocs; ++i) {
+        sprintf(rm_name, "%s_%i", REGISTERMAP_BUFFER_SHM_NAME, i);
+        if(E_OK != e_shm_release(rm_name))
+            fprintf(stderr, "ERROR: e_shm_release(%s) failed.\n",rm_name);
 
-    // FIXME release all
-    /* if(E_OK != e_shm_release(REGISTERMAP_BUFFER_SHM_NAME) ) {
-        fprintf(stderr, "ERROR: Could not relese registermap_buffer\n");
-        return 0;
-    } */
+        sprintf(rm_name, "%s_%i", SYNCFLAG_SHM_NAME, i);
+        if(E_OK != e_shm_release(rm_name))
+            fprintf(stderr, "ERROR: e_shm_release(%s) failed.\n",rm_name);
+    }
+
     if(E_OK != e_finalize()) {
         fprintf(stderr, "ERROR: Could not finalize the Epiphany connection.\n");
         return 0;
@@ -335,6 +356,9 @@ void _host_sync() {
     } else {
         return;
     }
+
+    //TODO: Do not malloc a constant size buffer on every sync
+    //malloc/free on start/end of ebsp_spmd
 
     // Broadcast registermap_buffer to registermap 
     void** buf = (void**) malloc(sizeof(void*) * state.nprocs);
