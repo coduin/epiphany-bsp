@@ -48,7 +48,7 @@ int co_write(int pid, void* src, off_t dst, int size)
             dst, src, size) != size)
     {
         fprintf(stderr, "ERROR: e_write(dev,%d,%d,%p,%p,%d) failed in co_write.\n",
-                prow, pcol, (void*)dst, src, size);
+                prow, pcol, (void*)dst, (void*)src, size);
         return 0;
     }
     return 1;
@@ -63,7 +63,7 @@ int co_read(int pid, off_t src, void* dst, int size)
            src, dst, size) != size)
     {
         fprintf(stderr, "ERROR: e_read(dev,%d,%d,%p,%p,%d) failed in co_read.\n",
-                prow, pcol, src, (void*)dst, size);
+                prow, pcol, (void*)src, (void*)dst, size);
         return 0;
     }
     return 1;
