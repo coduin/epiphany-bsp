@@ -33,7 +33,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 // Global state
 bsp_state_t state;
-bool bsp_initialized = false;;
+int bsp_initialized = 0;;
 
 void _host_sync();
 void _get_p_coords(int pid, int* row, int* col);
@@ -48,7 +48,7 @@ int co_write(int pid, void* src, off_t dst, int size)
             dst, src, size) != size)
     {
         fprintf(stderr, "ERROR: e_write(dev,%d,%d,%p,%p,%d) failed in co_write.\n",
-                prow, pcol, dst, src, size);
+                prow, pcol, (void*)dst, src, size);
         return 0;
     }
     return 1;
@@ -63,7 +63,7 @@ int co_read(int pid, off_t src, void* dst, int size)
            src, dst, size) != size)
     {
         fprintf(stderr, "ERROR: e_read(dev,%d,%d,%p,%p,%d) failed in co_read.\n",
-                prow, pcol, src, dst, size);
+                prow, pcol, src, (void*)dst, size);
         return 0;
     }
     return 1;
@@ -103,7 +103,7 @@ int bsp_init(const char* _e_name,
     state.e_name = (char*)malloc(MAX_NAME_SIZE);
     strcpy(state.e_name, _e_name);
 
-    bsp_initialized = true;
+    bsp_initialized = 1;
 
     return 1;
 }
@@ -176,7 +176,7 @@ int bsp_begin(int nprocs)
             return 0; 
         }
         sprintf(rm_name, "%s_%i", SYNCFLAG_SHM_NAME, i);
-        if (e_shm_alloc(&state.syncflag_buffer, rm_name, sizeof(int)) != E_OK)
+        if (e_shm_alloc(&state.syncflag_buffer[i], rm_name, sizeof(int)) != E_OK)
         {
             fprintf(stderr, "ERROR: e_shm_alloc failed on %s.\n", rm_name);
             return 0;
@@ -298,6 +298,7 @@ int bsp_end()
     }
     
     //Release shared memory
+    int i;
     char rm_name[10];
     for(i = 0; i < state.nprocs; ++i) {
         sprintf(rm_name, "%s_%i", REGISTERMAP_BUFFER_SHM_NAME, i);
@@ -315,8 +316,8 @@ int bsp_end()
     }
 
     free(state.e_name);
-    memset(state, 0, sizeof(state));
-    bsp_initialized = false;
+    memset(&state, 0, sizeof(state));
+    bsp_initialized = 0;
 
     return 1;
 }
