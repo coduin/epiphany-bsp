@@ -140,7 +140,7 @@ void bsp_sync()
         //e_wait(E_CTIMER_1, 10000);
     }
 
-    e_barrier(sync_bar, sync_bar_tgt);
+    //e_barrier(sync_bar, sync_bar_tgt);
 
 	//Reset state
 	write_syncstate(STATE_RUN);
