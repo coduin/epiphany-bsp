@@ -191,7 +191,8 @@ int bsp_begin(int nprocs)
             fprintf(stderr, "ERROR: e_write(registemap_buffer[%d],..) failed in bsp_begin.\n",i);
             return 0;
         }
-        if (e_write(&state.syncflag_buffer[i], 0, 0, 0, &buf, sizeof(int)))
+        if (e_write(&state.syncflag_buffer[i], 0, 0, 0,
+                    &buf, sizeof(int)) != sizeof(int))
         {
             fprintf(stderr, "ERROR: e_write(syncflag_buffer[%d],..) failed in bsp_begin.\n",i);
             return 0;
@@ -276,6 +277,11 @@ int ebsp_spmd()
 #endif
             state_flag = STATE_CONTINUE;
             for(i = 0; i < state.nprocs; i++) {
+                //shared mem, to reset flag
+                if (e_write(&state.syncflag_buffer[i], 0, 0, 0,
+                            &state_flag, sizeof(int)) != sizeof(int))
+                    fprintf(stderr, "ERROR: e_write(syncflag_buffer[%d],..) failed in ebsp_spmd.\n",i);
+                //to core, will cause execution to continue
                 co_write(i, &state_flag, (off_t)SYNC_STATE_ADDRESS, sizeof(int));
             }
 #ifdef DEBUG
