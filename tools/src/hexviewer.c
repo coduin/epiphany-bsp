@@ -1,3 +1,14 @@
+// # Keys:
+// [x] num/mod + g, G
+// [ ] 'n' = 'next sync"
+// [x] 'l', 'h' = next/prev core
+//
+// # Features
+// [ ] Red for memory that changed from last run
+// [ ] actually dump memory from epiphany.
+// [ ] Optional: notes on memory regions
+// [ ] Fix maximum cores/memory
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,7 +16,9 @@
 
 typedef enum
 {
-    KS_DEFAULT = 0
+    KS_DEFAULT = 0,
+    KS_G_PRESSED,
+    KS_NUM_MOD
 } KEY_STATE;
 
 typedef struct 
@@ -19,15 +32,15 @@ typedef struct
 
 viewer_state state;
 
-void read_memory(char* buf, int blocksize)
+void read_memory(unsigned char* buf, int blocksize)
 {
-    // fill buffer with nonsense data
+    // fill buffer with random data
     for(int i = 0; i < blocksize; ++i) {
-        buf[i] = (char)(rand() % 255);
+        buf[i] = (unsigned char)(rand() % 255);
     }
 }
 
-void print_paged_memory(char* buf)
+void print_paged_memory(unsigned char* buf)
 {
     int width = 16;
 
@@ -42,16 +55,14 @@ void print_paged_memory(char* buf)
         printw(loc);
         for (int i = 0; i < width; ++i) {
             char val[4];
-            // FIXME output char as hexadecimal properly
             sprintf(val, "%02x ", 
-                    (unsigned int)(buf[(state.mem_offset + j) * width + i] + 128));
+                    buf[(state.mem_offset + j) * width + i]);
             printw(val);
         }
-        printw(" ");
+        printw("  ");
         for (int i = 0; i < width; ++i) {
-            if ((buf[(state.mem_offset + j) * width + i] < 30 ||
-                buf[(state.mem_offset + j) * width + i] > 127) || 
-                buf[(state.mem_offset + j) * width + i] == '^')
+            if ((buf[(state.mem_offset + j) * width + i] < '#' ||
+                buf[(state.mem_offset + j) * width + i] > '}'))
                 addch('.');
             else
                 addch(buf[(state.mem_offset + j) * width + i]);
@@ -69,6 +80,7 @@ void print_status_bar()
     int mrow, mcol;
     getmaxyx(stdscr, mrow, mcol);
     move(mrow - 1, 0);
+    printw("\n");
 
     char status[80];
     sprintf(status, "viewing core: %i, number of syncs: %i", state.core_shown, state.nsyncs);
@@ -79,23 +91,80 @@ int handle_input()
 {
     // wait for user input
     int ch = getch();
+    int digit = 0;
 
     // switch ch and change paging
     switch (ch)
     {
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+            digit = ch - '0';
+            state.num_mod *= 10;
+            state.num_mod += digit;
+            break;
+
         case 'q':
             return 0;
 
         case 'j':
+            // FIXME: Check for upperbound
+            if(state.num_mod > 0) {
+                state.mem_offset += state.num_mod;
+                state.num_mod = 0;
+            }
             state.mem_offset++;
             break;
 
+        case 'l':
+            // FIXME: Check for upperbound
+            state.core_shown++;
+            break;
+
+        case 'h':
+            if (state.core_shown > 0)
+                state.core_shown--;
+            break;
+
         case 'k':
-            if (state.mem_offset > 0)
+            if(state.num_mod > 0) {
+                state.mem_offset -= state.num_mod;
+                if(state.mem_offset < 0)
+                    state.mem_offset = 0;
+                state.num_mod = 0;
+            }
+            else if (state.mem_offset > 0)
                 state.mem_offset--;
             break;
 
         case 'g':
+            if(state.num_mod > 0) {
+                state.mem_offset = state.num_mod;
+                state.num_mod = 0;
+            } else {
+                if(state.key_state == KS_G_PRESSED) {
+                    state.mem_offset = 0;
+                    state.key_state = KS_DEFAULT;
+                } else {
+                    state.key_state = KS_G_PRESSED;
+                }
+            }
+            break;
+
+        case 'G':
+            // FIXME: should be max
+            state.mem_offset = 500;
+            break;
+
+        case 'n':
+            return 0;
             break;
 
         default:
@@ -118,6 +187,8 @@ int main()
     noecho();
     // enable special keys
     keypad(stdscr, TRUE);
+    // disable cursor
+    curs_set(0);
 
     // print string to screen
     attron(A_UNDERLINE);
@@ -128,19 +199,17 @@ int main()
     refresh();
 
     int blocksize = 10000;
-    char* buf = malloc(blocksize * sizeof(char));
+    unsigned char* buf = malloc(blocksize * sizeof(unsigned char));
     read_memory(buf, blocksize);
 
-    while(handle_input())
+    do
     {
         print_paged_memory(buf);
         print_status_bar();
         refresh();
-    }
+    } while(handle_input());
 
     free(buf);
-
-
 
     // close the curses window
     endwin();
