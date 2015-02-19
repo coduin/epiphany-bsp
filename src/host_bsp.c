@@ -356,24 +356,30 @@ void _host_sync() {
         return;
     }
 
-    //TODO: Do not malloc a constant size buffer on every register push
-    //malloc/free on start/end of ebsp_spmd
-
-    // Broadcast registermap_buffer to registermap 
-    void** buf = (void**) malloc(sizeof(void*) * state.nprocs);
-    for(i = 0; i < state.nprocs; ++i)
-        _read_sharedmem(i, SHM_OFFSET_REGISTER, buf+i, sizeof(void*));
-    for(i = 0; i < state.nprocs; ++i) {
-        co_write(i, buf,
-                (off_t)(REGISTERMAP_ADDRESS + state.num_vars_registered * state.nprocs), 
-                sizeof(void*) * state.nprocs);
+    if (state.num_vars_registered >= MAX_N_REGISTER)
+    {
+        fprintf(stderr, "ERROR: Trying to register more than %d variables.\n",
+                MAX_N_REGISTER);
     }
-    free(buf);
+    else
+    {
+        // Broadcast registermap_buffer to registermap 
+        void** buf = (void**) malloc(sizeof(void*) * state.nprocs);
+        for(i = 0; i < state.nprocs; ++i)
+            _read_sharedmem(i, SHM_OFFSET_REGISTER, buf+i, sizeof(void*));
+        for(i = 0; i < state.nprocs; ++i) {
+            co_write(i, buf,
+                    (off_t)(REGISTERMAP_ADDRESS + state.num_vars_registered * state.nprocs), 
+                    sizeof(void*) * state.nprocs);
+        }
+        free(buf);
 
-    state.num_vars_registered++;
+        state.num_vars_registered++;
 #ifdef DEBUG
-    printf("(BSP) DEBUG: New variables registered: %i/%i\n",state.num_vars_registered,MAX_N_REGISTER);
+        printf("(BSP) DEBUG: New variables registered: %i/%i\n",
+                state.num_vars_registered,MAX_N_REGISTER);
 #endif
+    }
 
     // Reset registermap_buffer to zero
     void* buffer = 0;

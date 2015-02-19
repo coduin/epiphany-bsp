@@ -31,6 +31,10 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 int _nprocs = -1;
 int _pid = -1;
+
+//e_barrier_t is a char
+//sync_bar is one char for every core --> 16 bytes in total
+//sync_bar_tgt is one pointer for every core --> 64 bytes in total
 volatile e_barrier_t*  sync_bar = (e_barrier_t*)LOC_BAR_ARRAY;
          e_barrier_t** sync_bar_tgt = (e_barrier_t**)LOC_BAR_TGT_ARRAY;
 e_memseg_t sharedmemseg;
@@ -40,12 +44,7 @@ void** registermap;
 float* remote_timer;
 unsigned int _initial_time;
 
-/** Variable with value STATE_RUN, STATE_SYNC or STATE_CONTINUE
- *  This is needed to allow synchronisation on the ARM.
- */
-int* syncstate;
-
-/** The above variable is for ARM->Epiphany communication
+/** The SYNC_STATE_ADDRESS variable is for ARM->Epiphany communication
  * This function is for Epiphany->ARM communication
  */
 void _write_syncstate(int state);
@@ -84,7 +83,7 @@ void bsp_begin()
     e_shm_attach(&sharedmemseg, SHM_NAME);
 
     registermap = (void**)REGISTERMAP_ADDRESS;
-	syncstate = (int*)SYNC_STATE_ADDRESS;
+    *(int*)MSG_SYNC_ADDRESS = 0;
     _write_syncstate(STATE_RUN);
 
     //Set memory to 0 (dirty solution) TODO make clean solution
@@ -141,7 +140,7 @@ void bsp_sync()
 
     //Read result
     //e_wait(E_CTIMER_1, 10000);
-	while (*syncstate != STATE_CONTINUE) {
+	while (*(int*)SYNC_STATE_ADDRESS != STATE_CONTINUE) {
         //e_wait(E_CTIMER_1, 10000);
     }
 
@@ -153,8 +152,8 @@ void bsp_sync()
 
 void _write_syncstate(int state)
 {
-    *syncstate = state;
-    _write_sharedmem(syncstate, SHM_OFFSET_SYNC, sizeof(int));
+    *(int*)SYNC_STATE_ADDRESS = state;
+    _write_sharedmem((const void*)SYNC_STATE_ADDRESS, SHM_OFFSET_SYNC, sizeof(int));
 }
 
 // Memory
