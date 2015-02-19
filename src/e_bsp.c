@@ -32,8 +32,7 @@ int _nprocs = -1;
 int _pid = -1;
 volatile e_barrier_t*  sync_bar = (e_barrier_t*)LOC_BAR_ARRAY;
          e_barrier_t** sync_bar_tgt = (e_barrier_t**)LOC_BAR_TGT_ARRAY;
-e_memseg_t emem_registermap;
-e_memseg_t emem_syncflag;
+e_memseg_t sharedmemseg;
 
 void** registermap;
 
@@ -48,8 +47,15 @@ int* syncstate;
 /** The above variable is for ARM->Epiphany communication
  * This function is for Epiphany->ARM communication
  */
-void write_syncstate(int state);
+void _write_syncstate(int state);
 
+/** Write to the shared memory that is meant for this core
+ * Host will allocate one single large block of shared memory
+ * Every core has SHM_SIZE_PER_CORE of space in it
+ * Every core can write to its own block
+ * The SHM_OFFSET_xxx variables define the meaning of this space
+ */
+void _write_sharedmem(const void* src, int offset, int nbytes);
 
 inline int row_from_pid(int pid)
 {
@@ -73,15 +79,11 @@ void bsp_begin()
     int* nprocs_loc = (int*)NPROCS_LOC_ADDRESS;
     _nprocs = (*nprocs_loc);
 
-    char rm_name[10];
-    sprintf(rm_name, "%s_%i", REGISTERMAP_BUFFER_SHM_NAME, _pid);
-    e_shm_attach(&emem_registermap, rm_name);
-    sprintf(rm_name, "%s_%i", SYNCFLAG_SHM_NAME, _pid);
-    e_shm_attach(&emem_syncflag, rm_name);
+    e_shm_attach(&sharedmemseg, SHM_NAME);
 
     registermap = (void**)REGISTERMAP_ADDRESS;
 	syncstate = (int*)SYNC_STATE_ADDRESS;
-    write_syncstate(STATE_RUN);
+    _write_syncstate(STATE_RUN);
 
     //Set memory to 0 (dirty solution) TODO make clean solution
     for(i = 0; i < MAX_N_REGISTER*_nprocs; i++)
@@ -97,7 +99,7 @@ void bsp_begin()
 void bsp_end()
 {
     bsp_sync();
-    write_syncstate(STATE_FINISH);
+    _write_syncstate(STATE_FINISH);
 }
 
 int bsp_nprocs()
@@ -132,7 +134,7 @@ float bsp_remote_time()
 void bsp_sync()
 {
 	//Signal host that epiphany is syncing, wait until host is done
-    write_syncstate(STATE_SYNC);
+    _write_syncstate(STATE_SYNC);
 
     //Read result
     //e_wait(E_CTIMER_1, 10000);
@@ -143,22 +145,19 @@ void bsp_sync()
     //e_barrier(sync_bar, sync_bar_tgt);
 
 	//Reset state
-	write_syncstate(STATE_RUN);
+	_write_syncstate(STATE_RUN);
 }
 
-void write_syncstate(int state)
+void _write_syncstate(int state)
 {
     *syncstate = state;
-    e_write((void*)&emem_syncflag, syncstate, 0, 0, 0, sizeof(int));
+    _write_sharedmem(syncstate, SHM_OFFSET_SYNC, sizeof(int));
 }
 
 // Memory
 void bsp_push_reg(const void* variable, const int nbytes)
 {
-    e_write((void*)&emem_registermap,
-            &variable,
-            0, 0, 0, 
-            sizeof(void*));
+    _write_sharedmem(&variable, SHM_OFFSET_REGISTER, sizeof(void*));
 }
 
 void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
@@ -179,3 +178,14 @@ void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
             col_from_pid(pid),
             adj_dst, nbytes);
 }
+
+void _write_sharedmem(const void* src, int offset, int nbytes)
+{
+    //Since e_write ignores the dst (offset) parameter for shared memory writes
+    //we set it to zero and just add the offset to the base address ourselves
+    off_t oldbase = sharedmemseg.ephy_base;
+    sharedmemseg.ephy_base += _pid * SHM_SIZE_PER_CORE + offset;
+    e_write((void*)&sharedmemseg, src, 0, 0, 0, sizeof(int));
+    sharedmemseg.ephy_base = oldbase;
+}
+

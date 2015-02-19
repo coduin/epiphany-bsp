@@ -28,8 +28,12 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #define MAX_NAME_SIZE 30
 
-#define REGISTERMAP_BUFFER_SHM_NAME "rmbshm"
-#define SYNCFLAG_SHM_NAME "bspsyn"
+#define SHM_NAME            "bspshm"
+#define SHM_SIZE_PER_CORE   256
+
+#define SHM_OFFSET_REGISTER 0
+#define SHM_OFFSET_SYNC     4
+#define SHM_OFFSET_MESSAGE  8
 
 #define MAX_N_REGISTER 100
 #define REGISTERMAP_ADDRESS 0x6150

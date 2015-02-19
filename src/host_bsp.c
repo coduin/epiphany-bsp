@@ -38,6 +38,8 @@ int bsp_initialized = 0;;
 void _host_sync();
 void _get_p_coords(int pid, int* row, int* col);
 bsp_state_t* _get_state();
+int  _read_sharedmem(int pid, off_t src, const void* dst, int size);
+int _write_sharedmem(int pid, const void* src, off_t dst, int size);
 
 int co_write(int pid, void* src, off_t dst, int size)
 {
@@ -110,6 +112,11 @@ int bsp_init(const char* _e_name,
 
 int bsp_begin(int nprocs)
 {
+    //TODO
+    // When one of the functions fails half-way in bsp_begin
+    // Then the functions that DID succeed should be undone again
+    // So at e_load_group failure it cleanup the e_open result
+
     if (nprocs < 1 || nprocs > 99 || nprocs > MAX_NCORES) {
         fprintf(stderr, "ERROR: nprocs = %d.\n", nprocs);
         return 0;
@@ -165,40 +172,24 @@ int bsp_begin(int nprocs)
         }
     }
 
-    // Allocate shared memory buffers
-    char rm_name[10];
-    for(i = 0; i < state.nprocs; ++i) {
-        sprintf(rm_name, "%s_%i", REGISTERMAP_BUFFER_SHM_NAME, i);
-        if (e_shm_alloc(&state.registermap_buffer[i],
-                    rm_name, sizeof(void*)) != E_OK)
-        {
-            fprintf(stderr, "ERROR: e_shm_alloc failed on %s.\n", rm_name);
-            return 0; 
-        }
-        sprintf(rm_name, "%s_%i", SYNCFLAG_SHM_NAME, i);
-        if (e_shm_alloc(&state.syncflag_buffer[i], rm_name, sizeof(int)) != E_OK)
-        {
-            fprintf(stderr, "ERROR: e_shm_alloc failed on %s.\n", rm_name);
-            return 0;
-        }
+    // Allocate shared memory buffer
+    int shm_size = SHM_SIZE_PER_CORE * state.nprocs;
+    if (e_shm_alloc(&state.sharedmemseg, SHM_NAME, shm_size) != E_OK)
+    {
+        fprintf(stderr, "ERROR: e_shm_alloc failed in bsp_begin.\n");
+        return 0; 
     }
 
-    //Set shared memory buffers to zero
-    int buf=0;
-    for(i = 0; i < state.nprocs; ++i)  {
-        if (e_write(&state.registermap_buffer[i], 0, 0, (off_t) 0,
-                    (void*)&buf, sizeof(void*)) != sizeof(void*)) {
-            fprintf(stderr, "ERROR: e_write(registemap_buffer[%d],..) failed in bsp_begin.\n",i);
-            return 0;
-        }
-        if (e_write(&state.syncflag_buffer[i], 0, 0, 0,
-                    &buf, sizeof(int)) != sizeof(int))
-        {
-            fprintf(stderr, "ERROR: e_write(syncflag_buffer[%d],..) failed in bsp_begin.\n",i);
-            return 0;
-        }
+    //Set shared memory buffer to zero
+    void* buf = malloc(shm_size);
+    memset(buf, 0, shm_size);
+    int res = e_write(&state.sharedmemseg, 0, 0, (off_t)0, buf, shm_size);
+    free(buf);
+    if (res != shm_size)
+    {
+        fprintf(stderr, "ERROR: writing shared memory failed in bsp_begin.\n");
+        return 0;
     }
-
     return 1;
 }
 
@@ -244,9 +235,7 @@ int ebsp_spmd()
         for (i = 0; i < state.nprocs; i++) {
             state_flag = 0;
             //co_read(i, (off_t)SYNC_STATE_ADDRESS, &state_flag, sizeof(int));
-            if (e_read(&state.syncflag_buffer[i], 0, 0, 0,
-                        &state_flag, sizeof(int)) != sizeof(int))
-                fprintf(stderr, "ERROR: shm syncflag read failed.\n");
+            _read_sharedmem(i, SHM_OFFSET_SYNC, &state_flag, sizeof(int));
 
             if (state_flag == STATE_SYNC    ) sync_counter++;
             if (state_flag == STATE_FINISH  ) finish_counter++;
@@ -278,10 +267,7 @@ int ebsp_spmd()
             state_flag = STATE_CONTINUE;
             for(i = 0; i < state.nprocs; i++) {
                 //shared mem, to reset flag
-                int derp = 5;
-                if (e_write(&state.syncflag_buffer[i], 0, 0, 0,
-                            &derp, sizeof(int)) != sizeof(int))
-                    fprintf(stderr, "ERROR: e_write(syncflag_buffer[%d],..) failed in ebsp_spmd.\n",i);
+                _write_sharedmem(i, &state_flag, SHM_OFFSET_SYNC, sizeof(int));
                 //to core, will cause execution to continue
                 co_write(i, &state_flag, (off_t)SYNC_STATE_ADDRESS, sizeof(int));
             }
@@ -305,17 +291,8 @@ int bsp_end()
     }
     
     //Release shared memory
-    int i;
-    char rm_name[10];
-    for(i = 0; i < state.nprocs; ++i) {
-        sprintf(rm_name, "%s_%i", REGISTERMAP_BUFFER_SHM_NAME, i);
-        if(E_OK != e_shm_release(rm_name))
-            fprintf(stderr, "ERROR: e_shm_release(%s) failed.\n",rm_name);
-
-        sprintf(rm_name, "%s_%i", SYNCFLAG_SHM_NAME, i);
-        if(E_OK != e_shm_release(rm_name))
-            fprintf(stderr, "ERROR: e_shm_release(%s) failed.\n",rm_name);
-    }
+    if (e_shm_release(SHM_NAME) != E_OK)
+        fprintf(stderr, "ERROR: e_shm_release failed in bsp_end.\n");
 
     if(E_OK != e_finalize()) {
         fprintf(stderr, "ERROR: Could not finalize the Epiphany connection.\n");
@@ -348,12 +325,8 @@ void _host_sync() {
     printf("(BSP) DEBUG: _host_sync() ............................... \n");
 #endif
 
-    void* var_loc;
-    if (e_read(&state.registermap_buffer[0], 0, 0, 0, &var_loc, sizeof(void*))
-            != sizeof(void*)) {
-        fprintf(stderr, "ERROR: in host_sync() could not read registermap_buffer[0]");
-        return;
-    }
+    void* var_loc = NULL;
+    _read_sharedmem(0, SHM_OFFSET_REGISTER, &var_loc, sizeof(void*));
         
 #ifdef DEBUG
     printf("var_loc = 0x%x\n", (int)var_loc);
@@ -365,18 +338,13 @@ void _host_sync() {
         return;
     }
 
-    //TODO: Do not malloc a constant size buffer on every sync
+    //TODO: Do not malloc a constant size buffer on every register push
     //malloc/free on start/end of ebsp_spmd
 
     // Broadcast registermap_buffer to registermap 
     void** buf = (void**) malloc(sizeof(void*) * state.nprocs);
-    for(i = 0; i < state.nprocs; ++i) {
-        if (e_read(&state.registermap_buffer[i], 0, 0, (off_t)0, buf + i, sizeof(void*))
-                != sizeof(void*)) {
-            fprintf(stderr, "ERROR: in host_sync() could not read registermap_buffer[i]");
-            //dont return, because of malloc
-        }
-    }
+    for(i = 0; i < state.nprocs; ++i)
+        _read_sharedmem(i, SHM_OFFSET_REGISTER, buf+i, sizeof(void*));
     for(i = 0; i < state.nprocs; ++i) {
         co_write(i, buf,
                 (off_t)(REGISTERMAP_ADDRESS + state.num_vars_registered * state.nprocs), 
@@ -392,12 +360,8 @@ void _host_sync() {
     // Reset registermap_buffer to zero
     void* buffer = 0;
     //FIXME; ee_mwrite_buf(): Address is out of bounds.
-    for(i = 0; i < state.nprocs; ++i) {
-        if (e_write(&state.registermap_buffer[i], 0, 0, (off_t)0,
-                    (void*)&buffer, sizeof(void*)) != sizeof(void*)) {
-            fprintf(stderr, "ERROR: in host_sync() could not write registermap_buffer[i]");
-        }
-    }
+    for(i = 0; i < state.nprocs; ++i)
+        _write_sharedmem(i, &buffer, SHM_OFFSET_REGISTER, sizeof(void*));
 }
 
 void _get_p_coords(int pid, int* row, int* col)
@@ -410,3 +374,31 @@ bsp_state_t* _get_state()
 {
     return &state;
 }
+
+//Read from shared memory
+void  _read_sharedmem(int pid, off_t src, const void* dst, int size)
+{
+    off_t realsrc = pid * SHM_SIZE_PER_CORE + src;
+    if (e_read(&state.sharedmemseg, 0, 0, realsrc, dst, size) != size)
+    {
+        frpintf(stderr, "ERROR: read_sharedmem(%d, %d, dst, %d) failed.\n",
+                pid, src, size);
+        return 0;
+    }
+    return 1;
+}
+
+//Write to shared memory
+void _write_sharedmem(int pid, const void* src, off_t dst, int size)
+{
+    off_t realdst = pid * SHM_SIZE_PER_CORE + dst;
+    if (e_write(&state.sharedmemseg, 0, 0, realdst, src, size) != size)
+    {
+        fprintf(stderr, "ERROR: write_sharedmem(%d, src, %d, %d) failed.\n",
+                pid, dst, size);
+        return 0;
+    }
+    return 1;
+}
+
+
