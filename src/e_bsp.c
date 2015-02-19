@@ -179,6 +179,16 @@ void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
             adj_dst, nbytes);
 }
 
+void ebsp_message(const char* format, ... )
+{
+    char buffer[SHM_MESSAGE_SIZE];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(buffer, SHM_MESSAGE_SIZE, format, args);
+    va_end(args);
+    _write_sharedmem(&buffer, SHM_OFFSET_MESSAGE, SHM_MESSAGE_SIZE);
+}
+
 void _write_sharedmem(const void* src, int offset, int nbytes)
 {
     //Since e_write ignores the dst (offset) parameter for shared memory writes
