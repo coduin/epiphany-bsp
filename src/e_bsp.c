@@ -182,7 +182,7 @@ void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
 void ebsp_message(const char* format, ... )
 {
     char buffer[SHM_MESSAGE_SIZE];
-    va_list args;
+    __VALIST args;
     va_start(args, format);
     vsnprintf(buffer, SHM_MESSAGE_SIZE, format, args);
     va_end(args);
