@@ -43,9 +43,11 @@ typedef struct _bsp_state_t
     // Number of processors in use
     int nprocs_used;
 
-    // Register map
-    e_mem_t registermap_buffer[MAX_NCORES];
-    // need seperate region for each proc
+    //Shared memory segment
+    //Every core has SHM_SIZE_PER_CORE of space in this
+    //Within each space, SHM_OFFSET_xxx specify meaning
+    e_mem_t sharedmemseg;
+
     int num_vars_registered;
 
     // Epiphany specific variables

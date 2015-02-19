@@ -39,6 +39,8 @@ int main()
     int* po = (int*)0x6004;
     (*po) = p;
 
+    ebsp_message("Debug message from core %d. Writing '%c' to %p", p, *a, a);
+
     bsp_end();
 
     return 0;
