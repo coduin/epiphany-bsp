@@ -38,7 +38,7 @@ int bsp_initialized = 0;;
 void _host_sync();
 void _get_p_coords(int pid, int* row, int* col);
 bsp_state_t* _get_state();
-int  _read_sharedmem(int pid, off_t src, const void* dst, int size);
+int  _read_sharedmem(int pid,       off_t src, void* dst, int size);
 int _write_sharedmem(int pid, const void* src, off_t dst, int size);
 
 int co_write(int pid, void* src, off_t dst, int size)
@@ -376,26 +376,26 @@ bsp_state_t* _get_state()
 }
 
 //Read from shared memory
-void  _read_sharedmem(int pid, off_t src, const void* dst, int size)
+int  _read_sharedmem(int pid, off_t src, void* dst, int size)
 {
     off_t realsrc = pid * SHM_SIZE_PER_CORE + src;
     if (e_read(&state.sharedmemseg, 0, 0, realsrc, dst, size) != size)
     {
-        frpintf(stderr, "ERROR: read_sharedmem(%d, %d, dst, %d) failed.\n",
-                pid, src, size);
+        fprintf(stderr, "ERROR: read_sharedmem(%d, %d, dst, %d) failed.\n",
+                pid, (int)src, size);
         return 0;
     }
     return 1;
 }
 
 //Write to shared memory
-void _write_sharedmem(int pid, const void* src, off_t dst, int size)
+int _write_sharedmem(int pid, const void* src, off_t dst, int size)
 {
     off_t realdst = pid * SHM_SIZE_PER_CORE + dst;
     if (e_write(&state.sharedmemseg, 0, 0, realdst, src, size) != size)
     {
         fprintf(stderr, "ERROR: write_sharedmem(%d, src, %d, %d) failed.\n",
-                pid, dst, size);
+                pid, (int)dst, size);
         return 0;
     }
     return 1;
