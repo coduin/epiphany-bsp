@@ -101,6 +101,7 @@ void bsp_end()
 {
     bsp_sync();
     _write_syncstate(STATE_FINISH);
+    e_shm_release(SHM_NAME);
 }
 
 int bsp_nprocs()
