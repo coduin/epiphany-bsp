@@ -250,7 +250,7 @@ int ebsp_spmd()
             {
                 //Now read the full message
                 _read_sharedmem(i, SHM_OFFSET_MSG_BUF, &message_buffer, SHM_MESSAGE_SIZE);
-                printf("EBSP core %02d: %s", i, message_buffer);
+                printf("$%02d: %s\n", i, message_buffer);
                 //Reset flag
                 message_flag = 0;
                 _write_sharedmem(i, &message_flag, SHM_OFFSET_MSG_FLAG, sizeof(int));
