@@ -25,6 +25,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include "e_bsp.h"
 #include <e-lib.h>
 #include <stdio.h>
+#include <stdarg.h> //for va_list
 #include <string.h>
 
 
@@ -182,11 +183,15 @@ void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
 void ebsp_message(const char* format, ... )
 {
     char buffer[SHM_MESSAGE_SIZE];
-    __VALIST args;
+    va_list args;
     va_start(args, format);
     vsnprintf(buffer, SHM_MESSAGE_SIZE, format, args);
     va_end(args);
-    _write_sharedmem(&buffer, SHM_OFFSET_MESSAGE, SHM_MESSAGE_SIZE);
+    //First write the message
+    _write_sharedmem(&buffer, SHM_OFFSET_MSG_BUF, SHM_MESSAGE_SIZE);
+    //Then write the flag indicating that the message is complete
+    int flag = -1;
+    _write_sharedmem(&flag, SHM_OFFSET_MSG_FLAG, sizeof(int));
 }
 
 void _write_sharedmem(const void* src, int offset, int nbytes)
@@ -195,7 +200,7 @@ void _write_sharedmem(const void* src, int offset, int nbytes)
     //we set it to zero and just add the offset to the base address ourselves
     off_t oldbase = sharedmemseg.ephy_base;
     sharedmemseg.ephy_base += _pid * SHM_SIZE_PER_CORE + offset;
-    e_write((void*)&sharedmemseg, src, 0, 0, 0, sizeof(int));
+    e_write((void*)&sharedmemseg, src, 0, 0, 0, nbytes);
     sharedmemseg.ephy_base = oldbase;
 }
 

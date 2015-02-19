@@ -33,9 +33,10 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #define SHM_OFFSET_REGISTER 0
 #define SHM_OFFSET_SYNC     4
-#define SHM_OFFSET_MESSAGE  8
-#define SHM_MESSAGE_SIZE    (SHM_SIZE_PER_CORE - SHM_OFFSET_MESSAGE)
-//SHM_OFFSET_MESSAGE should always be the last part of the buffer
+#define SHM_OFFSET_MSG_FLAG 8
+#define SHM_OFFSET_MSG_BUF  12
+#define SHM_MESSAGE_SIZE    (SHM_SIZE_PER_CORE - SHM_OFFSET_MSG_BUF)
+//SHM_OFFSET_MSG_BUF should always be the last part of the buffer
 
 #define MAX_N_REGISTER 100
 #define REGISTERMAP_ADDRESS 0x6150

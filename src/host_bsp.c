@@ -217,12 +217,14 @@ int ebsp_spmd()
 
     int state_flag = 0;
 
-    char message_buffer[SHM_MESSAGE_SIZE];
+    int message_flag = 0;
+    char message_buffer[SHM_MESSAGE_SIZE+1];
     int sync_counter     = 0;
     int finish_counter   = 0; 
     int continue_counter = 0;
 
     int iter = 0;
+    message_buffer[SHM_MESSAGE_SIZE] = 0; //terminating zero
 
     while (finish_counter != state.nprocs) {
         end=clock(); 
@@ -243,15 +245,15 @@ int ebsp_spmd()
             if (state_flag == STATE_CONTINUE) continue_counter++;
 
             //First read a single int to see if there is a message
-            _read_sharedmem(i, SHM_OFFSET_MESSAGE, &message_buffer, 4);
-            if (message_buffer[0] != 0)
+            _read_sharedmem(i, SHM_OFFSET_MSG_FLAG, &message_flag, sizeof(int));
+            if (message_flag)
             {
                 //Now read the full message
-                _read_sharedmem(i, SHM_OFFSET_MESSAGE, &message_buffer, SHM_MESSAGE_SIZE);
+                _read_sharedmem(i, SHM_OFFSET_MSG_BUF, &message_buffer, SHM_MESSAGE_SIZE);
                 printf("EBSP core %02d: %s", i, message_buffer);
-                //Reset first byte to zero
-                message_buffer[0] = 0;
-                _write_sharedmem(i, &message_buffer, SHM_OFFSET_MESSAGE, 4);
+                //Reset flag
+                message_flag = 0;
+                _write_sharedmem(i, &message_flag, SHM_OFFSET_MSG_FLAG, sizeof(int));
             }
         }
 
