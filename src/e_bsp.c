@@ -50,12 +50,13 @@ int* syncstate;
  */
 void _write_syncstate(int state);
 
-/** Write to the shared memory that is meant for this core
+/** Read or write to the shared memory that is meant for this core
  * Host will allocate one single large block of shared memory
  * Every core has SHM_SIZE_PER_CORE of space in it
  * Every core can write to its own block
  * The SHM_OFFSET_xxx variables define the meaning of this space
  */
+void  _read_sharedmem(     int offset,  void* dst, int nbytes);
 void _write_sharedmem(const void* src, int offset, int nbytes);
 
 inline int row_from_pid(int pid)
@@ -188,11 +189,24 @@ void ebsp_message(const char* format, ... )
     va_start(args, format);
     vsnprintf(buffer, SHM_MESSAGE_SIZE, format, args);
     va_end(args);
+    //Check if ARM core has written the previous message
+    while (*(int*)MSG_SYNC_ADDRESS != 0) {}
+    *(int*)MSG_SYNC_ADDRESS = 1;
     //First write the message
     _write_sharedmem(&buffer, SHM_OFFSET_MSG_BUF, SHM_MESSAGE_SIZE);
     //Then write the flag indicating that the message is complete
     int flag = -1;
     _write_sharedmem(&flag, SHM_OFFSET_MSG_FLAG, sizeof(int));
+}
+
+void  _read_sharedmem(int offset, void* dst, int nbytes)
+{
+    //Since e_read ignores the src (offset) parameter for shared memory reads
+    //we set it to zero and just add the offset to the base address ourselves
+    off_t oldbase = sharedmemseg.ephy_base;
+    sharedmemseg.ephy_base += _pid * SHM_SIZE_PER_CORE + offset;
+    e_read((void*)&sharedmemseg, dst, 0, 0, 0, nbytes);
+    sharedmemseg.ephy_base = oldbase;
 }
 
 void _write_sharedmem(const void* src, int offset, int nbytes)

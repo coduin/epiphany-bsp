@@ -251,9 +251,12 @@ int ebsp_spmd()
                 //Now read the full message
                 _read_sharedmem(i, SHM_OFFSET_MSG_BUF, &message_buffer, SHM_MESSAGE_SIZE);
                 printf("$%02d: %s\n", i, message_buffer);
-                //Reset flag
+                //Reset flag so we do not read it again
                 message_flag = 0;
                 _write_sharedmem(i, &message_flag, SHM_OFFSET_MSG_FLAG, sizeof(int));
+                //Signal epiphany core that message was read
+                //so that it can (possibly) output the next message
+                co_write(i, &message_flag, MSG_SYNC_ADDRESS, sizeof(int));
             }
         }
 

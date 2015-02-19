@@ -29,22 +29,24 @@ see the files COPYING and COPYING.LESSER. If not, see
 #define MAX_NAME_SIZE 30
 
 #define SHM_NAME            "bspshm"
-#define SHM_SIZE_PER_CORE   256
+#define SHM_SIZE_PER_CORE   0x100
+//for 16 cores, it will be 0x1000 bytes of shared memory
 
-#define SHM_OFFSET_REGISTER 0
-#define SHM_OFFSET_SYNC     4
-#define SHM_OFFSET_MSG_FLAG 8
-#define SHM_OFFSET_MSG_BUF  12
+#define SHM_OFFSET_REGISTER 0x00
+#define SHM_OFFSET_SYNC     0x04
+#define SHM_OFFSET_MSG_FLAG 0x08
+#define SHM_OFFSET_MSG_BUF  0x0C
 #define SHM_MESSAGE_SIZE    (SHM_SIZE_PER_CORE - SHM_OFFSET_MSG_BUF)
 //SHM_OFFSET_MSG_BUF should always be the last part of the buffer
 
-#define MAX_N_REGISTER 100
-#define REGISTERMAP_ADDRESS 0x6150
-#define SYNC_STATE_ADDRESS 0x6100
-#define NPROCS_LOC_ADDRESS 0x6050
-#define REMOTE_TIMER_ADDRESS 0x6040
-#define LOC_BAR_ARRAY 0x6200
-#define LOC_BAR_TGT_ARRAY 0x6300
+#define NPROCS_LOC_ADDRESS      0x6100
+#define SYNC_STATE_ADDRESS      0x6104
+#define MSG_SYNC_ADDRESS        0x6108
+#define REMOTE_TIMER_ADDRESS    0x610C
+#define REGISTERMAP_ADDRESS     0x6150
+#define LOC_BAR_ARRAY           0x6200
+#define LOC_BAR_TGT_ARRAY       0x6300
+#define MAX_N_REGISTER (LOC_BAR_ARRAY - REGISTERMAP_ADDRESS)
 
 #define CORE_ID _pid
 #define CORE_ROW e_group_config.core_row
