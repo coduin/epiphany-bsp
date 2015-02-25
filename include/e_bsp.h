@@ -61,14 +61,6 @@ float bsp_remote_time();
  */
 void bsp_sync();
 
-/** Variable with value STATE_RUN, STATE_SYNC or STATE_CONTINUE
- *  This is needed to allow synchronisation on the ARM.
- */
-int* syncstate;
-
-//void*** registermap;//registermap[slotID][pid]=void*
-void** registermap;//registermap[nprocs*slotID+pid]=void*
-
 /** Registers a variable by putting to static memory location in host memory
  *  Registration maps are updated at next sync.
  */
@@ -80,3 +72,9 @@ void bsp_push_reg(const void* variable, const int nbytes);
  *  Then use epiphany put to void*[index][targetPid]
  */
 void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes);
+
+/** Outputs a debug message by sending it to shared memory
+ * So that the host processor can output it to the terminal
+ */
+void ebsp_message(const char* format, ... );
+
