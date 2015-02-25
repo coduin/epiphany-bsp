@@ -23,12 +23,17 @@ typedef enum
 
 typedef struct 
 {
+    int mem_max;
+    int mem_max_offset;
+    int core_max;
+
     int mem_offset;
     int core_shown;
     int nsyncs;
     int num_mod;
     KEY_STATE key_state;
 } viewer_state;
+
 
 viewer_state state;
 
@@ -87,11 +92,19 @@ void print_status_bar()
     printw(status);
 }
 
+int max_offset()
+{
+    int mrow, mcol;
+    getmaxyx(stdscr, mrow, mcol);
+    return state.mem_max_offset - (mrow - 4);
+}
+
 int handle_input()
 {
     // wait for user input
     int ch = getch();
     int digit = 0;
+    int maxoff = max_offset();
 
     // switch ch and change paging
     switch (ch)
@@ -115,17 +128,24 @@ int handle_input()
             return 0;
 
         case 'j':
-            // FIXME: Check for upperbound
+
             if(state.num_mod > 0) {
                 state.mem_offset += state.num_mod;
                 state.num_mod = 0;
+            } 
+            else {
+                state.mem_offset++;
             }
-            state.mem_offset++;
+
+            if(state.mem_offset > maxoff)
+                state.mem_offset = maxoff;
+
             break;
 
         case 'l':
-            // FIXME: Check for upperbound
             state.core_shown++;
+            if(state.core_shown > state.core_max)
+                state.core_shown = state.core_max;
             break;
 
         case 'h':
@@ -159,8 +179,7 @@ int handle_input()
             break;
 
         case 'G':
-            // FIXME: should be max
-            state.mem_offset = 500;
+            state.mem_offset = maxoff;
             break;
 
         case 'n':
@@ -178,6 +197,10 @@ int main()
 {
     srand(1);
     memset(&state, 0, sizeof(viewer_state));
+
+    state.mem_max = 0x8000;
+    state.mem_max_offset = state.mem_max / 0x10;
+    state.core_max = 16; //FIXME: bsp_nprocs()
 
     // initialize curses mode
     initscr();
@@ -198,7 +221,7 @@ int main()
     // refresh the screen (push changes to screen)
     refresh();
 
-    int blocksize = 10000;
+    int blocksize = 0x8000;
     unsigned char* buf = malloc(blocksize * sizeof(unsigned char));
     read_memory(buf, blocksize);
 
