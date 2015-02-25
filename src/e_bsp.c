@@ -168,7 +168,10 @@ void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
     for(slotID=0; ; slotID++) {
 #ifdef DEBUG
         if(slotID >= MAX_N_REGISTER)
+        {
+            ebsp_message("ERROR: bsp_hpput(%d, %p, %p, %d, %d) could not find dst", pid, src, dst, offset, nbytes);
             return;
+        }
 #endif
         if(registermap[_nprocs*slotID+pid] == dst)
             break;

@@ -214,11 +214,12 @@ int ebsp_spmd()
     // sleep for 0.01 seconds
     usleep(1000);
 
-
+    int total_syncs = 0;
     int state_flag = 0;
-
     int message_flag = 0;
     char message_buffer[SHM_MESSAGE_SIZE+1];
+
+    int run_counter      = 0;
     int sync_counter     = 0;
     int finish_counter   = 0; 
     int continue_counter = 0;
@@ -232,6 +233,7 @@ int ebsp_spmd()
         for(i = 0; i < state.nprocs; i++) {
             co_write(i, &arm_timer, (off_t)REMOTE_TIMER_ADDRESS, sizeof(int));
         }
+        run_counter      = 0;
         sync_counter     = 0;
         finish_counter   = 0;
         continue_counter = 0;
@@ -240,9 +242,10 @@ int ebsp_spmd()
             //co_read(i, (off_t)SYNC_STATE_ADDRESS, &state_flag, sizeof(int));
             _read_sharedmem(i, SHM_OFFSET_SYNC, &state_flag, sizeof(int));
 
-            if (state_flag == STATE_SYNC    ) sync_counter++;
-            if (state_flag == STATE_FINISH  ) finish_counter++;
-            if (state_flag == STATE_CONTINUE) continue_counter++;
+            if (state_flag == STATE_RUN     ) run_counter++;
+            else if (state_flag == STATE_SYNC    ) sync_counter++;
+            else if (state_flag == STATE_FINISH  ) finish_counter++;
+            else if (state_flag == STATE_CONTINUE) continue_counter++;
 
             //First read a single int to see if there is a message
             _read_sharedmem(i, SHM_OFFSET_MSG_FLAG, &message_flag, sizeof(int));
@@ -261,27 +264,25 @@ int ebsp_spmd()
         }
 
 #ifdef DEBUG
-        if (iter % 100 == 0) {
+        if (iter % 1000 == 0) {
             printf("Current time: %E seconds\n", arm_timer);
-            printf("sync \t finish \t continue \t 16th stateflag \n");
-            printf("%i \t %i \t\t %i \t\t %i\n", 
-                    sync_counter,
-                    finish_counter,
-                    continue_counter,
-                    state_flag);
+            printf("run %02d - sync %02d - finish %02d - continue %02d - 16th stateflag %d\n",
+                    run_counter, sync_counter, finish_counter,
+                    continue_counter, state_flag);
         }
         ++iter;
 #endif
 
         if (sync_counter == state.nprocs) {
+            ++total_syncs;
 #ifdef DEBUG
-            printf("(BSP) DEBUG: Syncing\n");
+            //This part of the sync (host side)
+            //usually does not crash so only one
+            //line of debug output is needed here
+            printf("(BSP) DEBUG: Sync %d\n", total_syncs);
 #endif
             _host_sync();
 
-#ifdef DEBUG
-            printf("(BSP) DEBUG: Writing STATE_CONTINUE to processors\n");
-#endif
             state_flag = STATE_CONTINUE;
             for(i = 0; i < state.nprocs; i++) {
                 //shared mem, to reset flag
@@ -289,9 +290,6 @@ int ebsp_spmd()
                 //to core, will cause execution to continue
                 co_write(i, &state_flag, (off_t)SYNC_STATE_ADDRESS, sizeof(int));
             }
-#ifdef DEBUG
-            printf("(BSP) DEBUG: Syncing finished\n");
-#endif
         }
 
         usleep(1000);
