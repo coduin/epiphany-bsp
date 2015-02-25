@@ -12,7 +12,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include <ncurses.h>
+#include <e-hal.h>
+#include <host_bsp.h>
 
 typedef enum
 {
@@ -23,29 +26,30 @@ typedef enum
 
 typedef struct 
 {
+    // maximum value for memory and cores
     int mem_max;
     int mem_max_offset;
     int core_max;
 
+    // set to 1 if required to repull data from eCore
+    int data_dirty; 
+
+    // current viewing position and information
     int mem_offset;
     int core_shown;
     int nsyncs;
     int num_mod;
     KEY_STATE key_state;
-} viewer_state;
+} e_h_viewer_state;
 
+e_h_viewer_state state;
 
-viewer_state state;
-
-void read_memory(unsigned char* buf, int blocksize)
+void _e_h_read_memory(unsigned char* buf, int blocksize)
 {
-    // fill buffer with random data
-    for(int i = 0; i < blocksize; ++i) {
-        buf[i] = (unsigned char)(rand() % 255);
-    }
+    co_read(state.core_shown, (void*)0x0000, buf, blocksize);
 }
 
-void print_paged_memory(unsigned char* buf)
+void _e_h_print_paged_memory(unsigned char* buf)
 {
     int width = 16;
 
@@ -77,7 +81,7 @@ void print_paged_memory(unsigned char* buf)
     }
 }
 
-void print_status_bar()
+void _e_h_print_status_bar()
 {
     // numbered sync, instructions for going to next sync
     // also which core is being viewed
@@ -88,23 +92,25 @@ void print_status_bar()
     printw("\n");
 
     char status[80];
-    sprintf(status, "viewing core: %i, number of syncs: %i", state.core_shown, state.nsyncs);
+    sprintf(status, "viewing core: %i, number of syncs: %i",
+            state.core_shown,
+            state.nsyncs);
     printw(status);
 }
 
-int max_offset()
+int _e_h_max_offset()
 {
     int mrow, mcol;
     getmaxyx(stdscr, mrow, mcol);
     return state.mem_max_offset - (mrow - 4);
 }
 
-int handle_input()
+int _e_h_handle_input()
 {
     // wait for user input
     int ch = getch();
     int digit = 0;
-    int maxoff = max_offset();
+    int maxoff = _e_h_max_offset();
 
     // switch ch and change paging
     switch (ch)
@@ -183,7 +189,8 @@ int handle_input()
             break;
 
         case 'n':
-            return 0;
+            // FIXME: return control to bsp lib
+            state.nsyncs++;
             break;
 
         default:
@@ -193,14 +200,13 @@ int handle_input()
     return 1;
 }
 
-int main()
+void ebsp_hexviewer_init()
 {
-    srand(1);
-    memset(&state, 0, sizeof(viewer_state));
+    memset(&state, 0, sizeof(e_h_viewer_state));
 
     state.mem_max = 0x8000;
     state.mem_max_offset = state.mem_max / 0x10;
-    state.core_max = 16; //FIXME: bsp_nprocs()
+    state.core_max = bsp_nprocs();
 
     // initialize curses mode
     initscr();
@@ -212,7 +218,10 @@ int main()
     keypad(stdscr, TRUE);
     // disable cursor
     curs_set(0);
+}
 
+void ebsp_hexviewer_run()
+{
     // print string to screen
     attron(A_UNDERLINE);
     printw("epiphany-bsp hexviewer");
@@ -221,21 +230,34 @@ int main()
     // refresh the screen (push changes to screen)
     refresh();
 
-    int blocksize = 0x8000;
+    int blocksize = state.mem_max;
     unsigned char* buf = malloc(blocksize * sizeof(unsigned char));
-    read_memory(buf, blocksize);
+    _e_h_read_memory(buf, blocksize);
 
     do
     {
-        print_paged_memory(buf);
-        print_status_bar();
+        if (state.data_dirty) {
+            _e_h_read_memory(buf, blocksize);
+        }
+        _e_h_print_paged_memory(buf);
+        _e_h_print_status_bar();
+
+        // FIXME: return control to BSP when next sync
+        // ...
+
         refresh();
-    } while(handle_input());
+    } while (_e_h_handle_input());
 
     free(buf);
 
     // close the curses window
     endwin();
+}
+
+int main()
+{
+    ebsp_hexviewer_init();
+    ebsp_hexviewer_run();
 
     return 0;
 }
