@@ -275,12 +275,12 @@ int ebsp_spmd()
 
         if (sync_counter == state.nprocs) {
 #ifdef DEBUG
-            printf("(BSP) DEBUG: Syncing on host...\n");
+            printf("(BSP) DEBUG: Syncing\n");
 #endif
             _host_sync();
 
 #ifdef DEBUG
-            printf("(BSP) DEBUG: Writing STATE_CONTINUE to processors...\n");
+            printf("(BSP) DEBUG: Writing STATE_CONTINUE to processors\n");
 #endif
             state_flag = STATE_CONTINUE;
             for(i = 0; i < state.nprocs; i++) {
@@ -290,7 +290,7 @@ int ebsp_spmd()
                 co_write(i, &state_flag, (off_t)SYNC_STATE_ADDRESS, sizeof(int));
             }
 #ifdef DEBUG
-            printf("(BSP) DEBUG: Continuing...\n");
+            printf("(BSP) DEBUG: Syncing finished\n");
 #endif
         }
 
@@ -339,22 +339,19 @@ void _host_sync() {
 
     int i, j;
     int new_vars = 0;
-#ifdef DEBUG
-    printf("(BSP) DEBUG: _host_sync() ............................... \n");
-#endif
 
     void* var_loc = NULL;
     _read_sharedmem(0, SHM_OFFSET_REGISTER, &var_loc, sizeof(void*));
         
-#ifdef DEBUG
-    printf("var_loc = 0x%x\n", (int)var_loc);
-#endif
-
     if(var_loc != NULL) {
         new_vars = 1;
     } else {
         return;
     }
+
+#ifdef DEBUG
+    printf("(BSP) DEBUG: bsp_push_reg occurred. var_loc = 0x%x\n", (int)var_loc);
+#endif
 
     if (state.num_vars_registered >= MAX_N_REGISTER)
     {

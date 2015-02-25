@@ -41,6 +41,8 @@ float *vecallocd(int n) {
         if(address >= 0x6000) /* FIXME HARDCODE WARNING */
             return NULL; /* OUT OF MEMORY (in 0x4000 - 0x6000) */
     } 
+
+    ebsp_message("vecallocd(%d) -> %p. Alloc used [0x4000, %p[ Stack used [%p, 0x8000[", n, pd, address, e_reg_read(E_REG_R13));
     
     return pd; 
 } /* end vecallocd */ 
@@ -156,9 +158,9 @@ int main() { /*  bsp_bench */
                 for(s1=0; s1<p; s1++)
                     r += nflops/Time[s1];
                 r /= (float) p; 
-                /*printf("n = %5d min = %7.3lf max = %7.3lf av = %7.3lf Mflop/s ",
+                ebsp_message("n = %5d min = %7.3lf max = %7.3lf av = %7.3lf Mflop/s ",
                        n, nflops/(maxtime*MEGA),nflops/(mintime*MEGA), r/MEGA);
-                fflush(stdout); */
+                /* fflush(stdout); */
                 /*  Output for fooling benchmark-detecting compilers */
                 /* printf(" fool=%7.1lf\n",y[n-1]+z[n-1]); */
             } 
@@ -195,17 +197,17 @@ int main() { /*  bsp_bench */
         /* Compute time of one h-relation */
         if (s == 0) {
             t[h] = (time*r)/(float)NITERS;
-            /*printf("Time of %5d-relation = %lf sec = %8.0lf flops\n",
-                   h, time/NITERS, t[h]); fflush(stdout);*/
+            ebsp_message("Time of %5d-relation = %lf sec = %8.0lf flops\n",
+                   h, time/NITERS, t[h]); //fflush(stdout);
         }
     }
 
     if (s == 0) {
-        /* printf("size of float = %d bytes\n",(int)SZDBL); */
+        ebsp_message("size of float = %d bytes\n",(int)SZDBL);
         leastsquares(0, p, t, &g0, &l0); 
-        /* printf("Range h=0 to p   : g = %.1lf, l = %.1lf\n",g0,l0); */
+        ebsp_message("Range h=0 to p   : g = %.1lf, l = %.1lf\n",g0,l0);
         leastsquares(p, MAXH, t, &g, &l);
-        /* printf("Range h=p to HMAX: g = %.1lf, l = %.1lf\n",g,l); */
+        ebsp_message("Range h=p to HMAX: g = %.1lf, l = %.1lf\n",g,l);
 
         /* Write essential results! */
         int* pOut = (void*)0x6000;
