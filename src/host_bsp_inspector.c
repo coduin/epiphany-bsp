@@ -197,8 +197,17 @@ int _e_h_handle_input()
 
         case 'g':
             if(i_state.num_mod > 0) {
-                i_state.mem_offset = i_state.num_mod;
-                i_state.num_mod = 0;
+                int hex = 0;
+                int cur_pow = 1;
+                while(i_state.num_mod > 0) {
+                    hex += (i_state.num_mod % 10) * cur_pow;
+                    i_state.num_mod /= 10;
+                    cur_pow *= 16;
+                }
+                i_state.mem_offset = hex / 0x10;
+                if (i_state.mem_offset > maxoff) {
+                    i_state.mem_offset = maxoff;
+                }
             } else {
                 if(i_state.key_state == KS_G_PRESSED) {
                     i_state.mem_offset = 0;
@@ -253,6 +262,8 @@ void ebsp_inspector_update()
 }
 
 void ebsp_inspector_finalize() {
+    ebsp_inspector_update();
+
     // free memory buffer
     free(i_state.buf);
  
