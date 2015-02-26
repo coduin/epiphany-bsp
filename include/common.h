@@ -24,7 +24,9 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #pragma once
 
-//#define DEBUG
+#define DEBUG
+
+#define _NPROCS 16
 
 #define MAX_NAME_SIZE 30
 
@@ -38,7 +40,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 //every core has a copy at local core memory
 //these used to be hardcoded at 0x6000
 //but are now stored as a global variable in the binary
-struct {
+typedef struct {
     int                     _pid;
     int                     nprocs;
     volatile int            syncstate; //ARM core will set this, epiphany will poll this
@@ -51,7 +53,7 @@ struct {
 } ebsp_coredata;
 
 //Buffer for ebsp_message
-struct {
+typedef struct {
     char msg[128];
 } ebsp_message_buf;
 
@@ -76,7 +78,7 @@ struct {
 //  the data for different cores (all syncstate flags are
 //  in one memory chunk, all msgflags in the next) we can read
 //  all syncstate flags in ONE e_read call instead of 16
-struct {
+typedef struct {
     int                 syncstate[_NPROCS]; //epiphany cores will set these, ARM core will poll these
     void*               pushregloc[_NPROCS];
     int                 msgflag[_NPROCS];
@@ -107,7 +109,6 @@ struct {
 #define NCORES (e_group_config.group_rows*e_group_config.group_cols)
 #define MAX_NCORES 64
 
-#define _NPROCS 16
 //clockspeed of Epiphany in cycles/second
 #define CLOCKSPEED 800000000.
 #define ARM_CLOCKSPEED 20000.

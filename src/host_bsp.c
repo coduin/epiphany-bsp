@@ -30,6 +30,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <stddef.h> //for offsetof
 
 // Global state
 bsp_state_t state;
@@ -71,7 +72,7 @@ int co_read(int pid, off_t src, void* dst, int size)
 
 int write_coredata(int pid, void* src, off_t offset, int size)
 {
-    return co_write(pid, src, state.comm_buf.coredata[pid] + offset, size);
+    return co_write(pid, src, (off_t)state.comm_buf.coredata[pid] + offset, size);
 }
 
 int bsp_init(const char* _e_name,
@@ -365,7 +366,7 @@ void _host_sync() {
     if (state.comm_buf.pushregloc[0] != NULL)
     {
 #ifdef DEBUG
-        printf("(BSP) DEBUG: bsp_push_reg occurred. addr = 0x%x\n",
+        printf("(BSP) DEBUG: bsp_push_reg occurred. addr = %p\n",
                 state.comm_buf.pushregloc[0]);
 #endif
 
@@ -394,8 +395,11 @@ void _host_sync() {
         // Reset pushregloc to zero
         for(i = 0; i < state.nprocs; ++i)
             state.comm_buf.pushregloc[i] = 0;
-        e_write(&state.emem, &state.comm_buf.pushregloc,
-                offsetof(ebsp_comm_buf, pushregloc), _NPROCS*sizeof(void*));
+        if (e_write(&state.emem, 0, 0, offsetof(ebsp_comm_buf, pushregloc),
+                    &state.comm_buf.pushregloc, _NPROCS*sizeof(void*)) != _NPROCS*sizeof(void*))
+        {
+            fprintf(stderr, "ERROR: e_write failed in _host_sync.\n");
+        }
     }
 }
 

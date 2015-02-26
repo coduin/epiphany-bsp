@@ -30,32 +30,34 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 //All bsp variables for this core
 ebsp_coredata coredata;
-volatile ebsp_comm_buf* comm_buf = (ebsp_comm_buf*)COMMBUF_EADDR;
+ebsp_comm_buf* comm_buf = (ebsp_comm_buf*)COMMBUF_EADDR;
+
+void _write_syncstate(int state);
 
 void bsp_begin()
 {
+    int i;
+    int row = e_group_config.core_row;
+    int col = e_group_config.core_col;
+    int cols = e_group_config.group_cols;
+    coredata._pid = col + cols*row;
+
     //Send &coredata to ARM
-    comm_buf->coredata[_pid] = &coredata;
+    comm_buf->coredata[coredata._pid] = &coredata;
     //Wait untill ARM received coredata so we can start
     //Accomplish this with a bsp_sync but using a different flag
     _write_syncstate(STATE_INIT);
     while (coredata.syncstate != STATE_CONTINUE) {}
     _write_syncstate(STATE_RUN);
 
-    int i;
-    int row = e_group_config.core_row;
-    int col = e_group_config.core_col;
-    int cols = e_group_config.group_cols;
-
-    coredata._pid = col + cols*row;
     coredata.nprocs = comm_buf->nprocs;
     coredata.syncstate = STATE_RUN;
     coredata.msgflag = 0;
     coredata.remotetimer = 0;
-    for(i = 0; i < MAX_N_REGISTER*_nprocs; i++)
+    for(i = 0; i < MAX_N_REGISTER*coredata.nprocs; i++)
         coredata.registermap[i] = 0;
 
-    comm_buf->msgflag[_pid] = 0;
+    comm_buf->msgflag[coredata._pid] = 0;
 
     e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);//TODO: E_CTIMER_CLK IS ONLY 255?
     coredata._initial_time = e_ctimer_get(E_CTIMER_0);
@@ -86,7 +88,7 @@ float bsp_time()
     if(_current_time == 0)
         return -1.0;
 #endif
-    return (_initial_time - _current_time)/CLOCKSPEED;
+    return (coredata._initial_time - _current_time)/CLOCKSPEED;
 }
 
 float bsp_remote_time()
@@ -105,13 +107,13 @@ void bsp_sync()
 void _write_syncstate(int state)
 {
     coredata.syncstate = state; //local variable
-    comm_buf->syncstate[_pid] = state; //being polled by ARM
+    comm_buf->syncstate[coredata._pid] = state; //being polled by ARM
 }
 
 // Memory
 void bsp_push_reg(const void* variable, const int nbytes)
 {
-    comm_buf->pushregloc[_pid] = variable;
+    comm_buf->pushregloc[coredata._pid] = (void*)variable;
 }
 
 inline int row_from_pid(int pid)
@@ -127,6 +129,7 @@ inline int col_from_pid(int pid)
 void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
 {
     int slotID;
+    void* adj_dst;
     for(slotID=0; ; slotID++) {
 #ifdef DEBUG
         if(slotID >= MAX_N_REGISTER)
@@ -135,11 +138,15 @@ void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
             return;
         }
 #endif
-        if(coredata.registermap[_nprocs*slotID+pid] == dst)
+        //Find the slot for our local _pid
+        if(coredata.registermap[coredata.nprocs*slotID + coredata._pid] == dst)
+        {
+            //Then get the entry of remote pid
+            adj_dst = coredata.registermap[coredata.nprocs*slotID + pid];
             break;
+        }
     }
-
-    void* adj_dst = (void*)(((int)registermap[_nprocs * slotID + pid]) + offset);
+    adj_dst = (void*)((int)adj_dst + offset);
     e_write(&e_group_config, src,
             row_from_pid(pid),
             col_from_pid(pid),
@@ -159,8 +166,8 @@ void ebsp_message(const char* format, ... )
     while (coredata.msgflag != 0) {}
     coredata.msgflag = 1;
     //First write the message
-    memcpy(comm_buf->messages[_pid].msg, buffer, sizeof(ebsp_message_buf));
+    memcpy(comm_buf->message[coredata._pid].msg, buffer, sizeof(ebsp_message_buf));
     //Then write the flag indicating that the message is complete
-    comm_buf->msgflag[_pid] = 1;
+    comm_buf->msgflag[coredata._pid] = 1;
 }
 

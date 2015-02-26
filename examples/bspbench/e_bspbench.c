@@ -42,7 +42,7 @@ float *vecallocd(int n) {
             return NULL; /* OUT OF MEMORY (in 0x4000 - 0x6000) */
     } 
 
-    ebsp_message("vecallocd(%d) -> %p. Alloc used [0x4000, %p[ Stack used [%p, 0x8000[", n, pd, address, e_reg_read(E_REG_R13));
+    ebsp_message("vecallocd(%d) -> %p. Alloc used [0x4000, %p[ Stack used [%p, 0x8000[", n, pd, address, &pd);
     
     return pd; 
 } /* end vecallocd */ 
