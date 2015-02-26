@@ -28,93 +28,56 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdarg.h> //for va_list
 #include <string.h>
 
-
-int _nprocs = -1;
-int _pid = -1;
-
-//e_barrier_t is a char
-//sync_bar is one char for every core --> 16 bytes in total
-//sync_bar_tgt is one pointer for every core --> 64 bytes in total
-volatile e_barrier_t*  sync_bar = (e_barrier_t*)LOC_BAR_ARRAY;
-         e_barrier_t** sync_bar_tgt = (e_barrier_t**)LOC_BAR_TGT_ARRAY;
-e_memseg_t sharedmemseg;
-
-void** registermap;
-
-float* remote_timer;
-unsigned int _initial_time;
-
-/** The SYNC_STATE_ADDRESS variable is for ARM->Epiphany communication
- * This function is for Epiphany->ARM communication
- */
-void _write_syncstate(int state);
-
-/** Read or write to the shared memory that is meant for this core
- * Host will allocate one single large block of shared memory
- * Every core has SHM_SIZE_PER_CORE of space in it
- * Every core can write to its own block
- * The SHM_OFFSET_xxx variables define the meaning of this space
- */
-void  _read_sharedmem(     int offset,  void* dst, int nbytes);
-void _write_sharedmem(const void* src, int offset, int nbytes);
-
-inline int row_from_pid(int pid)
-{
-    return pid / e_group_config.group_cols;
-}
-
-inline int col_from_pid(int pid)
-{
-    return pid % e_group_config.group_cols;
-}
+//All bsp variables for this core
+ebsp_coredata coredata;
+volatile ebsp_comm_buf* comm_buf = (ebsp_comm_buf*)COMMBUF_EADDR;
 
 void bsp_begin()
 {
-    int i;
+    //Send &coredata to ARM
+    comm_buf->coredata[_pid] = &coredata;
+    //Wait untill ARM received coredata so we can start
+    //Accomplish this with a bsp_sync but using a different flag
+    _write_syncstate(STATE_INIT);
+    while (coredata.syncstate != STATE_CONTINUE) {}
+    _write_syncstate(STATE_RUN);
 
+    int i;
     int row = e_group_config.core_row;
     int col = e_group_config.core_col;
     int cols = e_group_config.group_cols;
-    _pid = col + cols*row;
 
-    int* nprocs_loc = (int*)NPROCS_LOC_ADDRESS;
-    _nprocs = (*nprocs_loc);
-
-    e_shm_attach(&sharedmemseg, SHM_NAME);
-
-    registermap = (void**)REGISTERMAP_ADDRESS;
-    *(int*)MSG_SYNC_ADDRESS = 0;
-    _write_syncstate(STATE_RUN);
-
-    //Set memory to 0 (dirty solution) TODO make clean solution
+    coredata._pid = col + cols*row;
+    coredata.nprocs = comm_buf->nprocs;
+    coredata.syncstate = STATE_RUN;
+    coredata.msgflag = 0;
+    coredata.remotetimer = 0;
     for(i = 0; i < MAX_N_REGISTER*_nprocs; i++)
-        registermap[i] = 0;
+        coredata.registermap[i] = 0;
 
-    e_barrier_init(sync_bar, sync_bar_tgt);
+    comm_buf->msgflag[_pid] = 0;
 
-    e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);//E_CTIMER_CLK IS ONLY 255!?!?!?!??!?!?!?! FIXME
-    _initial_time = e_ctimer_get(E_CTIMER_0);
-    remote_timer=(float*)REMOTE_TIMER_ADDRESS;
+    e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);//TODO: E_CTIMER_CLK IS ONLY 255?
+    coredata._initial_time = e_ctimer_get(E_CTIMER_0);
 }
 
 void bsp_end()
 {
     bsp_sync();
     _write_syncstate(STATE_FINISH);
-    e_shm_release(SHM_NAME);
+    //TODO: halt execution
 }
 
 int bsp_nprocs()
 {
-    return _nprocs;
+    return coredata.nprocs;
 }
 
 
 int bsp_pid()
 {
-    return _pid;
+    return coredata._pid;
 }
-
 
 float bsp_time()
 {
@@ -128,38 +91,37 @@ float bsp_time()
 
 float bsp_remote_time()
 {
-    return *remote_timer;
+    return coredata.remotetimer;
 }
-
 
 // Sync
 void bsp_sync()
 {
-	//Signal host that epiphany is syncing, wait until host is done
     _write_syncstate(STATE_SYNC);
-
-    //Read result
-    //e_wait(E_CTIMER_1, 10000);
-	while (*(int*)SYNC_STATE_ADDRESS != STATE_CONTINUE) {
-        //e_wait(E_CTIMER_1, 10000);
-    }
-
-    //e_barrier(sync_bar, sync_bar_tgt);
-
-	//Reset state
+    while (coredata.syncstate != STATE_CONTINUE) {}
 	_write_syncstate(STATE_RUN);
 }
 
 void _write_syncstate(int state)
 {
-    *(int*)SYNC_STATE_ADDRESS = state;
-    _write_sharedmem((const void*)SYNC_STATE_ADDRESS, SHM_OFFSET_SYNC, sizeof(int));
+    coredata.syncstate = state; //local variable
+    comm_buf->syncstate[_pid] = state; //being polled by ARM
 }
 
 // Memory
 void bsp_push_reg(const void* variable, const int nbytes)
 {
-    _write_sharedmem(&variable, SHM_OFFSET_REGISTER, sizeof(void*));
+    comm_buf->pushregloc[_pid] = variable;
+}
+
+inline int row_from_pid(int pid)
+{
+    return pid / e_group_config.group_cols;
+}
+
+inline int col_from_pid(int pid)
+{
+    return pid % e_group_config.group_cols;
 }
 
 void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
@@ -173,7 +135,7 @@ void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
             return;
         }
 #endif
-        if(registermap[_nprocs*slotID+pid] == dst)
+        if(coredata.registermap[_nprocs*slotID+pid] == dst)
             break;
     }
 
@@ -186,38 +148,19 @@ void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
 
 void ebsp_message(const char* format, ... )
 {
-    char buffer[SHM_MESSAGE_SIZE];
+    //First construct the message locally
+    char buffer[sizeof(ebsp_message_buf)];
     va_list args;
     va_start(args, format);
-    vsnprintf(buffer, SHM_MESSAGE_SIZE, format, args);
+    vsnprintf(buffer, sizeof(ebsp_message_buf), format, args);
     va_end(args);
     //Check if ARM core has written the previous message
-    while (*(int*)MSG_SYNC_ADDRESS != 0) {}
-    *(int*)MSG_SYNC_ADDRESS = 1;
+    //so that we can overwrite the previous buffer
+    while (coredata.msgflag != 0) {}
+    coredata.msgflag = 1;
     //First write the message
-    _write_sharedmem(&buffer, SHM_OFFSET_MSG_BUF, SHM_MESSAGE_SIZE);
+    memcpy(comm_buf->messages[_pid].msg, buffer, sizeof(ebsp_message_buf));
     //Then write the flag indicating that the message is complete
-    int flag = -1;
-    _write_sharedmem(&flag, SHM_OFFSET_MSG_FLAG, sizeof(int));
-}
-
-void  _read_sharedmem(int offset, void* dst, int nbytes)
-{
-    //Since e_read ignores the src (offset) parameter for shared memory reads
-    //we set it to zero and just add the offset to the base address ourselves
-    off_t oldbase = sharedmemseg.ephy_base;
-    sharedmemseg.ephy_base += _pid * SHM_SIZE_PER_CORE + offset;
-    e_read((void*)&sharedmemseg, dst, 0, 0, 0, nbytes);
-    sharedmemseg.ephy_base = oldbase;
-}
-
-void _write_sharedmem(const void* src, int offset, int nbytes)
-{
-    //Since e_write ignores the dst (offset) parameter for shared memory writes
-    //we set it to zero and just add the offset to the base address ourselves
-    off_t oldbase = sharedmemseg.ephy_base;
-    sharedmemseg.ephy_base += _pid * SHM_SIZE_PER_CORE + offset;
-    e_write((void*)&sharedmemseg, src, 0, 0, 0, nbytes);
-    sharedmemseg.ephy_base = oldbase;
+    comm_buf->msgflag[_pid] = 1;
 }
 

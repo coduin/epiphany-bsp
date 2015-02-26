@@ -28,40 +28,81 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #define MAX_NAME_SIZE 30
 
-#define SHM_NAME            "bspshm"
-#define SHM_SIZE_PER_CORE   0x100
-//for 16 cores, it will be 0x1000 bytes of shared memory
-
-#define SHM_OFFSET_REGISTER 0x00
-#define SHM_OFFSET_SYNC     0x04
-#define SHM_OFFSET_MSG_FLAG 0x08
-#define SHM_OFFSET_MSG_BUF  0x0C
-#define SHM_MESSAGE_SIZE    (SHM_SIZE_PER_CORE - SHM_OFFSET_MSG_BUF)
-//SHM_OFFSET_MSG_BUF should always be the last part of the buffer
-
 //Every core has MAX_N_REGISTER
 //Every register is sizeof(void*) = 4
 //So NCORES*MAX_N_REGISTER*4 is required
 //for registermap buffer
 #define MAX_N_REGISTER          40
 
-#define BSP_BASE                0x6000
-#define NPROCS_LOC_ADDRESS      (BSP_BASE + 0x100)
-#define SYNC_STATE_ADDRESS      (BSP_BASE + 0x104)
-#define MSG_SYNC_ADDRESS        (BSP_BASE + 0x108)
-#define REMOTE_TIMER_ADDRESS    (BSP_BASE + 0x10C)
-#define REGISTERMAP_ADDRESS     (BSP_BASE + 0x200)
-#define LOC_BAR_ARRAY           (BSP_BASE + 0xc00)
-#define LOC_BAR_TGT_ARRAY       (BSP_BASE + 0xc20)
+//struct for local eCore bsp variables
+//every core has a copy at local core memory
+//these used to be hardcoded at 0x6000
+//but are now stored as a global variable in the binary
+struct {
+    int                     _pid;
+    int                     nprocs;
+    volatile int            syncstate; //ARM core will set this, epiphany will poll this
+    volatile int            msgflag;
+    float                   remotetimer;
+    unsigned int            _initial_time;
+    void*                   registermap[MAX_N_REGISTER*_NPROCS];
+    //volatile e_barrier_t    syncbarrier[_NPROCS]; //16 bytes
+    //e_barrier_t*            syncbarrier_tgt[_NPROCS]; //16 pointers to the bytes on other cores
+} ebsp_coredata;
+
+//Buffer for ebsp_message
+struct {
+    char msg[128];
+} ebsp_message_buf;
+
+//struct for eCore --> ARM communication
+//This is located at "external memory"
+//meaning on the epiphany side, but not
+//in a local core's memory
+//The epiphany cores write a value here once
+//and the arm core polls these values
+//
+//Note that we do NOT want:
+// struct{
+//     int syncstate;
+//     int msgflag;
+//     ...;
+//  } coreinfo;
+//  struct{
+//     coreinfo cores[16];
+//  } ebsp_comm_buf;
+//
+//  This is not efficient because by interlacing
+//  the data for different cores (all syncstate flags are
+//  in one memory chunk, all msgflags in the next) we can read
+//  all syncstate flags in ONE e_read call instead of 16
+struct {
+    int                 syncstate[_NPROCS]; //epiphany cores will set these, ARM core will poll these
+    void*               pushregloc[_NPROCS];
+    int                 msgflag[_NPROCS];
+    ebsp_message_buf    message[_NPROCS];
+    ebsp_coredata*      coredata[_NPROCS];
+    int                 nprocs;
+} ebsp_comm_buf;
+
+//ARM will e_alloc COMMBUF_OFFSET
+#define COMMBUF_OFFSET 0x01000000
+//This same block will appear at COMMBUF_EADDR
+//on epiphany
+#define COMMBUF_EADDR  0x8f000000
 
 #define CORE_ID _pid
 #define CORE_ROW e_group_config.core_row
 #define CORE_COL e_group_config.core_col
 
-#define STATE_RUN 0
-#define STATE_SYNC 1
-#define STATE_CONTINUE 2
-#define STATE_FINISH 3
+//Do not start at 0 so that we can
+//check if the variable has been
+//initialized at all
+#define STATE_RUN       1
+#define STATE_SYNC      2
+#define STATE_CONTINUE  3
+#define STATE_FINISH    4
+#define STATE_INIT      5
 
 #define NCORES (e_group_config.group_rows*e_group_config.group_cols)
 #define MAX_NCORES 64
