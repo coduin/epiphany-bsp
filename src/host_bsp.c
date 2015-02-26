@@ -193,6 +193,16 @@ int bsp_begin(int nprocs)
     return 1;
 }
 
+void ebsp_set_sync_callback(void (*cb)())
+{
+    state.sync_callback = cb;
+}
+
+void ebsp_set_end_callback(void (*cb)())
+{
+    state.end_callback = cb;
+}
+
 int ebsp_spmd()
 {   
     int i = 0;
@@ -205,7 +215,7 @@ int ebsp_spmd()
     for(i = 0; i < state.nprocs; i++) {
         co_write(i, &arm_timer, (off_t)REMOTE_TIMER_ADDRESS, sizeof(int));
     }
-    
+
     // Start the program
     if (e_start_group(&state.dev) != E_OK) {
         fprintf(stderr, "ERROR: e_start_group() failed.\n");
@@ -213,7 +223,6 @@ int ebsp_spmd()
     }
     // sleep for 0.01 seconds
     usleep(1000);
-
 
     int state_flag = 0;
 
@@ -278,6 +287,10 @@ int ebsp_spmd()
             printf("(BSP) DEBUG: Syncing on host...\n");
 #endif
             _host_sync();
+            
+            // if call back, call and wait
+            if (state.sync_callback)
+                state.sync_callback();
 
 #ifdef DEBUG
             printf("(BSP) DEBUG: Writing STATE_CONTINUE to processors...\n");
@@ -297,6 +310,8 @@ int ebsp_spmd()
         usleep(1000);
     }
     printf("(BSP) INFO: Program finished\n");
+
+    state.end_callback();
 
     return 1;
 }
@@ -320,6 +335,9 @@ int bsp_end()
     free(state.e_name);
     memset(&state, 0, sizeof(state));
     bsp_initialized = 0;
+
+    if (state.end_callback)
+        state.end_callback();
 
     return 1;
 }
@@ -424,5 +442,3 @@ int _write_sharedmem(int pid, const void* src, off_t dst, int size)
     }
     return 1;
 }
-
-

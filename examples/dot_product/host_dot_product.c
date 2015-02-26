@@ -23,6 +23,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include <host_bsp.h>
+#include <host_bsp_inspector.h>
 #include <stdlib.h>
 #include <stdio.h> 
 
@@ -59,6 +60,9 @@ int main(int argc, char **argv)
         }
     }
     
+    // enable memory inspector
+    ebsp_inspector_enable();
+
     // run dotproduct
     ebsp_spmd();
 

@@ -58,12 +58,12 @@ void _write_syncstate(int state);
 void  _read_sharedmem(     int offset,  void* dst, int nbytes);
 void _write_sharedmem(const void* src, int offset, int nbytes);
 
-inline int row_from_pid(int pid)
+int row_from_pid(int pid)
 {
     return pid / e_group_config.group_cols;
 }
 
-inline int col_from_pid(int pid)
+int col_from_pid(int pid)
 {
     return pid % e_group_config.group_cols;
 }

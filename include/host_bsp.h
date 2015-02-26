@@ -48,6 +48,9 @@ typedef struct _bsp_state_t
     //Within each space, SHM_OFFSET_xxx specify meaning
     e_mem_t sharedmemseg;
 
+    void (*sync_callback)(void);
+    void (*end_callback)(void);
+
     int num_vars_registered;
 
     // Epiphany specific variables
@@ -91,12 +94,19 @@ int bsp_init(const char* e_name,
 		int argc,
 		char **argv);
 
+
+/** Set the callback for syncing
+ */
+void ebsp_set_sync_callback(void (*cb)());
+
+/** Set the callback for finalizing
+ */
+void ebsp_set_end_callback(void (*cb)());
+
 /** Starts the SPMD program on the Epiphany cores.
- *
  *  flag: An integer indicating whether the function finished
  *                succesfully, in which case it is 1, or 0 otherwise.
  */
-#define spmd_epiphany ebsp_spmd
 int ebsp_spmd();
 
 /** Starts the BSP program.

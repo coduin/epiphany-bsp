@@ -23,6 +23,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include <host_bsp.h>
+#include <host_bsp_inspector.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -137,6 +138,10 @@ int main(int argc, char **argv)
                     l, i, j, val,
                     LOC_MATRIX + sizeof(float) * l);
     }
+#endif
+
+#ifdef DEBUG
+    ebsp_inspector_enable();
 #endif
 
     ebsp_spmd();
