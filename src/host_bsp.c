@@ -171,9 +171,8 @@ int bsp_begin(int nprocs)
         return 0;
     }
 
-    // Set initial values of buffer: zeroes and nprocs
+    // Set initial buffer to zero
     memset(&state.comm_buf, 0, sizeof(ebsp_comm_buf));
-    state.comm_buf.nprocs = state.nprocs;
 
     // Write to epiphany
     if (e_write(&state.emem, 0, 0, 0, &state.comm_buf,
@@ -200,8 +199,8 @@ int ebsp_spmd()
     }
 
     int i, j;
-    int cores_initialized = 0;
-    while (cores_initialized != state.nprocs)
+    int cores_initialized;
+    while (1)
     {
         usleep(1000); //0.01 seconds
 
@@ -214,10 +213,16 @@ int ebsp_spmd()
         }
 
         // Check every core
+        cores_initialized = 0;
         for(i = 0; i < state.nprocs; ++i)
             if (state.comm_buf.syncstate[i] == STATE_INIT)
                 ++cores_initialized;
+        if (cores_initialized == state.nprocs)
+            break;
     }
+#ifdef DEBUG
+    printf("(BSP) DEBUG: All epiphany cores are ready for initialization.\n");
+#endif
 
     //All cores are waiting.
     //We can now send data and 'start' them
@@ -229,26 +234,30 @@ int ebsp_spmd()
     {
         //Core i has written its coredata address
         //Now we can initialize it
-        write_coredata(i, &arm_timer, offsetof(ebsp_coredata, remotetimer), sizeof(int));
+        write_coredata(i, &arm_timer, offsetof(ebsp_core_data, remotetimer), sizeof(int));
+        write_coredata(i, &state.nprocs, offsetof(ebsp_core_data, nprocs), sizeof(int));
         //All data is initialized. Send start signal
         int flag = STATE_CONTINUE;
-        write_coredata(i, &flag, offsetof(ebsp_coredata, syncstate), sizeof(int));
+        write_coredata(i, &flag, offsetof(ebsp_core_data, syncstate), sizeof(int));
     }
 
-    int total_syncs      = 0;
-    int run_counter      = 0;
-    int sync_counter     = 0;
-    int finish_counter   = 0; 
-    int continue_counter = 0;
+    int total_syncs = 0;
+    int run_counter;
+    int sync_counter;
+    int finish_counter;
+    int continue_counter;
 
+#ifdef DEBUG
     int iter = 0;
+    printf("(BSP) DEBUG: All epiphany cores initialized.\n");
+#endif
 
     while (finish_counter != state.nprocs) {
         //Write timer
         end=clock(); 
         arm_timer = (float)(end-start)/ARM_CLOCKSPEED;
         for(i = 0; i < state.nprocs; i++)
-            write_coredata(i, &arm_timer, offsetof(ebsp_coredata, remotetimer), sizeof(int));
+            write_coredata(i, &arm_timer, offsetof(ebsp_core_data, remotetimer), sizeof(int));
 
         // Read the full communication buffer
         // Including pushreg states and so on
@@ -285,7 +294,7 @@ int ebsp_spmd()
                 //Signal epiphany core that message was read
                 //so that it can (possibly) output the next message
                 write_coredata(i, &state.comm_buf.msgflag[i],
-                        offsetof(ebsp_coredata, msgflag), sizeof(int));
+                        offsetof(ebsp_core_data, msgflag), sizeof(int));
             }
         }
 
@@ -317,7 +326,7 @@ int ebsp_spmd()
             //Now write it to all cores to continue their execution
             for(i = 0; i < state.nprocs; i++)
                 write_coredata(i, &state.comm_buf.syncstate[i],
-                        offsetof(ebsp_coredata, syncstate), sizeof(int));
+                        offsetof(ebsp_core_data, syncstate), sizeof(int));
         }
 
         usleep(1000);
@@ -366,7 +375,7 @@ void _host_sync() {
     if (state.comm_buf.pushregloc[0] != NULL)
     {
 #ifdef DEBUG
-        printf("(BSP) DEBUG: bsp_push_reg occurred. addr = %p\n",
+        printf("(BSP) DEBUG: bsp_push_reg occurred. core 0 addr = %p\n",
                 state.comm_buf.pushregloc[0]);
 #endif
 
@@ -380,7 +389,7 @@ void _host_sync() {
             // Broadcast registermap_buffer to registermap 
             for(i = 0; i < state.nprocs; ++i) {
                 write_coredata(i, state.comm_buf.pushregloc,
-                        (off_t)(offsetof(ebsp_coredata, registermap) +
+                        (off_t)(offsetof(ebsp_core_data, registermap) +
                             sizeof(void*) * state.num_vars_registered * state.nprocs),
                         sizeof(void*) * state.nprocs);
             }
