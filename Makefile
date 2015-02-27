@@ -29,9 +29,11 @@ HOST_OBJS = $(HOST_SRCS:%.c=bin/host/%.o)
 vpath %.c src
 
 bin/host/%.o: %.c
+	mkdir -p bin/host bin/lib
 	gcc $(CFLAGS) $(INCLUDES) -c $< -o $@ ${HOST_LIBS} -le-hal -lncurses
 	
 bin/e/%.o: %.c
+	mkdir -p bin/e bin/lib
 	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -c $< -o $@ ${HOST_LIBS} -le-lib
 
 all: host e
