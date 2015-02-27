@@ -22,12 +22,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
-// # TODO: Features
-// [ ] Red for memory that changed from last run
-// [ ] actually dump memory from epiphany.
-// [ ] Optional: notes on memory regions
-// [ ] Fix maximum cores/memory
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
