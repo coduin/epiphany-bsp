@@ -11,10 +11,11 @@
 * [ ] `malloc`-esque memory management tool.
 * [ ] Stable syncing
 * [ ] Refactor build process 
+* [ ] Some debug tools (inspector, ...)
 
 ## 0.3
 * [ ] BSP message passing
-* [ ] Some debug tools (inspector, ...)
+* [ ] Support for NLA types (ebsp_matrix, ebsp_vector, ...)
 
 ## 1.0
 * [ ] All BSP primitives implemented
