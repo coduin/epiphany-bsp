@@ -30,7 +30,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
-#include <stddef.h> //for offsetof
+#include <stddef.h>
 
 // Global state
 bsp_state_t state;
@@ -70,9 +70,21 @@ int ebsp_read(int pid, off_t src, void* dst, int size)
     return 1;
 }
 
-int write_coredata(int pid, void* src, off_t offset, int size)
+int _write_coredata(int pid, void* src, off_t offset, int size)
 {
-    return co_write(pid, src, (off_t)state.comm_buf.coredata[pid] + offset, size);
+    return co_write(pid, src,
+            (off_t)state.comm_buf.coredata[pid] + offset, size);
+}
+
+int _write_extmem(void* src, off_t offset, int size)
+{
+    if (e_write(&state.emem, 0, 0, offset, src, size) != size)
+    {
+        fprintf(stderr, "ERROR: _write_extmem(src,%p,%d) failed.\n",
+                (void*)offset, size);
+        return 0;
+    }
+    return 1;
 }
 
 int bsp_init(const char* _e_name,
@@ -175,8 +187,7 @@ int bsp_begin(int nprocs)
     memset(&state.comm_buf, 0, sizeof(ebsp_comm_buf));
 
     // Write to epiphany
-    if (e_write(&state.emem, 0, 0, 0, &state.comm_buf,
-                sizeof(ebsp_comm_buf)) != sizeof(ebsp_comm_buf))
+    if (!_write_extmem(&state.comm_buf, 0, sizeof(ebsp_comm_buf)))
     {
         fprintf(stderr, "ERROR: e_write ebsp_comm_buf failed in bsp_begin.\n");
         return 0;
@@ -224,7 +235,7 @@ int ebsp_spmd()
 
         // Check every core
         cores_initialized = 0;
-        for(i = 0; i < state.nprocs; ++i)
+        for (i = 0; i < state.nprocs; ++i)
             if (state.comm_buf.syncstate[i] == STATE_INIT)
                 ++cores_initialized;
         if (cores_initialized == state.nprocs)
@@ -236,19 +247,29 @@ int ebsp_spmd()
 
     //All cores are waiting.
     //We can now send data and 'start' them
-    clock_t start=clock(); 
-    clock_t end=clock(); 
+    clock_t start = clock(); 
+    clock_t end = clock(); 
     float arm_timer;
-    arm_timer = (float)(end-start)/ARM_CLOCKSPEED;
-    for(i = 0; i < state.nprocs; ++i)
+    arm_timer = (float)(end-start) / ARM_CLOCKSPEED;
+    for (i = 0; i < state.nprocs; ++i)
     {
         //Core i has written its coredata address
         //Now we can initialize it
-        write_coredata(i, &arm_timer, offsetof(ebsp_core_data, remotetimer), sizeof(int));
-        write_coredata(i, &state.nprocs, offsetof(ebsp_core_data, nprocs), sizeof(int));
+        _write_coredata(i,
+                &arm_timer,
+                offsetof(ebsp_core_data, remotetimer),
+                sizeof(int));
+        _write_coredata(i,
+                &state.nprocs,
+                offsetof(ebsp_core_data, nprocs),
+                sizeof(int));
+
         //All data is initialized. Send start signal
         int flag = STATE_CONTINUE;
-        write_coredata(i, &flag, offsetof(ebsp_core_data, syncstate), sizeof(int));
+        _write_coredata(i,
+                &flag,
+                offsetof(ebsp_core_data, syncstate),
+                sizeof(int));
     }
 
     int total_syncs = 0;
@@ -267,7 +288,10 @@ int ebsp_spmd()
         end=clock(); 
         arm_timer = (float)(end-start)/ARM_CLOCKSPEED;
         for(i = 0; i < state.nprocs; i++)
-            write_coredata(i, &arm_timer, offsetof(ebsp_core_data, remotetimer), sizeof(int));
+            _write_coredata(i,
+                    &arm_timer,
+                    offsetof(ebsp_core_data, remotetimer),
+                    sizeof(int));
 
         // Read the full communication buffer
         // Including pushreg states and so on
@@ -299,11 +323,12 @@ int ebsp_spmd()
                 //Reset flag so we do not read it again
                 state.comm_buf.msgflag[i] = 0;
                 //Write the int to the external comm_buf
-                e_write(&state.emem, 0, 0, offsetof(ebsp_comm_buf, msgflag[i]),
-                        &state.comm_buf.msgflag[i], sizeof(int));
+                _write_extmem(&state.comm_buf.msgflag[i],
+                        offsetof(ebsp_comm_buf, msgflag[i]),
+                        sizeof(int));
                 //Signal epiphany core that message was read
                 //so that it can (possibly) output the next message
-                write_coredata(i, &state.comm_buf.msgflag[i],
+                _write_coredata(i, &state.comm_buf.msgflag[i],
                         offsetof(ebsp_core_data, msgflag), sizeof(int));
             }
         }
@@ -333,13 +358,14 @@ int ebsp_spmd()
                 state.sync_callback();
 
             //First reset the comm_buf
-            for(i = 0; i < state.nprocs; i++)
+            for (i = 0; i < state.nprocs; i++)
                 state.comm_buf.syncstate[i] = STATE_CONTINUE;
-            e_write(&state.emem, 0, 0, offsetof(ebsp_comm_buf, syncstate),
-                    &state.comm_buf.syncstate, _NPROCS*sizeof(int));
+            _write_extmem(&state.comm_buf.syncstate,
+                    offsetof(ebsp_comm_buf, syncstate),
+                    _NPROCS * sizeof(int));
             //Now write it to all cores to continue their execution
-            for(i = 0; i < state.nprocs; i++)
-                write_coredata(i, &state.comm_buf.syncstate[i],
+            for (i = 0; i < state.nprocs; i++)
+                _write_coredata(i, &state.comm_buf.syncstate[i],
                         offsetof(ebsp_core_data, syncstate), sizeof(int));
         }
 
@@ -361,7 +387,7 @@ int bsp_end()
 
     e_free(&state.emem);
 
-    if(E_OK != e_finalize()) {
+    if (E_OK != e_finalize()) {
         fprintf(stderr, "ERROR: Could not finalize the Epiphany connection.\n");
         return 0;
     }
@@ -405,29 +431,30 @@ void _host_sync() {
         }
         else
         {
-            // Broadcast registermap_buffer to registermap 
-            for(i = 0; i < state.nprocs; ++i) {
-                write_coredata(i, state.comm_buf.pushregloc,
-                        (off_t)(offsetof(ebsp_core_data, registermap) +
-                            sizeof(void*) * state.num_vars_registered * state.nprocs),
+            // Broadcast to local core data
+            off_t offset = offsetof(ebsp_core_data, registermap) +
+                state.num_vars_registered * sizeof(void*) * state.nprocs;
+
+            for (i = 0; i < state.nprocs; ++i)
+                _write_coredata(i,
+                        state.comm_buf.pushregloc,
+                        offset,
                         sizeof(void*) * state.nprocs);
-            }
 
             state.num_vars_registered++;
 #ifdef DEBUG
             printf("(BSP) DEBUG: New variables registered: %i/%i\n",
-                    state.num_vars_registered,MAX_N_REGISTER);
+                    state.num_vars_registered, MAX_N_REGISTER);
 #endif
         }
 
         // Reset pushregloc to zero
-        for(i = 0; i < state.nprocs; ++i)
+        for (i = 0; i < state.nprocs; ++i)
             state.comm_buf.pushregloc[i] = 0;
-        if (e_write(&state.emem, 0, 0, offsetof(ebsp_comm_buf, pushregloc),
-                    &state.comm_buf.pushregloc, _NPROCS*sizeof(void*)) != _NPROCS*sizeof(void*))
-        {
-            fprintf(stderr, "ERROR: e_write failed in _host_sync.\n");
-        }
+
+        _write_extmem(&state.comm_buf.pushregloc,
+                offsetof(ebsp_comm_buf, pushreglog),
+                _NPROCS * sizeof(void*));
     }
 }
 

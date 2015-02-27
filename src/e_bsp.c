@@ -25,10 +25,10 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include "e_bsp.h"
 #include <e-lib.h>
 #include <stdio.h>
-#include <stdarg.h> //for va_list
+#include <stdarg.h>
 #include <string.h>
 
-//All bsp variables for this core
+// All bsp variables for this core
 ebsp_core_data coredata;
 ebsp_comm_buf* comm_buf = (ebsp_comm_buf*)COMMBUF_EADDR;
 
@@ -42,9 +42,9 @@ void bsp_begin()
     int cols = e_group_config.group_cols;
 
     // Initialize local data
-    coredata.pid = col + cols*row;
+    coredata.pid = col + cols * row;
     coredata.msgflag = 0;
-    for(i = 0; i < MAX_N_REGISTER*coredata.nprocs; i++)
+    for(i = 0; i < MAX_N_REGISTER * coredata.nprocs; i++)
         coredata.registermap[i] = 0;
 
     // Send &coredata to ARM so that ARM can fill it with values
@@ -58,7 +58,7 @@ void bsp_begin()
     // Now the ARM has entered nprocs and remotetimer
 
     // Initialize epiphany timer
-    e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);//TODO: E_CTIMER_CLK IS ONLY 255?
+    e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);
     coredata.initial_time = e_ctimer_get(E_CTIMER_0);
 }
 
@@ -66,7 +66,7 @@ void bsp_end()
 {
     bsp_sync();
     _write_syncstate(STATE_FINISH);
-    //TODO: halt execution
+    // TODO: halt execution
 }
 
 int bsp_nprocs()
@@ -87,7 +87,7 @@ float bsp_time()
     if(_current_time == 0)
         return -1.0;
 #endif
-    return (coredata.initial_time - _current_time)/CLOCKSPEED;
+    return (coredata.initial_time - _current_time) / CLOCKSPEED;
 }
 
 float bsp_remote_time()
@@ -105,8 +105,8 @@ void bsp_sync()
 
 void _write_syncstate(int state)
 {
-    coredata.syncstate = state; //local variable
-    comm_buf->syncstate[coredata.pid] = state; //being polled by ARM
+    coredata.syncstate = state; // local variable
+    comm_buf->syncstate[coredata.pid] = state; // being polled by ARM
 }
 
 // Memory
@@ -129,19 +129,19 @@ void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
 {
     int slotID;
     void* adj_dst;
-    for(slotID=0; ; slotID++) {
+    for (slotID=0; ; slotID++) {
 #ifdef DEBUG
-        if(slotID >= MAX_N_REGISTER)
+        if (slotID >= MAX_N_REGISTER)
         {
             ebsp_message("ERROR: bsp_hpput(%d, %p, %p, %d, %d) could not find dst", pid, src, dst, offset, nbytes);
             return;
         }
 #endif
-        //Find the slot for our local _pid
-        if(coredata.registermap[coredata.nprocs*slotID + coredata.pid] == dst)
+        // Find the slot for our local _pid
+        if (coredata.registermap[coredata.nprocs * slotID + coredata.pid] == dst)
         {
-            //Then get the entry of remote pid
-            adj_dst = coredata.registermap[coredata.nprocs*slotID + pid];
+            // Then get the entry of remote pid
+            adj_dst = coredata.registermap[coredata.nprocs * slotID + pid];
             break;
         }
     }
@@ -165,7 +165,7 @@ void ebsp_message(const char* format, ... )
     //vsnprintf(&comm_buf->message[coredata.pid].msg[0], sizeof(ebsp_message_buf), format, args);
     va_end(args);
 
-    // DEBUG: vsnprintf does not seem to work
+    // TODO: vsnprintf does not seem to work
     // instead just memcpy the format string and add a terminating 0
     memcpy(&comm_buf->message[coredata.pid].msg[0], format, sizeof(ebsp_message_buf));
     comm_buf->message[coredata.pid].msg[127] = 0;

@@ -48,8 +48,6 @@ typedef struct {
     float                   remotetimer;
     unsigned int            initial_time;
     void*                   registermap[MAX_N_REGISTER*_NPROCS];
-    //volatile e_barrier_t    syncbarrier[_NPROCS]; //16 bytes
-    //e_barrier_t*            syncbarrier_tgt[_NPROCS]; //16 pointers to the bytes on other cores
 } ebsp_core_data;
 
 typedef struct {
