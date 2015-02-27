@@ -158,11 +158,10 @@ int main() { /*  bsp_bench */
                 for(s1=0; s1<p; s1++)
                     r += nflops/Time[s1];
                 r /= (float) p; 
-                ebsp_message("n = %5d min = %7.3lf max = %7.3lf av = %7.3lf Mflop/s ",
+                ebsp_message("n = %5d min = %d max = %d av = %d Mflop/s",
                        n, nflops/(maxtime*MEGA),nflops/(mintime*MEGA), r/MEGA);
-                /* fflush(stdout); */
-                /*  Output for fooling benchmark-detecting compilers */
-                /* printf(" fool=%7.1lf\n",y[n-1]+z[n-1]); */
+                //ebsp_message("n = %5d min = %7.3lf max = %7.3lf av = %7.3lf Mflop/s",
+                //       n, nflops/(maxtime*MEGA),nflops/(mintime*MEGA), r/MEGA);
             } 
         }
     }
@@ -197,17 +196,19 @@ int main() { /*  bsp_bench */
         /* Compute time of one h-relation */
         if (s == 0) {
             t[h] = (time*r)/(float)NITERS;
-            ebsp_message("Time of %5d-relation = %lf sec = %8.0lf flops\n",
-                   h, time/NITERS, t[h]); //fflush(stdout);
+            ebsp_message("Time of %d-relation = %d sec = %d flops\n",
+                   h, time/NITERS, t[h]);
+            //ebsp_message("Time of %5d-relation = %lf sec = %8.0lf flops\n",
+            //       h, time/NITERS, t[h]);
         }
     }
 
     if (s == 0) {
         ebsp_message("size of float = %d bytes\n",(int)SZDBL);
         leastsquares(0, p, t, &g0, &l0); 
-        ebsp_message("Range h=0 to p   : g = %.1lf, l = %.1lf\n",g0,l0);
+        //ebsp_message("Range h=0 to p   : g = %.1lf, l = %.1lf\n",g0,l0);
         leastsquares(p, MAXH, t, &g, &l);
-        ebsp_message("Range h=p to HMAX: g = %.1lf, l = %.1lf\n",g,l);
+        //ebsp_message("Range h=p to HMAX: g = %.1lf, l = %.1lf\n",g,l);
 
         /* Write essential results! */
         int* pOut = (void*)0x6000;

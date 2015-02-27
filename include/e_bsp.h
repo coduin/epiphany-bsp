@@ -25,6 +25,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #pragma once
 
 #include "common.h"
+#include "_ansi.h"
 
 //const char registermap_buffer_shm_name[] = REGISTERMAP_BUFFER_SHM_NAME;
 
@@ -73,8 +74,11 @@ void bsp_push_reg(const void* variable, const int nbytes);
  */
 void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes);
 
-/** Outputs a debug message by sending it to shared memory
+/** ebsp_message outputs a debug message by sending it to shared memory
  * So that the host processor can output it to the terminal
+ * The attributes in this definition make sure that the compiler checks the
+ * arguments for errors
  */
-void ebsp_message(const char* format, ... );
+void _EXFUN(ebsp_message, (const char *, ...)
+               _ATTRIBUTE ((__format__ (__printf__, 1, 2))));
 
