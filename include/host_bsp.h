@@ -43,10 +43,11 @@ typedef struct _bsp_state_t
     // Number of processors in use
     int nprocs_used;
 
-    //Shared memory segment
-    //Every core has SHM_SIZE_PER_CORE of space in this
-    //Within each space, SHM_OFFSET_xxx specify meaning
-    e_mem_t sharedmemseg;
+    // External memory that holsd ebsp_comm_buf
+    e_mem_t emem;
+    // Local copy of ebsp_comm_buf to copy from and
+    // copy into.
+    ebsp_comm_buf comm_buf;
 
     void (*sync_callback)(void);
     void (*end_callback)(void);

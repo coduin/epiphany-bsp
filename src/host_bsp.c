@@ -30,6 +30,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <stddef.h>
 
 // Global state
 bsp_state_t state;
@@ -38,8 +39,6 @@ int bsp_initialized = 0;;
 void _host_sync();
 void _get_p_coords(int pid, int* row, int* col);
 bsp_state_t* _get_state();
-int  _read_sharedmem(int pid,       off_t src, void* dst, int size);
-int _write_sharedmem(int pid, const void* src, off_t dst, int size);
 
 int ebsp_write(int pid, void* src, off_t dst, int size)
 {
@@ -66,6 +65,23 @@ int ebsp_read(int pid, off_t src, void* dst, int size)
     {
         fprintf(stderr, "ERROR: e_read(dev,%d,%d,%p,%p,%d) failed in ebsp_read.\n",
                 prow, pcol, (void*)src, (void*)dst, size);
+        return 0;
+    }
+    return 1;
+}
+
+int _write_coredata(int pid, void* src, off_t offset, int size)
+{
+    return co_write(pid, src,
+            (off_t)state.comm_buf.coredata[pid] + offset, size);
+}
+
+int _write_extmem(void* src, off_t offset, int size)
+{
+    if (e_write(&state.emem, 0, 0, offset, src, size) != size)
+    {
+        fprintf(stderr, "ERROR: _write_extmem(src,%p,%d) failed.\n",
+                (void*)offset, size);
         return 0;
     }
     return 1;
@@ -160,36 +176,23 @@ int bsp_begin(int nprocs)
         return 0;
     }
 
-    // Write the nprocs to memory
-    int i, j;
-    for(i = 0; i < state.platform.rows; ++i) {
-        for(j = 0; j < state.platform.cols; ++j) {
-            if (e_write(&state.dev, i, j, (off_t)NPROCS_LOC_ADDRESS,
-                        &state.nprocs, sizeof(int)) != sizeof(int)) {
-                fprintf(stderr, "ERROR: e_write(dev,%d,%d,..) failed in bsp_begin.\n",i,j);
-                return 0;
-            }
-        }
-    }
-
-    // Allocate shared memory buffer
-    int shm_size = SHM_SIZE_PER_CORE * state.nprocs;
-    if (e_shm_alloc(&state.sharedmemseg, SHM_NAME, shm_size) != E_OK)
+    // Allocate communication buffer
+    if (e_alloc(&state.emem, COMMBUF_OFFSET, sizeof(ebsp_comm_buf)) != E_OK)
     {
-        fprintf(stderr, "ERROR: e_shm_alloc failed in bsp_begin.\n");
-        return 0; 
-    }
-
-    //Set shared memory buffer to zero
-    void* buf = malloc(shm_size);
-    memset(buf, 0, shm_size);
-    int res = e_write(&state.sharedmemseg, 0, 0, (off_t)0, buf, shm_size);
-    free(buf);
-    if (res != shm_size)
-    {
-        fprintf(stderr, "ERROR: writing shared memory failed in bsp_begin.\n");
+        fprintf(stderr, "ERROR: e_alloc failed in bspbegin.\n");
         return 0;
     }
+
+    // Set initial buffer to zero
+    memset(&state.comm_buf, 0, sizeof(ebsp_comm_buf));
+
+    // Write to epiphany
+    if (!_write_extmem(&state.comm_buf, 0, sizeof(ebsp_comm_buf)))
+    {
+        fprintf(stderr, "ERROR: e_write ebsp_comm_buf failed in bsp_begin.\n");
+        return 0;
+    }
+
     return 1;
 }
 
@@ -205,86 +208,148 @@ void ebsp_set_end_callback(void (*cb)())
 
 int ebsp_spmd()
 {   
-    int i = 0;
-    int j = 0;
-
-    clock_t start=clock(); 
-    clock_t end=clock(); 
-    float arm_timer;
-    arm_timer = (float)(end-start)/ARM_CLOCKSPEED;
-    for(i = 0; i < state.nprocs; i++) {
-        ebsp_write(i, &arm_timer, (off_t)REMOTE_TIMER_ADDRESS, sizeof(int));
-    }
-
     // Start the program
+    // The program will block on bsp_begin
+    // in state STATE_INIT
+    // untill we send a STATE_CONTINUE
+    // Before that, we have to fill its buffers
+    // with data like timers
     if (e_start_group(&state.dev) != E_OK) {
         fprintf(stderr, "ERROR: e_start_group() failed.\n");
         return 0;
     }
-    // sleep for 0.01 seconds
-    usleep(1000);
 
-    int state_flag = 0;
+    int i, j;
+    int cores_initialized;
+    while (1)
+    {
+        usleep(1000); //0.01 seconds
 
-    int message_flag = 0;
-    char message_buffer[SHM_MESSAGE_SIZE+1];
-    int sync_counter     = 0;
-    int finish_counter   = 0; 
-    int continue_counter = 0;
+        // Read the full communication buffer
+        if (e_read(&state.emem, 0, 0, 0, &state.comm_buf,
+                    sizeof(ebsp_comm_buf)) != sizeof(ebsp_comm_buf))
+        {
+            fprintf(stderr, "ERROR: e_read ebsp_comm_buf failed in ebsp_spmd.\n");
+            return 0;
+        }
 
+        // Check every core
+        cores_initialized = 0;
+        for (i = 0; i < state.nprocs; ++i)
+            if (state.comm_buf.syncstate[i] == STATE_INIT)
+                ++cores_initialized;
+        if (cores_initialized == state.nprocs)
+            break;
+    }
+#ifdef DEBUG
+    printf("(BSP) DEBUG: All epiphany cores are ready for initialization.\n");
+#endif
+
+    //All cores are waiting.
+    //We can now send data and 'start' them
+    clock_t start = clock(); 
+    clock_t end = clock(); 
+    float arm_timer;
+    arm_timer = (float)(end-start) / ARM_CLOCKSPEED;
+    for (i = 0; i < state.nprocs; ++i)
+    {
+        //Core i has written its coredata address
+        //Now we can initialize it
+        _write_coredata(i,
+                &arm_timer,
+                offsetof(ebsp_core_data, remotetimer),
+                sizeof(int));
+        _write_coredata(i,
+                &state.nprocs,
+                offsetof(ebsp_core_data, nprocs),
+                sizeof(int));
+
+        //All data is initialized. Send start signal
+        int flag = STATE_CONTINUE;
+        _write_coredata(i,
+                &flag,
+                offsetof(ebsp_core_data, syncstate),
+                sizeof(int));
+    }
+
+    int total_syncs = 0;
+    int run_counter;
+    int sync_counter;
+    int finish_counter;
+    int continue_counter;
+
+#ifdef DEBUG
     int iter = 0;
-    message_buffer[SHM_MESSAGE_SIZE] = 0; //terminating zero
+    printf("(BSP) DEBUG: All epiphany cores initialized.\n");
+#endif
 
     while (finish_counter != state.nprocs) {
+        //Write timer
         end=clock(); 
         arm_timer = (float)(end-start)/ARM_CLOCKSPEED;
-        for(i = 0; i < state.nprocs; i++) {
-            ebsp_write(i, &arm_timer, (off_t)REMOTE_TIMER_ADDRESS, sizeof(int));
+        for(i = 0; i < state.nprocs; i++)
+            _write_coredata(i,
+                    &arm_timer,
+                    offsetof(ebsp_core_data, remotetimer),
+                    sizeof(int));
+
+        // Read the full communication buffer
+        // Including pushreg states and so on
+        if (e_read(&state.emem, 0, 0, 0, &state.comm_buf,
+                    sizeof(ebsp_comm_buf)) != sizeof(ebsp_comm_buf))
+        {
+            fprintf(stderr, "ERROR: e_read ebsp_comm_buf failed in ebsp_spmd.\n");
+            return 0;
         }
+
+        //Check sync states
+        run_counter      = 0;
         sync_counter     = 0;
         finish_counter   = 0;
         continue_counter = 0;
         for (i = 0; i < state.nprocs; i++) {
-            state_flag = 0;
-            //co_read(i, (off_t)SYNC_STATE_ADDRESS, &state_flag, sizeof(int));
-            _read_sharedmem(i, SHM_OFFSET_SYNC, &state_flag, sizeof(int));
-
-            if (state_flag == STATE_SYNC    ) sync_counter++;
-            if (state_flag == STATE_FINISH  ) finish_counter++;
-            if (state_flag == STATE_CONTINUE) continue_counter++;
-
-            //First read a single int to see if there is a message
-            _read_sharedmem(i, SHM_OFFSET_MSG_FLAG, &message_flag, sizeof(int));
-            if (message_flag)
+            switch (state.comm_buf.syncstate[i]){
+                case STATE_RUN:      run_counter++; break;
+                case STATE_SYNC:     sync_counter++; break;
+                case STATE_FINISH:   finish_counter++; break;
+                case STATE_CONTINUE: continue_counter++; break;
+                default: fprintf(stderr, "ERROR: syncstate[%d] = %d.\n",
+                                 i, state.comm_buf.syncstate[i]);
+                         break;
+            }
+            if (state.comm_buf.msgflag[i])
             {
-                //Now read the full message
-                _read_sharedmem(i, SHM_OFFSET_MSG_BUF, &message_buffer, SHM_MESSAGE_SIZE);
-                printf("$%02d: %s\n", i, message_buffer);
+                printf("$%02d: %s\n", i, state.comm_buf.message[i].msg);
                 //Reset flag so we do not read it again
-                message_flag = 0;
-                _write_sharedmem(i, &message_flag, SHM_OFFSET_MSG_FLAG, sizeof(int));
+                state.comm_buf.msgflag[i] = 0;
+                //Write the int to the external comm_buf
+                _write_extmem(&state.comm_buf.msgflag[i],
+                        offsetof(ebsp_comm_buf, msgflag[i]),
+                        sizeof(int));
                 //Signal epiphany core that message was read
                 //so that it can (possibly) output the next message
-                ebsp_write(i, &message_flag, MSG_SYNC_ADDRESS, sizeof(int));
+                _write_coredata(i, &state.comm_buf.msgflag[i],
+                        offsetof(ebsp_core_data, msgflag), sizeof(int));
             }
         }
 
 #ifdef DEBUG
-        if (iter % 100 == 0) {
+        if (iter % 1000 == 0) {
             printf("Current time: %E seconds\n", arm_timer);
-            printf("sync \t finish \t continue \t 16th stateflag \n");
-            printf("%i \t %i \t\t %i \t\t %i\n", 
-                    sync_counter,
-                    finish_counter,
-                    continue_counter,
-                    state_flag);
+            printf("run %02d - sync %02d - finish %02d - continue %02d\n",
+                    run_counter, sync_counter, finish_counter,
+                    continue_counter);
         }
         ++iter;
 #endif
 
         if (sync_counter == state.nprocs) {
+            ++total_syncs;
 #ifdef DEBUG
-            printf("(BSP) DEBUG: Syncing on host...\n");
+            //This part of the sync (host side)
+            //usually does not crash so only one
+            //line of debug output is needed here
+            printf("(BSP) DEBUG: Sync %d\n", total_syncs);
 #endif
             _host_sync();
             
@@ -292,19 +357,16 @@ int ebsp_spmd()
             if (state.sync_callback)
                 state.sync_callback();
 
-#ifdef DEBUG
-            printf("(BSP) DEBUG: Writing STATE_CONTINUE to processors...\n");
-#endif
-            state_flag = STATE_CONTINUE;
-            for(i = 0; i < state.nprocs; i++) {
-                //shared mem, to reset flag
-                _write_sharedmem(i, &state_flag, SHM_OFFSET_SYNC, sizeof(int));
-                //to core, will cause execution to continue
-                ebsp_write(i, &state_flag, (off_t)SYNC_STATE_ADDRESS, sizeof(int));
-            }
-#ifdef DEBUG
-            printf("(BSP) DEBUG: Continuing...\n");
-#endif
+            //First reset the comm_buf
+            for (i = 0; i < state.nprocs; i++)
+                state.comm_buf.syncstate[i] = STATE_CONTINUE;
+            _write_extmem(&state.comm_buf.syncstate,
+                    offsetof(ebsp_comm_buf, syncstate),
+                    _NPROCS * sizeof(int));
+            //Now write it to all cores to continue their execution
+            for (i = 0; i < state.nprocs; i++)
+                _write_coredata(i, &state.comm_buf.syncstate[i],
+                        offsetof(ebsp_core_data, syncstate), sizeof(int));
         }
 
         usleep(1000);
@@ -322,12 +384,10 @@ int bsp_end()
         fprintf(stderr, "ERROR: bsp_end called when bsp was not initialized.\n");
         return 0;
     }
-    
-    //Release shared memory
-    if (e_shm_release(SHM_NAME) != E_OK)
-        fprintf(stderr, "ERROR: e_shm_release failed in bsp_end.\n");
 
-    if(E_OK != e_finalize()) {
+    e_free(&state.emem);
+
+    if (E_OK != e_finalize()) {
         fprintf(stderr, "ERROR: Could not finalize the Epiphany connection.\n");
         return 0;
     }
@@ -354,56 +414,48 @@ int bsp_nprocs()
 // Memory
 void _host_sync() {
     // TODO: Right now bsp_pop_reg is ignored
-
     int i, j;
-    int new_vars = 0;
+
+    // Check if core 0 did a push_reg
+    if (state.comm_buf.pushregloc[0] != NULL)
+    {
 #ifdef DEBUG
-    printf("(BSP) DEBUG: _host_sync() ............................... \n");
+        printf("(BSP) DEBUG: bsp_push_reg occurred. core 0 addr = %p\n",
+                state.comm_buf.pushregloc[0]);
 #endif
 
-    void* var_loc = NULL;
-    _read_sharedmem(0, SHM_OFFSET_REGISTER, &var_loc, sizeof(void*));
-        
-#ifdef DEBUG
-    printf("var_loc = 0x%x\n", (int)var_loc);
-#endif
-
-    if(var_loc != NULL) {
-        new_vars = 1;
-    } else {
-        return;
-    }
-
-    if (state.num_vars_registered >= MAX_N_REGISTER)
-    {
-        fprintf(stderr, "ERROR: Trying to register more than %d variables.\n",
-                MAX_N_REGISTER);
-    }
-    else
-    {
-        // Broadcast registermap_buffer to registermap 
-        void** buf = (void**) malloc(sizeof(void*) * state.nprocs);
-        for(i = 0; i < state.nprocs; ++i)
-            _read_sharedmem(i, SHM_OFFSET_REGISTER, buf+i, sizeof(void*));
-        for(i = 0; i < state.nprocs; ++i) {
-            ebsp_write(i, buf,
-                    (off_t)(REGISTERMAP_ADDRESS + state.num_vars_registered * state.nprocs), 
-                    sizeof(void*) * state.nprocs);
+        if (state.num_vars_registered >= MAX_N_REGISTER)
+        {
+            fprintf(stderr, "ERROR: Trying to register more than %d variables.\n",
+                    MAX_N_REGISTER);
         }
-        free(buf);
+        else
+        {
+            // Broadcast to local core data
+            off_t offset = offsetof(ebsp_core_data, registermap) +
+                state.num_vars_registered * sizeof(void*) * state.nprocs;
 
-        state.num_vars_registered++;
+            for (i = 0; i < state.nprocs; ++i)
+                _write_coredata(i,
+                        state.comm_buf.pushregloc,
+                        offset,
+                        sizeof(void*) * state.nprocs);
+
+            state.num_vars_registered++;
 #ifdef DEBUG
-        printf("(BSP) DEBUG: New variables registered: %i/%i\n",
-                state.num_vars_registered,MAX_N_REGISTER);
+            printf("(BSP) DEBUG: New variables registered: %i/%i\n",
+                    state.num_vars_registered, MAX_N_REGISTER);
 #endif
-    }
+        }
 
-    // Reset registermap_buffer to zero
-    void* buffer = 0;
-    //FIXME; ee_mwrite_buf(): Address is out of bounds.
-    for(i = 0; i < state.nprocs; ++i)
-        _write_sharedmem(i, &buffer, SHM_OFFSET_REGISTER, sizeof(void*));
+        // Reset pushregloc to zero
+        for (i = 0; i < state.nprocs; ++i)
+            state.comm_buf.pushregloc[i] = 0;
+
+        _write_extmem(&state.comm_buf.pushregloc,
+                offsetof(ebsp_comm_buf, pushregloc),
+                _NPROCS * sizeof(void*));
+    }
 }
 
 void _get_p_coords(int pid, int* row, int* col)
@@ -417,28 +469,3 @@ bsp_state_t* _get_state()
     return &state;
 }
 
-//Read from shared memory
-int  _read_sharedmem(int pid, off_t src, void* dst, int size)
-{
-    off_t realsrc = pid * SHM_SIZE_PER_CORE + src;
-    if (e_read(&state.sharedmemseg, 0, 0, realsrc, dst, size) != size)
-    {
-        fprintf(stderr, "ERROR: read_sharedmem(%d, %d, dst, %d) failed.\n",
-                pid, (int)src, size);
-        return 0;
-    }
-    return 1;
-}
-
-//Write to shared memory
-int _write_sharedmem(int pid, const void* src, off_t dst, int size)
-{
-    off_t realdst = pid * SHM_SIZE_PER_CORE + dst;
-    if (e_write(&state.sharedmemseg, 0, 0, realdst, src, size) != size)
-    {
-        fprintf(stderr, "ERROR: write_sharedmem(%d, src, %d, %d) failed.\n",
-                pid, (int)dst, size);
-        return 0;
-    }
-    return 1;
-}
