@@ -20,7 +20,10 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: hello e_hello dot_product memtest timetest bspbench lu_decomposition 
+all: dirs hello e_hello dot_product memtest timetest bspbench lu_decomposition 
+
+dirs:
+	mkdir -p bin
 
 ########################################################
 
