@@ -68,7 +68,9 @@ typedef struct _bsp_state_t
  *  size: Amount of data to write in bytes.
  *  flag: 1 on success, 0 on failure
  */
-int co_write(int pid, void* src, off_t dst, int size);
+// DEPRECATED: CO_WRITE
+#define co_write ebsp_write
+int ebsp_write(int pid, void* src, off_t dst, int size);
 
 /** This reads data from the co-processor to the host processor.
  *  This can be useful for distributing initial data, or when dividing work
@@ -79,7 +81,9 @@ int co_write(int pid, void* src, off_t dst, int size);
  *  size: Amount of data to read in bytes.
  *  flag: 1 on success, 0 on failure
  */
-int co_read(int pid, off_t src, void* dst, int size);
+// DEPRECATED: CO_READ
+#define co_read ebsp_read
+int ebsp_read(int pid, off_t src, void* dst, int size);
 
 /** Initializes the BSP system. This sets up all the BSP variables and loads
  *  the epiphany BSP program.

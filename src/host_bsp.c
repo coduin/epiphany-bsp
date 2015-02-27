@@ -41,7 +41,7 @@ bsp_state_t* _get_state();
 int  _read_sharedmem(int pid,       off_t src, void* dst, int size);
 int _write_sharedmem(int pid, const void* src, off_t dst, int size);
 
-int co_write(int pid, void* src, off_t dst, int size)
+int ebsp_write(int pid, void* src, off_t dst, int size)
 {
     int prow, pcol;
     _get_p_coords(pid, &prow, &pcol);
@@ -49,14 +49,14 @@ int co_write(int pid, void* src, off_t dst, int size)
             prow, pcol,
             dst, src, size) != size)
     {
-        fprintf(stderr, "ERROR: e_write(dev,%d,%d,%p,%p,%d) failed in co_write.\n",
+        fprintf(stderr, "ERROR: e_write(dev,%d,%d,%p,%p,%d) failed in ebsp_write.\n",
                 prow, pcol, (void*)dst, (void*)src, size);
         return 0;
     }
     return 1;
 }
 
-int co_read(int pid, off_t src, void* dst, int size)
+int ebsp_read(int pid, off_t src, void* dst, int size)
 {
     int prow, pcol;
     _get_p_coords(pid, &prow, &pcol);
@@ -64,7 +64,7 @@ int co_read(int pid, off_t src, void* dst, int size)
            prow, pcol,
            src, dst, size) != size)
     {
-        fprintf(stderr, "ERROR: e_read(dev,%d,%d,%p,%p,%d) failed in co_read.\n",
+        fprintf(stderr, "ERROR: e_read(dev,%d,%d,%p,%p,%d) failed in ebsp_read.\n",
                 prow, pcol, (void*)src, (void*)dst, size);
         return 0;
     }
@@ -213,7 +213,7 @@ int ebsp_spmd()
     float arm_timer;
     arm_timer = (float)(end-start)/ARM_CLOCKSPEED;
     for(i = 0; i < state.nprocs; i++) {
-        co_write(i, &arm_timer, (off_t)REMOTE_TIMER_ADDRESS, sizeof(int));
+        ebsp_write(i, &arm_timer, (off_t)REMOTE_TIMER_ADDRESS, sizeof(int));
     }
 
     // Start the program
@@ -239,7 +239,7 @@ int ebsp_spmd()
         end=clock(); 
         arm_timer = (float)(end-start)/ARM_CLOCKSPEED;
         for(i = 0; i < state.nprocs; i++) {
-            co_write(i, &arm_timer, (off_t)REMOTE_TIMER_ADDRESS, sizeof(int));
+            ebsp_write(i, &arm_timer, (off_t)REMOTE_TIMER_ADDRESS, sizeof(int));
         }
         sync_counter     = 0;
         finish_counter   = 0;
@@ -265,7 +265,7 @@ int ebsp_spmd()
                 _write_sharedmem(i, &message_flag, SHM_OFFSET_MSG_FLAG, sizeof(int));
                 //Signal epiphany core that message was read
                 //so that it can (possibly) output the next message
-                co_write(i, &message_flag, MSG_SYNC_ADDRESS, sizeof(int));
+                ebsp_write(i, &message_flag, MSG_SYNC_ADDRESS, sizeof(int));
             }
         }
 
@@ -300,7 +300,7 @@ int ebsp_spmd()
                 //shared mem, to reset flag
                 _write_sharedmem(i, &state_flag, SHM_OFFSET_SYNC, sizeof(int));
                 //to core, will cause execution to continue
-                co_write(i, &state_flag, (off_t)SYNC_STATE_ADDRESS, sizeof(int));
+                ebsp_write(i, &state_flag, (off_t)SYNC_STATE_ADDRESS, sizeof(int));
             }
 #ifdef DEBUG
             printf("(BSP) DEBUG: Continuing...\n");
@@ -386,7 +386,7 @@ void _host_sync() {
         for(i = 0; i < state.nprocs; ++i)
             _read_sharedmem(i, SHM_OFFSET_REGISTER, buf+i, sizeof(void*));
         for(i = 0; i < state.nprocs; ++i) {
-            co_write(i, buf,
+            ebsp_write(i, buf,
                     (off_t)(REGISTERMAP_ADDRESS + state.num_vars_registered * state.nprocs), 
                     sizeof(void*) * state.nprocs);
         }
