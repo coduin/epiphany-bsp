@@ -49,6 +49,9 @@ typedef struct _bsp_state_t
     // copy into.
     ebsp_comm_buf comm_buf;
 
+    void (*sync_callback)(void);
+    void (*end_callback)(void);
+
     int num_vars_registered;
 
     // Epiphany specific variables
@@ -66,7 +69,9 @@ typedef struct _bsp_state_t
  *  size: Amount of data to write in bytes.
  *  flag: 1 on success, 0 on failure
  */
-int co_write(int pid, void* src, off_t dst, int size);
+// DEPRECATED: CO_WRITE
+#define co_write ebsp_write
+int ebsp_write(int pid, void* src, off_t dst, int size);
 
 /** This reads data from the co-processor to the host processor.
  *  This can be useful for distributing initial data, or when dividing work
@@ -77,7 +82,9 @@ int co_write(int pid, void* src, off_t dst, int size);
  *  size: Amount of data to read in bytes.
  *  flag: 1 on success, 0 on failure
  */
-int co_read(int pid, off_t src, void* dst, int size);
+// DEPRECATED: CO_READ
+#define co_read ebsp_read
+int ebsp_read(int pid, off_t src, void* dst, int size);
 
 /** Initializes the BSP system. This sets up all the BSP variables and loads
  *  the epiphany BSP program.
@@ -92,12 +99,19 @@ int bsp_init(const char* e_name,
 		int argc,
 		char **argv);
 
+
+/** Set the callback for syncing
+ */
+void ebsp_set_sync_callback(void (*cb)());
+
+/** Set the callback for finalizing
+ */
+void ebsp_set_end_callback(void (*cb)());
+
 /** Starts the SPMD program on the Epiphany cores.
- *
  *  flag: An integer indicating whether the function finished
  *                succesfully, in which case it is 1, or 0 otherwise.
  */
-#define spmd_epiphany ebsp_spmd
 int ebsp_spmd();
 
 /** Starts the BSP program.

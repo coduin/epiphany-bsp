@@ -40,7 +40,7 @@ void _host_sync();
 void _get_p_coords(int pid, int* row, int* col);
 bsp_state_t* _get_state();
 
-int co_write(int pid, void* src, off_t dst, int size)
+int ebsp_write(int pid, void* src, off_t dst, int size)
 {
     int prow, pcol;
     _get_p_coords(pid, &prow, &pcol);
@@ -48,14 +48,14 @@ int co_write(int pid, void* src, off_t dst, int size)
             prow, pcol,
             dst, src, size) != size)
     {
-        fprintf(stderr, "ERROR: e_write(dev,%d,%d,%p,%p,%d) failed in co_write.\n",
+        fprintf(stderr, "ERROR: e_write(dev,%d,%d,%p,%p,%d) failed in ebsp_write.\n",
                 prow, pcol, (void*)dst, (void*)src, size);
         return 0;
     }
     return 1;
 }
 
-int co_read(int pid, off_t src, void* dst, int size)
+int ebsp_read(int pid, off_t src, void* dst, int size)
 {
     int prow, pcol;
     _get_p_coords(pid, &prow, &pcol);
@@ -63,7 +63,7 @@ int co_read(int pid, off_t src, void* dst, int size)
            prow, pcol,
            src, dst, size) != size)
     {
-        fprintf(stderr, "ERROR: e_read(dev,%d,%d,%p,%p,%d) failed in co_read.\n",
+        fprintf(stderr, "ERROR: e_read(dev,%d,%d,%p,%p,%d) failed in ebsp_read.\n",
                 prow, pcol, (void*)src, (void*)dst, size);
         return 0;
     }
@@ -183,6 +183,16 @@ int bsp_begin(int nprocs)
     }
 
     return 1;
+}
+
+void ebsp_set_sync_callback(void (*cb)())
+{
+    state.sync_callback = cb;
+}
+
+void ebsp_set_end_callback(void (*cb)())
+{
+    state.end_callback = cb;
 }
 
 int ebsp_spmd()
@@ -317,6 +327,10 @@ int ebsp_spmd()
             printf("(BSP) DEBUG: Sync %d\n", total_syncs);
 #endif
             _host_sync();
+            
+            // if call back, call and wait
+            if (state.sync_callback)
+                state.sync_callback();
 
             //First reset the comm_buf
             for(i = 0; i < state.nprocs; i++)
@@ -332,6 +346,8 @@ int ebsp_spmd()
         usleep(1000);
     }
     printf("(BSP) INFO: Program finished\n");
+
+    state.end_callback();
 
     return 1;
 }
@@ -353,6 +369,9 @@ int bsp_end()
     free(state.e_name);
     memset(&state, 0, sizeof(state));
     bsp_initialized = 0;
+
+    if (state.end_callback)
+        state.end_callback();
 
     return 1;
 }

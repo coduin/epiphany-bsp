@@ -115,12 +115,12 @@ void bsp_push_reg(const void* variable, const int nbytes)
     comm_buf->pushregloc[coredata.pid] = (void*)variable;
 }
 
-inline int row_from_pid(int pid)
+int row_from_pid(int pid)
 {
     return pid / e_group_config.group_cols;
 }
 
-inline int col_from_pid(int pid)
+int col_from_pid(int pid)
 {
     return pid % e_group_config.group_cols;
 }
