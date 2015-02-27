@@ -453,7 +453,7 @@ void _host_sync() {
             state.comm_buf.pushregloc[i] = 0;
 
         _write_extmem(&state.comm_buf.pushregloc,
-                offsetof(ebsp_comm_buf, pushreglog),
+                offsetof(ebsp_comm_buf, pushregloc),
                 _NPROCS * sizeof(void*));
     }
 }
