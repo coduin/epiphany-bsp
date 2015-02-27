@@ -97,7 +97,7 @@ int main(int argc, char **argv)
         default:
             fprintf(stderr, "Unsupported processor count, please add values\
                     for N and M in the host program.");
-            break;
+            return -1;
     }
 
     printf("LUD: Writing info on procs and matrix \n");
