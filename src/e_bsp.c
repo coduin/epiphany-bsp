@@ -154,24 +154,23 @@ void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
 
 void ebsp_message(const char* format, ... )
 {
-    //TODO: Fix
-    return;
-
-    // First construct the message locally
-    ebsp_message_buf b;
-    va_list args;
-    va_start(args, format);
-    vsnprintf(&b.msg[0], sizeof(b.msg), format, args);
-    va_end(args);
-
     // Check if ARM core has written the previous message
     // so that we can overwrite the previous buffer
     while (coredata.msgflag != 0) {}
     coredata.msgflag = 1;
 
-    // First write the message
-    memcpy(&comm_buf->message[coredata.pid], &b, sizeof(ebsp_message_buf));
-    // Then write the flag indicating that the message is complete
+    // Write the message to comm_buf->message
+    va_list args;
+    va_start(args, format);
+    //vsnprintf(&comm_buf->message[coredata.pid].msg[0], sizeof(ebsp_message_buf), format, args);
+    va_end(args);
+
+    // DEBUG: vsnprintf does not seem to work
+    // instead just memcpy the format string and add a terminating 0
+    memcpy(&comm_buf->message[coredata.pid].msg[0], format, sizeof(ebsp_message_buf));
+    comm_buf->message[coredata.pid].msg[127] = 0;
+
+    // Write the flag indicating that the message is complete
     comm_buf->msgflag[coredata.pid] = 1;
 }
 
