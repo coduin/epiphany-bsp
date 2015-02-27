@@ -25,6 +25,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <e_bsp.h>
 #include "e-lib.h"
 
+#include <math.h>
 #include "common.h"
 
 int M = 0;
@@ -34,7 +35,7 @@ int t = 0;
 int dim = 0;
 int entries_per_col = 0;
 
-inline int proc_id(int s, int t)
+int proc_id(int s, int t)
 {
     return s * M + t;
 }
@@ -47,13 +48,13 @@ int ltg(int* i, int* j, int l)
 }
 
 // "global to local" index
-inline int gtl(int i, int j)
+int gtl(int i, int j)
 {
     // here we assume correct processor
     return (i / M) * (dim / M) + (j / M);
 }
 
-inline float* a(int i, int j) {
+float* a(int i, int j) {
     return (float*)LOC_MATRIX + gtl(i, j);
 }
 
@@ -107,7 +108,7 @@ int main()
                 start_i += N;
 
             for (int i = start_i; i < dim; i += N) {
-                float a_ik = abs(*a(i, k));
+                float a_ik = fabsf(*a(i, k));
                 if (a_ik > a_rk) {
                     a_rk = a_ik;
                     rs = i;
@@ -131,7 +132,7 @@ int main()
 
             a_rk = -1.0;
             for (int j = 0; j < N; ++j) {
-                float val = abs(*(((float*)LOC_ARK + j)));
+                float val = fabsf(*(((float*)LOC_ARK + j)));
                 if (val > a_rk) {
                     a_rk = val;
                     rs = *((int*)LOC_RS + j);
@@ -249,10 +250,10 @@ int main()
         if (k % N == s) {
             // put a_ki in P(*, t)
             for (int j = start_idx; j < dim; j += M) {
-                for (int j = 0; j < N; ++j) {
-                    bsp_hpput(proc_id(j, t),
-                            a(k, i), (void*)LOC_ROW_IN,
-                            sizeof(float) * i, sizeof(float));
+                for (int sj = 0; sj < N; ++sj) {
+                    bsp_hpput(proc_id(sj, t),
+                            a(k, j), (void*)LOC_ROW_IN,
+                            sizeof(float) * j, sizeof(float));
                 }
             }
         }

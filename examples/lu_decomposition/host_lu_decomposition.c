@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef DEBUG
-    ebsp_inspector_enable();
+    //ebsp_inspector_enable();
 #endif
 
     ebsp_spmd();
