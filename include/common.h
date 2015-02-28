@@ -93,14 +93,20 @@ typedef struct {
 // [0x00000000, 0x01000000[ (16 MB)
 //     - libc code,data,stack
 // [0x01000000, 0x02000000[ (16 MB)
-//     - shared_dram : first 8MB
-//     -   heap_dram : second 8MB, 512K heap per core
+//     - "shared_dram" 8MB used by e_shm_xxx functions
+//     -   "heap_dram" 8MB, or 512K heap per core
 //
 // One can store variables in these parts using
 // int myint SECTION("shared_dram");
 // int myint SECTION("heap_dram");
+//
+// To use the shared_dram properly one can use the e_shm_xxx
+// functions which properly allocate memory in "shared_dram"
+// However, testing shows that some libc functions (like printf with %f) can
+// overwrite memory in "shared_dram" so therefore we use "heap_dram" for
+// the communication buffer instead of the e_shm_xxx functions
 // 
-// On the ARM side, we use e_alloc which allows us to access this shared memory
+// On the ARM side, we use e_alloc which allows us to access all shared memory
 //
 // Andreas notes that the shared dram is slow compared to internal core memory:
 //     If you are reading (loading) directly out of global DDR,
@@ -110,11 +116,6 @@ typedef struct {
 //     the mesh-->off chip elink-->FPGA logic-->AXI bus on Zynq
 //     -->memory controller-->DRAM (and back).
 // http://forums.parallella.org/viewtopic.php?f=23&t=1660
-//
-// Testing showed that when calling printf variants on the epiphany
-// with %f caused memory in "shared_dram" to be altered
-// Therefore we put our communication buffer in "heap_dram"
-//
 #define SHARED_MEM     0x8e000000
 #define COMMBUF_OFFSET 0x01800000
 #define COMMBUF_EADDR  (SHARED_MEM + COMMBUF_OFFSET)
