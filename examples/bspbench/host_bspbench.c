@@ -17,17 +17,18 @@ int main(int argc, char **argv){
         fprintf(stderr, "[BSPBENCH] bsp_init() failed\n");
         return -1;
     }
-    printf("How many processors do you want to use?\n"); fflush(stdout);
-    scanf("%d",&P);
-    if (P > bsp_nprocs()){
-        printf("Sorry, not enough processors available.\n");
-        return -1;
-    }
+    //printf("How many processors do you want to use?\n"); fflush(stdout);
+    //scanf("%d",&P);
+    //if (P > bsp_nprocs()){
+    //    printf("Sorry, not enough processors available.\n");
+    //    return -1;
+    //}
     if(!bsp_begin(bsp_nprocs())) {
         fprintf(stderr, "[BSPBENCH] bsp_begin() failed\n");
     }
     printf("Using %i processors!\n", bsp_nprocs()); fflush(stdout);
     ebsp_spmd();
+    printf("ebsp_spmd finished.\n");
 
     //Get p, r, g and l
     int p;
@@ -41,7 +42,7 @@ int main(int argc, char **argv){
 
     int i;
     int j; 
-    for(j=0; j<=256; j++){
+    for(j=0; j<=64; j++){
         float tmp;
         co_read(0, (off_t)(0x4000+j*sizeof(float)), &tmp, sizeof(float));
         printf("h[%d]=%E\n",j,tmp);

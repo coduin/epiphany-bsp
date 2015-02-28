@@ -26,17 +26,19 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include "common.h"
 
 #include <stdio.h>
-#include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
-#include <time.h>
 #include <stddef.h>
+//We need to do this in order to use the timers that give wall time
+#define __USE_POSIX199309
+#include <time.h>
 
 // Global state
 bsp_state_t state;
 int bsp_initialized = 0;;
 
 void _host_sync();
+void _microsleep(int microseconds); //1000 gives 1 millisecond
 void _get_p_coords(int pid, int* row, int* col);
 bsp_state_t* _get_state();
 
@@ -219,11 +221,11 @@ int ebsp_spmd()
         return 0;
     }
 
-    int i, j;
+    int i;
     int cores_initialized;
     while (1)
     {
-        usleep(1000); //0.01 seconds
+        _microsleep(1000); //1 millisecond
 
         // Read the full communication buffer
         if (e_read(&state.emem, 0, 0, 0, &state.comm_buf,
@@ -245,20 +247,25 @@ int ebsp_spmd()
     printf("(BSP) DEBUG: All epiphany cores are ready for initialization.\n");
 #endif
 
-    //All cores are waiting.
-    //We can now send data and 'start' them
-    clock_t start = clock(); 
-    clock_t end = clock(); 
-    float arm_timer;
-    arm_timer = (float)(end-start) / ARM_CLOCKSPEED;
+    // Time strorage
+    struct timespec ts_start, ts_end;
+    float time_elapsed;
+
+    // Starting time
+    clock_gettime(CLOCK_MONOTONIC, &ts_start);
+    // Current time. Repeat these two lines every iteration
+    clock_gettime(CLOCK_MONOTONIC, &ts_end);
+    time_elapsed = (ts_end.tv_sec - ts_start.tv_sec + (ts_end.tv_nsec - ts_start.tv_nsec) * 1.0e-9);
+
+    // All cores are waiting.
+    // We can now send data and 'start' them
+    _write_extmem(&time_elapsed,
+            offsetof(ebsp_comm_buf, remotetimer),
+            sizeof(float));
     for (i = 0; i < state.nprocs; ++i)
     {
         //Core i has written its coredata address
         //Now we can initialize it
-        _write_coredata(i,
-                &arm_timer,
-                offsetof(ebsp_core_data, remotetimer),
-                sizeof(int));
         _write_coredata(i,
                 &state.nprocs,
                 offsetof(ebsp_core_data, nprocs),
@@ -273,6 +280,7 @@ int ebsp_spmd()
     }
 
     int total_syncs = 0;
+    int extmem_corrupted = 0;
     int run_counter;
     int sync_counter;
     int finish_counter;
@@ -284,14 +292,14 @@ int ebsp_spmd()
 #endif
 
     while (finish_counter != state.nprocs) {
-        //Write timer
-        end=clock(); 
-        arm_timer = (float)(end-start)/ARM_CLOCKSPEED;
-        for(i = 0; i < state.nprocs; i++)
-            _write_coredata(i,
-                    &arm_timer,
-                    offsetof(ebsp_core_data, remotetimer),
-                    sizeof(int));
+        // Update timer
+        clock_gettime(CLOCK_MONOTONIC, &ts_end);
+        time_elapsed = (ts_end.tv_sec - ts_start.tv_sec + (ts_end.tv_nsec - ts_start.tv_nsec) * 1.0e-9);
+        _write_extmem(&time_elapsed,
+                offsetof(ebsp_comm_buf, remotetimer),
+                sizeof(float));
+
+        _microsleep(100); //1000 is 1 millisecond
 
         // Read the full communication buffer
         // Including pushreg states and so on
@@ -313,8 +321,10 @@ int ebsp_spmd()
                 case STATE_SYNC:     sync_counter++; break;
                 case STATE_FINISH:   finish_counter++; break;
                 case STATE_CONTINUE: continue_counter++; break;
-                default: fprintf(stderr, "ERROR: syncstate[%d] = %d.\n",
-                                 i, state.comm_buf.syncstate[i]);
+                default: extmem_corrupted++;
+                         if( extmem_corrupted <= 32) //to avoid output overflow
+                             fprintf(stderr, "ERROR: External memory corrupted. syncstate[%d] = %d.\n",
+                                     i, state.comm_buf.syncstate[i]);
                          break;
             }
             if (state.comm_buf.msgflag[i])
@@ -368,12 +378,11 @@ int ebsp_spmd()
                 _write_coredata(i, &state.comm_buf.syncstate[i],
                         offsetof(ebsp_core_data, syncstate), sizeof(int));
         }
-
-        usleep(1000);
     }
     printf("(BSP) INFO: Program finished\n");
 
-    state.end_callback();
+    if (state.end_callback)
+        state.end_callback();
 
     return 1;
 }
@@ -414,11 +423,11 @@ int bsp_nprocs()
 // Memory
 void _host_sync() {
     // TODO: Right now bsp_pop_reg is ignored
-    int i, j;
 
     // Check if core 0 did a push_reg
     if (state.comm_buf.pushregloc[0] != NULL)
     {
+        int i;
 #ifdef DEBUG
         printf("(BSP) DEBUG: bsp_push_reg occurred. core 0 addr = %p\n",
                 state.comm_buf.pushregloc[0]);
@@ -456,6 +465,16 @@ void _host_sync() {
                 offsetof(ebsp_comm_buf, pushregloc),
                 _NPROCS * sizeof(void*));
     }
+}
+
+void _microsleep(int microseconds)
+{
+    // This function itself is about 300 microseconds overhead
+    struct timespec request, remain;
+    request.tv_sec = (int)(microseconds / 1000000);
+    request.tv_nsec = (microseconds - 1000000 * request.tv_sec) * 1000;
+    if (clock_nanosleep(CLOCK_MONOTONIC, 0, &request, &remain) != 0)
+        fprintf(stderr, "ERROR: clock_nanosleep was interrupted.");
 }
 
 void _get_p_coords(int pid, int* row, int* col)

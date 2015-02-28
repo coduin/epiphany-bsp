@@ -43,10 +43,10 @@ see the files COPYING and COPYING.LESSER. If not, see
 typedef struct {
     int                     pid;
     int                     nprocs;
-    volatile int            syncstate; //ARM core will set this, epiphany will poll this
+    volatile int            syncstate; // ARM core will set this, epiphany will poll this
     volatile int            msgflag;
-    float                   remotetimer;
-    unsigned int            initial_time;
+    unsigned int            last_timer_value;
+    float                   time_passed; // not walltime but epiphany clock time
     void*                   registermap[MAX_N_REGISTER*_NPROCS];
 } ebsp_core_data;
 
@@ -81,6 +81,7 @@ typedef struct {
     int                 msgflag[_NPROCS];
     ebsp_message_buf    message[_NPROCS];
     ebsp_core_data*     coredata[_NPROCS];
+    float               remotetimer;
 } ebsp_comm_buf;
 
 // ARM will e_alloc COMMBUF_OFFSET
@@ -100,5 +101,6 @@ typedef struct {
 #define MAX_NCORES 64
 
 // Clockspeed of Epiphany in cycles/second
-#define CLOCKSPEED 800000000.
-#define ARM_CLOCKSPEED 20000.
+// This was 'measured' by comparing with
+// ARM wall-time measurements
+#define CLOCKSPEED 600000000.
