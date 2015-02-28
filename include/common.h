@@ -34,9 +34,8 @@ see the files COPYING and COPYING.LESSER. If not, see
 // gives 16 addresses (the locations on the different cores).
 // An address takes 4 bytes, and MAX_N_REGISTER is the maximum
 // amount of variables that can be registered so in total we need
-// NCORES * MAX_N_REGISTER * 4 bytes
-// to save all this data
-#define MAX_N_REGISTER          40
+// NCORES * MAX_N_REGISTER * 4 bytes to save all this data
+#define MAX_N_REGISTER 40
 
 // ebsp_core_data holds local bsp variables for the epiphany cores
 // Every core has a copy in its local space
@@ -84,10 +83,41 @@ typedef struct {
     float               remotetimer;
 } ebsp_comm_buf;
 
-// ARM will e_alloc COMMBUF_OFFSET
-// This same block will appear at COMMBUF_EADDR on epiphany
-#define COMMBUF_OFFSET 0x01000000
-#define COMMBUF_EADDR  0x8f000000
+// The following info can be found in the linker scripts.
+//
+// The shared memory (as seen from the epiphany) is located at
+// [0x8e000000, 0x90000000[ = [0x8e000000, 0x8fffffff]
+// Total size 0x02000000 = 32MB
+//
+// If one uses the fast.ldf linker script the shared memory is split as:
+// [0x00000000, 0x01000000[ (16 MB)
+//     - libc code,data,stack
+// [0x01000000, 0x02000000[ (16 MB)
+//     - shared_dram : first 8MB
+//     -   heap_dram : second 8MB, 512K heap per core
+//
+// One can store variables in these parts using
+// int myint SECTION("shared_dram");
+// int myint SECTION("heap_dram");
+// 
+// On the ARM side, we use e_alloc which allows us to access this shared memory
+//
+// Andreas notes that the shared dram is slow compared to internal core memory:
+//     If you are reading (loading) directly out of global DDR,
+//     it takes hundreds of clock cycles to do every read,
+//     so it's going to be very slow. Every read in the program is blocking,
+//     and the read has to first go through
+//     the mesh-->off chip elink-->FPGA logic-->AXI bus on Zynq
+//     -->memory controller-->DRAM (and back).
+// http://forums.parallella.org/viewtopic.php?f=23&t=1660
+//
+// Testing showed that when calling printf variants on the epiphany
+// with %f caused memory in "shared_dram" to be altered
+// Therefore we put our communication buffer in "heap_dram"
+//
+#define SHARED_MEM     0x8e000000
+#define COMMBUF_OFFSET 0x01800000
+#define COMMBUF_EADDR  (SHARED_MEM + COMMBUF_OFFSET)
 
 // Possible values for syncstate
 // They start at 1 so that 0 means that the variable was not initialized
@@ -97,10 +127,7 @@ typedef struct {
 #define STATE_FINISH    4
 #define STATE_INIT      5
 
-#define NCORES (e_group_config.group_rows*e_group_config.group_cols)
-#define MAX_NCORES 64
-
 // Clockspeed of Epiphany in cycles/second
-// This was 'measured' by comparing with
-// ARM wall-time measurements
-#define CLOCKSPEED 600000000.
+// This was 'measured' by comparing with ARM wall-time measurements
+// resulting in roughly 600 Mhz
+#define CLOCKSPEED 600000000.0f
