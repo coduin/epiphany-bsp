@@ -55,11 +55,13 @@ void bsp_begin()
     while (coredata.syncstate != STATE_CONTINUE) {}
     _write_syncstate(STATE_RUN);
 
-    // Now the ARM has entered nprocs and remotetimer
+    // Now the ARM has entered nprocs
 
     // Initialize epiphany timer
+    coredata.time_passed = 0.0f;
+    e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
     e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);
-    coredata.initial_time = e_ctimer_get(E_CTIMER_0);
+    coredata.last_timer_value = e_ctimer_get(E_CTIMER_0);
 }
 
 void bsp_end()
@@ -82,17 +84,22 @@ int bsp_pid()
 
 float bsp_time()
 {
-    unsigned int _current_time = e_ctimer_get(E_CTIMER_0);
+    unsigned int cur_time = e_ctimer_get(E_CTIMER_0);
+    coredata.time_passed += (coredata.last_timer_value - cur_time) / CLOCKSPEED;
+    e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
+    // Tested: between setting E_CTIMER_MAX and 
+    // reading the timer, it decreased by 23 clockcycles
+    coredata.last_timer_value = e_ctimer_get(E_CTIMER_0);
 #ifdef DEBUG
-    if(_current_time == 0)
+    if (cur_time == 0)
         return -1.0;
 #endif
-    return (coredata.initial_time - _current_time) / CLOCKSPEED;
+    return coredata.time_passed;
 }
 
 float bsp_remote_time()
 {
-    return coredata.remotetimer;
+    return comm_buf->remotetimer;
 }
 
 // Sync
