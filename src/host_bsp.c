@@ -135,7 +135,7 @@ int bsp_begin(int nprocs)
     // Then the functions that DID succeed should be undone again
     // So at e_load_group failure it cleanup the e_open result
 
-    if (nprocs < 1 || nprocs > 99 || nprocs > MAX_NCORES) {
+    if (nprocs < 1 || nprocs > _NPROCS) {
         fprintf(stderr, "ERROR: nprocs = %d.\n", nprocs);
         return 0;
     }

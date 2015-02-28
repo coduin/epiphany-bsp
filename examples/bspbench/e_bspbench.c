@@ -24,7 +24,7 @@
 #define FALSE (0)
 #define MAX(a,b) ((a)>(b) ? (a) : (b))
 #define MIN(a,b) ((a)<(b) ? (a) : (b))
-#define fabs(a) ((a)>0 ? (a) : -1.0*(a))
+#define fabs(a) ((a)>0 ? (a) : -1.0f*(a))
 #define SZULL (sizeof( long long))
 #define ulong long long
 
@@ -128,8 +128,8 @@ int main() { /*  bsp_bench */
     r = 0;
     for (n=1; n <= MAXN; n *= 2) {
         /* Initialize scalars and vectors */
-        alpha = 1.0/3.0;
-        beta = 4.0/9.0;
+        alpha = 1.0f/3.0f;
+        beta = 4.0f/9.0f;
         for (i=0; i<n; i++) {
             z[i] = y[i] = x[i] = (float)i;
         }
@@ -153,19 +153,16 @@ int main() { /*  bsp_bench */
                 mintime = MIN(mintime,Time[s1]);
                 maxtime = MAX(maxtime,Time[s1]);
             }
-            if (mintime > 0.0) {
+            if (mintime > 0.0f) {
                 /* Compute r = average computing rate in flop/s */
                 nflops = 4*NITERS*n;
-                r = 0.0;
+                r = 0.0f;
                 for(s1=0; s1<p; s1++)
                     r += nflops/Time[s1];
                 r /= (float) p; 
 
-                ebsp_message("n = %5d min = %d max = %d av = %d Kflop/s",
-                       n, (int)(nflops/(maxtime*KILO)), (int)(nflops/(mintime*KILO)), (int)(r/KILO));
-
-                //ebsp_message("n = %5d min = %7.3lf max = %7.3lf av = %7.3lf Mflop/s",
-                //       n, nflops/(maxtime*MEGA),nflops/(mintime*MEGA), r/MEGA);
+                ebsp_message("n = %5d min = %7.3lf max = %7.3lf av = %7.3lf Mflop/s",
+                       n, nflops/(maxtime*MEGA),nflops/(mintime*MEGA), r/MEGA);
             } else {
                 ebsp_message("n = %5d unable to compute. at least one core took 0 time.", n);
             }
@@ -202,21 +199,17 @@ int main() { /*  bsp_bench */
         /* Compute time of one h-relation */
         if (s == 0) {
             t[h] = (time*r)/(float)NITERS;
-            ebsp_message("Time of %5d-relation = %4d microsec = %d flops (total time %6d msec)",
-                   h, (int)(1.0e6f*time/NITERS), (int)t[h], (int)(1000.0f * time1));
-            //ebsp_message("Time of %5d-relation = %lf sec = %8.0lf flops\n",
-            //       h, time/NITERS, t[h]);
+            ebsp_message("Time of %5d-relation = %lf sec = %8.0lf flops",
+                   h, time/NITERS, t[h]);
         }
     }
 
     if (s == 0) {
-        ebsp_message("size of float = %d bytes\n",(int)SZDBL);
+        ebsp_message("size of float = %d bytes",(int)SZDBL);
         leastsquares(0, p, t, &g0, &l0); 
-        ebsp_message("Range h=0 to p   : g = %d, l = %d\n",(int)g0,(int)l0);
-        //ebsp_message("Range h=0 to p   : g = %.1lf, l = %.1lf\n",g0,l0);
+        ebsp_message("Range h=0 to p   : g = %.1lf, l = %.1lf",g0,l0);
         leastsquares(p, MAXH, t, &g, &l);
-        ebsp_message("Range h=p to HMAX: g = %d, l = %d\n",(int)g,(int)l);
-        //ebsp_message("Range h=p to HMAX: g = %.1lf, l = %.1lf\n",g,l);
+        ebsp_message("Range h=p to HMAX: g = %.1lf, l = %.1lf",g,l);
 
         /* Write essential results! */
         int* pOut = (void*)0x6000;
