@@ -198,12 +198,6 @@ int bsp_begin(int nprocs)
         return 0;
     }
 
-#ifdef DEBUG
-    int zero_buf[1024] = {0};
-    for(int i = 0; i < bsp_nprocs(); ++i)
-        ebsp_write(i, &zero_buf 0x5000, 0x1000);
-#endif
-
     return 1;
 }
 
