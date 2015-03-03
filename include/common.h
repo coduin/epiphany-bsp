@@ -24,7 +24,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #pragma once
 
-//#define DEBUG
+#define DEBUG
 
 #define _NPROCS 16
 
