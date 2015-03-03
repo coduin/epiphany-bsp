@@ -29,9 +29,12 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <string.h>
 #include <stdlib.h>
 #include <stddef.h>
-// We need to do this in order to use the timers that give wall time
-#define __USE_POSIX199309
+
+#define __USE_POSIX199309 1
 #include <time.h>
+extern int clock_nanosleep (clockid_t __clock_id, int __flags,
+			    const struct timespec *__req,
+			    struct timespec *__rem);
 
 // Global state
 bsp_state_t state;
@@ -352,7 +355,7 @@ int ebsp_spmd()
 
 #ifdef DEBUG
         if (iter % 1000 == 0) {
-            printf("Current time: %E seconds\n", arm_timer);
+            printf("Current time: %E seconds\n", time_elapsed);
             printf("run %02d - sync %02d - finish %02d - continue %02d\n",
                     run_counter, sync_counter, finish_counter,
                     continue_counter);
@@ -366,7 +369,7 @@ int ebsp_spmd()
             // This part of the sync (host side)
             // usually does not crash so only one
             // line of debug output is needed here
-            printf("(BSP) DEBUG: Sync %d\n", total_syncs);
+            printf("(BSP) DEBUG: Sync %d after %f seconds\n", total_syncs, time_elapsed);
 #endif
             _host_sync();
             
@@ -476,7 +479,6 @@ void _host_sync() {
 
 void _microsleep(int microseconds)
 {
-    // This function itself is about 300 microseconds overhead
     struct timespec request, remain;
     request.tv_sec = (int)(microseconds / 1000000);
     request.tv_nsec = (microseconds - 1000000 * request.tv_sec) * 1000;
