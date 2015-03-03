@@ -29,7 +29,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <string.h>
 #include <stdlib.h>
 #include <stddef.h>
-//We need to do this in order to use the timers that give wall time
+// We need to do this in order to use the timers that give wall time
 #define __USE_POSIX199309
 #include <time.h>
 
@@ -225,7 +225,7 @@ int ebsp_spmd()
     int cores_initialized;
     while (1)
     {
-        _microsleep(1000); //1 millisecond
+        _microsleep(1000); // 1 millisecond
 
         // Read the full communication buffer
         if (e_read(&state.emem, 0, 0, 0, &state.comm_buf,
@@ -247,7 +247,7 @@ int ebsp_spmd()
     printf("(BSP) DEBUG: All epiphany cores are ready for initialization.\n");
 #endif
 
-    // Time strorage
+    // Time storage
     struct timespec ts_start, ts_end;
     float time_elapsed;
 
@@ -264,14 +264,14 @@ int ebsp_spmd()
             sizeof(float));
     for (i = 0; i < state.nprocs; ++i)
     {
-        //Core i has written its coredata address
-        //Now we can initialize it
+        // Core i has written its coredata address
+        // Now we can initialize it
         _write_coredata(i,
                 &state.nprocs,
                 offsetof(ebsp_core_data, nprocs),
                 sizeof(int));
 
-        //All data is initialized. Send start signal
+        // All data is initialized. Send start signal
         int flag = STATE_CONTINUE;
         _write_coredata(i,
                 &flag,
@@ -310,7 +310,7 @@ int ebsp_spmd()
             return 0;
         }
 
-        //Check sync states
+        // Check sync states
         run_counter      = 0;
         sync_counter     = 0;
         finish_counter   = 0;
@@ -330,14 +330,14 @@ int ebsp_spmd()
             if (state.comm_buf.msgflag[i])
             {
                 printf("$%02d: %s\n", i, state.comm_buf.message[i].msg);
-                //Reset flag so we do not read it again
+                // Reset flag so we do not read it again
                 state.comm_buf.msgflag[i] = 0;
-                //Write the int to the external comm_buf
+                // Write the int to the external comm_buf
                 _write_extmem(&state.comm_buf.msgflag[i],
                         offsetof(ebsp_comm_buf, msgflag[i]),
                         sizeof(int));
-                //Signal epiphany core that message was read
-                //so that it can (possibly) output the next message
+                // Signal epiphany core that message was read
+                // so that it can (possibly) output the next message
                 _write_coredata(i, &state.comm_buf.msgflag[i],
                         offsetof(ebsp_core_data, msgflag), sizeof(int));
             }
@@ -356,9 +356,9 @@ int ebsp_spmd()
         if (sync_counter == state.nprocs) {
             ++total_syncs;
 #ifdef DEBUG
-            //This part of the sync (host side)
-            //usually does not crash so only one
-            //line of debug output is needed here
+            // This part of the sync (host side)
+            // usually does not crash so only one
+            // line of debug output is needed here
             printf("(BSP) DEBUG: Sync %d\n", total_syncs);
 #endif
             _host_sync();
@@ -367,13 +367,13 @@ int ebsp_spmd()
             if (state.sync_callback)
                 state.sync_callback();
 
-            //First reset the comm_buf
+            // First reset the comm_buf
             for (i = 0; i < state.nprocs; i++)
                 state.comm_buf.syncstate[i] = STATE_CONTINUE;
             _write_extmem(&state.comm_buf.syncstate,
                     offsetof(ebsp_comm_buf, syncstate),
                     _NPROCS * sizeof(int));
-            //Now write it to all cores to continue their execution
+            // Now write it to all cores to continue their execution
             for (i = 0; i < state.nprocs; i++)
                 _write_coredata(i, &state.comm_buf.syncstate[i],
                         offsetof(ebsp_core_data, syncstate), sizeof(int));
