@@ -9,10 +9,11 @@
 */
 
 /* This program needs order 6*MAXH+3*MAXN memory */
-#define NITERS 100    /* number of iterations. Default: 100 */
-#define MAXN 128      /* maximum length of DAXPY computation. Default: 1024 */
-#define MAXH 256      /* maximum h in h-relation. Default: 256 */
+#define NITERS 10000   /* number of iterations. Default: 100 */
+#define MAXN 128       /* maximum length of DAXPY computation. Default: 1024 */
+#define MAXH 256       /* maximum h in h-relation. Default: 256 */
 #define MEGA 1000000.0
+#define KILO    1000.0
 
 
 /* A subset of bspedupack starts here */
@@ -23,7 +24,7 @@
 #define FALSE (0)
 #define MAX(a,b) ((a)>(b) ? (a) : (b))
 #define MIN(a,b) ((a)<(b) ? (a) : (b))
-#define fabs(a) ((a)>0 ? (a) : -1.0*(a))
+#define fabs(a) ((a)>0 ? (a) : -1.0f*(a))
 #define SZULL (sizeof( long long))
 #define ulong long long
 
@@ -42,7 +43,8 @@ float *vecallocd(int n) {
             return NULL; /* OUT OF MEMORY (in 0x4000 - 0x6000) */
     } 
 
-    ebsp_message("vecallocd(%d) -> %p. Alloc used [0x4000, %p[ Stack used [%p, 0x8000[", n, pd, address, &pd);
+    if (bsp_pid() == 0)
+        ebsp_message("vecallocd(%4d) -> %p. Alloc used [0x4000, %p[ Stack used [%p, 0x8000[", n, pd, address, &pd);
     
     return pd; 
 } /* end vecallocd */ 
@@ -126,8 +128,8 @@ int main() { /*  bsp_bench */
     r = 0;
     for (n=1; n <= MAXN; n *= 2) {
         /* Initialize scalars and vectors */
-        alpha = 1.0/3.0;
-        beta = 4.0/9.0;
+        alpha = 1.0f/3.0f;
+        beta = 4.0f/9.0f;
         for (i=0; i<n; i++) {
             z[i] = y[i] = x[i] = (float)i;
         }
@@ -151,18 +153,19 @@ int main() { /*  bsp_bench */
                 mintime = MIN(mintime,Time[s1]);
                 maxtime = MAX(maxtime,Time[s1]);
             }
-            if (mintime > 0.0) {
+            if (mintime > 0.0f) {
                 /* Compute r = average computing rate in flop/s */
                 nflops = 4*NITERS*n;
-                r = 0.0;
+                r = 0.0f;
                 for(s1=0; s1<p; s1++)
                     r += nflops/Time[s1];
                 r /= (float) p; 
-                ebsp_message("n = %5d min = %d max = %d av = %d Mflop/s",
+
+                ebsp_message("n = %5d min = %7.3lf max = %7.3lf av = %7.3lf Mflop/s",
                        n, nflops/(maxtime*MEGA),nflops/(mintime*MEGA), r/MEGA);
-                //ebsp_message("n = %5d min = %7.3lf max = %7.3lf av = %7.3lf Mflop/s",
-                //       n, nflops/(maxtime*MEGA),nflops/(mintime*MEGA), r/MEGA);
-            } 
+            } else {
+                ebsp_message("n = %5d unable to compute. at least one core took 0 time.", n);
+            }
         }
     }
 
@@ -196,19 +199,17 @@ int main() { /*  bsp_bench */
         /* Compute time of one h-relation */
         if (s == 0) {
             t[h] = (time*r)/(float)NITERS;
-            ebsp_message("Time of %d-relation = %d sec = %d flops\n",
+            ebsp_message("Time of %5d-relation = %lf sec = %8.0lf flops",
                    h, time/NITERS, t[h]);
-            //ebsp_message("Time of %5d-relation = %lf sec = %8.0lf flops\n",
-            //       h, time/NITERS, t[h]);
         }
     }
 
     if (s == 0) {
-        ebsp_message("size of float = %d bytes\n",(int)SZDBL);
+        ebsp_message("size of float = %d bytes",(int)SZDBL);
         leastsquares(0, p, t, &g0, &l0); 
-        //ebsp_message("Range h=0 to p   : g = %.1lf, l = %.1lf\n",g0,l0);
+        ebsp_message("Range h=0 to p   : g = %.1lf, l = %.1lf",g0,l0);
         leastsquares(p, MAXH, t, &g, &l);
-        //ebsp_message("Range h=p to HMAX: g = %.1lf, l = %.1lf\n",g,l);
+        ebsp_message("Range h=p to HMAX: g = %.1lf, l = %.1lf",g,l);
 
         /* Write essential results! */
         int* pOut = (void*)0x6000;
