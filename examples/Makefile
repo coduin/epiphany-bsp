@@ -1,7 +1,7 @@
 ESDK=${EPIPHANY_HOME}
 ELDF=${ESDK}/bsps/current/fast.ldf
 
-CFLAGS=-std=c99
+CFLAGS=-std=c99 -g
 
 INCLUDES = \
 		   -I../include\
@@ -22,7 +22,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: dirs hello e_hello dot_product memtest timetest bspbench lu_decomposition 
+all: dirs hello e_hello dot_product memtest bspbench lu_decomposition 
 
 dirs:
 	mkdir -p bin

@@ -33,13 +33,13 @@ see the files COPYING and COPYING.LESSER. If not, see
 #define DEBUG
 
 // information on matrix and procs
-char N = -1;
-char M = -1;
+int N = -1;
+int M = -1;
 
 // always choose multiple of 4 such that we dont have to worry
 // about heterogeneous distributions too much,
 // which makes a lot of things much easier
-char dim = 20;
+int dim = 20;
 
 // "local to global" index
 int ltg(int* i, int* j, int l, int s, int t)
@@ -104,9 +104,9 @@ int main(int argc, char **argv)
     // Write M, N and dim to every processor such that they can figure out 
     // the (s,t) pair, and gtl / ltg functions
     for(i = 0; i < bsp_nprocs(); ++i) {
-        co_write(i, &M, (off_t)LOC_M, sizeof(char));
-        co_write(i, &N, (off_t)LOC_N, sizeof(char));
-        co_write(i, &dim, (off_t)LOC_DIM, sizeof(char));
+        ebsp_write(i, &M, (off_t)LOC_M, sizeof(int));
+        ebsp_write(i, &N, (off_t)LOC_N, sizeof(int));
+        ebsp_write(i, &dim, (off_t)LOC_DIM, sizeof(int));
     }
 
     int s = 0;
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
     for (i = 0; i < dim; ++i) {
         for (j = 0; j < dim; ++j) {
             gtl(i, j, &l, &s, &t);
-            co_write(proc_id(s, t),
+            ebsp_write(proc_id(s, t),
                     &mat[dim*i + j],
                     LOC_MATRIX + sizeof(float) * l,
                     sizeof(float));
@@ -124,13 +124,21 @@ int main(int argc, char **argv)
 
     // test global to local and local to global function for random processor
 #ifdef DEBUG
-    s = 2;
-    t = 3;
-    printf("i.e. (s,t) = (2,3): \n");
+    s = 0;
+    t = 0;
+    printf("e.g. (s,t) = (0,0): \n");
+
+    int _M, _N, _dim;
+    ebsp_read(proc_id(s, t), (off_t)LOC_M, &_M, sizeof(int));
+    ebsp_read(proc_id(s, t), (off_t)LOC_N, &_N, sizeof(int));
+    ebsp_read(proc_id(s, t), (off_t)LOC_DIM, &_dim, sizeof(int));
+
+    printf("M, N, dim: %i, %i, %i\n", _M, _N, _dim);
+
     for (l = 0; l < (dim * dim) / bsp_nprocs(); ++l) {
             ltg(&i, &j, l, s, t);
             float val;
-            co_read(proc_id(s, t),
+            ebsp_read(proc_id(s, t),
                     LOC_MATRIX + sizeof(float) * l,
                     &val,
                     sizeof(float));

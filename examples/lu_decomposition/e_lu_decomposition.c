@@ -30,9 +30,9 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 int M = 0;
 int N = 0;
+int dim = 0;
 int s = 0;
 int t = 0;
-int dim = 0;
 int entries_per_col = 0;
 
 int proc_id(int s, int t)
@@ -62,13 +62,26 @@ int main()
 {
     bsp_begin();
 
+    ebsp_message("(-5)");
+
     int n = bsp_nprocs(); 
     int p = bsp_pid();
 
-    M = (*(char*)LOC_M);
-    N = (*(char*)LOC_N);
-    dim = (*(char*)LOC_DIM);
+    ebsp_message("(-5a)");
+
+    ebsp_message("test");
+
+    M = (*(int*)LOC_M);
+    N = (*(int*)LOC_N);
+    dim = (*(int*)LOC_DIM);
+
+    bsp_sync();
+
+    ebsp_message("M, N, dim: %i, %i, %i", M, N, dim);
+
     entries_per_col = dim / M;
+
+    ebsp_message("test3");
 
     s = p / M;
     t = p % M;
@@ -76,17 +89,22 @@ int main()
     // register variable to store r and a_rk
     // need arrays equal to number of procs in our proc column
     bsp_push_reg((void*)LOC_RS, sizeof(int) * N);
+    ebsp_message("(-5c)");
     bsp_sync();
+    ebsp_message("(-4)");
 
     bsp_push_reg((void*)LOC_ARK, sizeof(float) * N);
     bsp_sync();
+    ebsp_message("(-3)");
 
     bsp_push_reg((void*)LOC_R, sizeof(int));
     bsp_sync();
+    ebsp_message("(-2)");
 
     // FIXME: PI is actually distributed as well.
     bsp_push_reg((void*)LOC_PI_IN, sizeof(int));
     bsp_sync();
+    ebsp_message("(-1)");
 
     // also initialize pi as identity
     if (t == 0)
@@ -102,6 +120,8 @@ int main()
             // COMPUTE PIVOT IN COLUMN K
             int rs = -1;
             float a_rk = -1.0;
+
+            ebsp_message("(0)");
 
             int start_i = (k / N) * N + s;
             if (s % N < k % N)
@@ -128,6 +148,7 @@ int main()
                          s * sizeof(float), sizeof(float));
             }
 
+            ebsp_message("(0) + (1)");
             bsp_sync(); // (0) + (1)
 
             a_rk = -1.0;
@@ -146,10 +167,14 @@ int main()
                         0, sizeof(int));
             }
 
+            ebsp_message("(2) + (3)");
             bsp_sync(); // (2) + (3)
         }
         else {
+            ebsp_message("(!0)");
+            ebsp_message("(0) + (1)");
             bsp_sync(); // (0) + (1)
+            ebsp_message("(2) + (3)");
             bsp_sync(); // (2) + (3)
         }
 
