@@ -469,7 +469,6 @@ void _host_sync() {
 
 void _microsleep(int microseconds)
 {
-    // This function itself is about 300 microseconds overhead
     struct timespec request, remain;
     request.tv_sec = (int)(microseconds / 1000000);
     request.tv_nsec = (microseconds - 1000000 * request.tv_sec) * 1000;
