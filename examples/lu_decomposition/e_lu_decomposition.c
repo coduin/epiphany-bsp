@@ -62,54 +62,46 @@ int main()
 {
     bsp_begin();
 
-    ebsp_message("(-5)");
-
     int n = bsp_nprocs(); 
     int p = bsp_pid();
-
-    ebsp_message("(-5a)");
-
-    ebsp_message("test");
 
     M = (*(int*)LOC_M);
     N = (*(int*)LOC_N);
     dim = (*(int*)LOC_DIM);
 
-    bsp_sync();
-
-    ebsp_message("M, N, dim: %i, %i, %i", M, N, dim);
-
-    entries_per_col = dim / M;
-
-    ebsp_message("test3");
-
     s = p / M;
     t = p % M;
+
+    entries_per_col = dim / N;
 
     // register variable to store r and a_rk
     // need arrays equal to number of procs in our proc column
     bsp_push_reg((void*)LOC_RS, sizeof(int) * N);
-    ebsp_message("(-5c)");
     bsp_sync();
-    ebsp_message("(-4)");
 
     bsp_push_reg((void*)LOC_ARK, sizeof(float) * N);
     bsp_sync();
-    ebsp_message("(-3)");
 
     bsp_push_reg((void*)LOC_R, sizeof(int));
     bsp_sync();
-    ebsp_message("(-2)");
 
-    // FIXME: PI is actually distributed as well.
     bsp_push_reg((void*)LOC_PI_IN, sizeof(int));
     bsp_sync();
-    ebsp_message("(-1)");
+
+    bsp_push_reg((void*)LOC_ROW_IN, sizeof(int));
+    bsp_sync();
+
+    bsp_push_reg((void*)LOC_COL_IN, sizeof(int));
+    bsp_sync();
 
     // also initialize pi as identity
     if (t == 0)
         for (int i = 0; i < entries_per_col; ++i)
-            *((int*)LOC_PI + i) = i;
+            *((int*)LOC_PI + i) = s + i * N;
+
+    // end early
+    //bsp_end();
+    //return 0;
 
     for (int k = 0; k < dim; ++k) {
 
@@ -119,9 +111,7 @@ int main()
         if (k % M == t) {
             // COMPUTE PIVOT IN COLUMN K
             int rs = -1;
-            float a_rk = -1.0;
-
-            ebsp_message("(0)");
+            float a_rk = -1.0f;
 
             int start_i = (k / N) * N + s;
             if (s % N < k % N)
@@ -135,6 +125,8 @@ int main()
                 }
             }
 
+            //ebsp_message("my_pivot: %i, %i", rs, (int)(a_rk * 100));
+
             // HORIZONTAL COMMUNICATION
             for (int j = 0; j < N; ++j) {
                 // put r_s in P(*,t)
@@ -144,16 +136,18 @@ int main()
 
                 // put a_(r_s, k) in P(*,t)
                 bsp_hpput(proc_id(j, t),
-                         &rs, (void*)LOC_ARK,
+                         &a_rk, (void*)LOC_ARK,
                          s * sizeof(float), sizeof(float));
             }
 
-            ebsp_message("(0) + (1)");
-            bsp_sync(); // (0) + (1)
 
-            a_rk = -1.0;
+
+            a_rk = -1.0f;
             for (int j = 0; j < N; ++j) {
+                if (*((int*)LOC_RS + j) < 0)
+                    continue;
                 float val = fabsf(*(((float*)LOC_ARK + j)));
+
                 if (val > a_rk) {
                     a_rk = val;
                     rs = *((int*)LOC_RS + j);
@@ -167,14 +161,10 @@ int main()
                         0, sizeof(int));
             }
 
-            ebsp_message("(2) + (3)");
             bsp_sync(); // (2) + (3)
         }
         else {
-            ebsp_message("(!0)");
-            ebsp_message("(0) + (1)");
             bsp_sync(); // (0) + (1)
-            ebsp_message("(2) + (3)");
             bsp_sync(); // (2) + (3)
         }
 
@@ -198,8 +188,9 @@ int main()
 
         bsp_sync(); // (4)
 
-        if (k % N == s && t == 0)
+        if (k % N == s && t == 0) {
             *((int*)LOC_PI + (k / N)) = *((int*)LOC_PI_IN + 1);
+        }
 
         if (r % N == s && t == 0)
             *((int*)LOC_PI + (r / N)) = *((int*)LOC_PI_IN);
@@ -240,7 +231,7 @@ int main()
         // ----------------------
         if (k % N == s && k % M == t) {
             // put a_kk in P(*, t)
-            for (int j = 0; j < N; j += M) {
+            for (int j = 0; j < N; ++j) {
                  bsp_hpput(proc_id(j, t),
                         a(k, k), (void*)LOC_ROW_IN,
                         0, sizeof(float));
@@ -255,7 +246,7 @@ int main()
 
         if (k % M == t) {
             for (int i = start_idx; i < dim; i += N) {
-                *a(i, k) = *a(i, k) / (*((int*)LOC_ROW_IN));
+                *a(i, k) = *a(i, k) / (*((float*)LOC_ROW_IN));
             }
         }
 

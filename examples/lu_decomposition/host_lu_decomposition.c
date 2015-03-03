@@ -72,9 +72,13 @@ int main(int argc, char **argv)
     for(i = 0; i < dim; ++i) {
         for(j = 0; j < dim; ++j) {
             if(i > j) 
-                mat[dim*i + j] = (float)i / (j+1);
+                mat[dim*i + j] = (float)(i + 1) / (j+1);
             else 
-                mat[dim*i + j] = (float)j / (i+1);
+                mat[dim*i + j] = (float)(j + 1) / (i+1);
+//            if(i == j)
+//                mat[dim * i + j] = 1.0f;
+//            else
+//                mat[dim * i + j] = 0.0f;
         }
     }
 
@@ -124,9 +128,9 @@ int main(int argc, char **argv)
 
     // test global to local and local to global function for random processor
 #ifdef DEBUG
-    s = 0;
-    t = 0;
-    printf("e.g. (s,t) = (0,0): \n");
+    s = 3;
+    t = 3;
+    printf("e.g. (s,t) = (3,3): \n");
 
     int _M, _N, _dim;
     ebsp_read(proc_id(s, t), (off_t)LOC_M, &_M, sizeof(int));
@@ -158,7 +162,7 @@ int main(int argc, char **argv)
     printf("Matrix: \n");
     for (i = 0; i < dim; ++i) {
         for (j = 0; j < dim; ++j) {
-            printf("%.2f ", mat[dim * i + j]);
+            printf("%.2f\t", mat[dim * i + j]);
         }
         printf("\n");
     }
@@ -170,7 +174,7 @@ int main(int argc, char **argv)
         for (t = 0; t < M; ++t) {
             for (l = 0; l < (dim * dim) / bsp_nprocs(); ++l) {
                     ltg(&i, &j, l, s, t);
-                    co_read(proc_id(s, t),
+                    ebsp_read(proc_id(s, t),
                             LOC_MATRIX + sizeof(float) * l,
                             &mat[dim*i + j], sizeof(float));
             }
@@ -179,12 +183,24 @@ int main(int argc, char **argv)
 
     for (i = 0; i < dim; ++i) {
         for (j = 0; j < dim; ++j) {
-            printf("%.2f ", mat[dim * i + j]);
+            printf("%.2f\t", mat[dim * i + j]);
         }
         printf("\n");
     }
 
+
+    printf("PI: \n");
+    for(int i = 0; i < dim; ++i) {
+        int val = 0;
+        ebsp_read(proc_id(i % N, 0),
+                LOC_PI + sizeof(int) * (i / N),
+                &val, sizeof(int));
+        printf("%i\n", val);
+    }
+
     printf("----------------------------: \n");
+
+    // want to test here
 
     // finalize
     bsp_end();
