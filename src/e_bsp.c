@@ -46,6 +46,7 @@ void bsp_begin()
     coredata.msgflag = 0;
     for(i = 0; i < MAX_N_REGISTER * coredata.nprocs; i++)
         coredata.registermap[i] = 0;
+    coredata.get_counter = 0;
 
     // Send &coredata to ARM so that ARM can fill it with values
     comm_buf->coredata[coredata.pid] = &coredata;
@@ -106,6 +107,11 @@ float bsp_remote_time()
 void bsp_sync()
 {
     _write_syncstate(STATE_SYNC);
+    // step 1 - all bsp_gets
+    //
+    // step 2 - all bsp_puts
+    //
+    // step 3 - host sync
     while (coredata.syncstate != STATE_CONTINUE) {}
 	_write_syncstate(STATE_RUN);
 }
@@ -132,31 +138,51 @@ int col_from_pid(int pid)
     return pid % e_group_config.group_cols;
 }
 
+void* _get_remote_addr(int pid, const void *addr)
+{
+    // Find the slot for our local pid
+    // And return the entry for the remote pid
+    int slot;
+    for(slot = 0; slot < MAX_N_REGISTER; ++slot)
+        if (coredata.registermap[coredata.nprocs * slot + coredata.pid] == addr)
+            return coredata.registermap[coredata.nprocs * slot + pid];
+#ifdef DEBUG
+    ebsp_message("BSP ERROR: could not find register. targetpid %d, addr = %p", pid, addr);
+#endif
+    return 0;
+}
+
 void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
 {
-    int slotID;
-    void* adj_dst;
-    for (slotID=0; ; slotID++) {
-#ifdef DEBUG
-        if (slotID >= MAX_N_REGISTER)
-        {
-            ebsp_message("ERROR: bsp_hpput(%d, %p, %p, %d, %d) could not find dst", pid, src, dst, offset, nbytes);
-            return;
-        }
-#endif
-        // Find the slot for our local _pid
-        if (coredata.registermap[coredata.nprocs * slotID + coredata.pid] == dst)
-        {
-            // Then get the entry of remote pid
-            adj_dst = coredata.registermap[coredata.nprocs * slotID + pid];
-            break;
-        }
-    }
+    void* adj_dst = _get_remote_addr(pid, dst);
+    if (!adj_dst) return;
+
     adj_dst = (void*)((int)adj_dst + offset);
     e_write(&e_group_config, src,
             row_from_pid(pid),
             col_from_pid(pid),
             adj_dst, nbytes);
+}
+
+void bsp_get(int pid, const void *src, int offset, void *dst, int nbytes)
+{
+    coredata.get_requests[coredata.get_counter].pid = pid;
+    coredata.get_requests[coredata.get_counter].src = (void*)((int)src + offset);
+    coredata.get_requests[coredata.get_counter].dst = dst;
+    coredata.get_requests[coredata.get_counter].nbytes = nbytes;
+    ++coredata.get_counter;
+}
+
+void bsp_hpget(int pid, const void *src, int offset, void *dst, int nbytes)
+{
+    const void* adj_src = _get_remote_addr(pid, src);
+    if (!adj_src) return;
+
+    adj_src = (const void*)((int)adj_src + offset);
+    e_read(&e_group_config, dst,
+            row_from_pid(pid),
+            col_from_pid(pid),
+            adj_src, nbytes);
 }
 
 void ebsp_message(const char* format, ... )

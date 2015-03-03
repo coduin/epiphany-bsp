@@ -56,23 +56,32 @@ int bsp_pid();
 float bsp_time();
 
 float bsp_remote_time();
+
 /** Terminates a superstep, and starts all communication. The computation is 
  *  halted until all communication has been performed.
- *  Somehow host_sync() is called before all processes continue.
  */
 void bsp_sync();
 
-/** Registers a variable by putting to static memory location in host memory
- *  Registration maps are updated at next sync.
+/** Registers a variable. Takes effect at the next sync.
  */
 void bsp_push_reg(const void* variable, const int nbytes);
 
-/** Puts a variable to some processor.
- *  Internal workings:
- *  Loop over void*[nRegisteredVariables][sourcePid] to find variable
- *  Then use epiphany put to void*[index][targetPid]
+/** Unbuffered version of bsp_put. The data is transferred immediately.
  */
 void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes);
+
+/** Gets a variable from a processor.
+ * Buffered version: the communication occurs during the next sync
+ * So after calling bsp_get the caller does not get the data untill
+ * the next bsp_sync has finished.
+ */
+void bsp_get(int pid, const void *src, int offset, void *dst, int nbytes);
+
+/** Unbuffered version of bsp_get
+ * The data is tranferred immediately and there is no guarantee
+ * about the state of the other processor at that moment.
+ */
+void bsp_hpget(int pid, const void *src, int offset, void *dst, int nbytes);
 
 /** ebsp_message outputs a debug message by sending it to shared memory
  * So that the host processor can output it to the terminal

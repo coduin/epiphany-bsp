@@ -37,16 +37,34 @@ see the files COPYING and COPYING.LESSER. If not, see
 // NCORES * MAX_N_REGISTER * 4 bytes to save all this data
 #define MAX_N_REGISTER 40
 
+// Maximum amount of bsp_get calls that are possible per sync
+#define MAX_GET_REQUESTS 20
+
+typedef struct {
+    int         pid;
+    const void* src; //offset included
+    void*       dst;
+    int         nbytes;
+} ebsp_get_request;
+
 // ebsp_core_data holds local bsp variables for the epiphany cores
 // Every core has a copy in its local space
 typedef struct {
-    int                     pid;
-    int                     nprocs;
-    volatile int            syncstate; // ARM core will set this, epiphany will poll this
-    volatile int            msgflag;
-    unsigned int            last_timer_value;
-    float                   time_passed; // not walltime but epiphany clock time
-    void*                   registermap[MAX_N_REGISTER*_NPROCS];
+    int                 pid;
+    int                 nprocs;
+
+    // ARM core will set this, epiphany will poll this
+    volatile int        syncstate;
+    volatile int        msgflag;
+
+    // time_passed is epiphany cpu time (so not walltime) in seconds
+    float               time_passed;
+    unsigned int        last_timer_value;
+
+    void*               registermap[MAX_N_REGISTER * _NPROCS];
+
+    ebsp_get_request    get_requests[MAX_GET_REQUESTS];
+    int                 get_counter;
 } ebsp_core_data;
 
 typedef struct {
