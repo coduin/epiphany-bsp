@@ -107,7 +107,7 @@ void bsp_sync()
 {
     _write_syncstate(STATE_SYNC);
     while (coredata.syncstate != STATE_CONTINUE) {}
-	_write_syncstate(STATE_RUN);
+    _write_syncstate(STATE_RUN);
 }
 
 void _write_syncstate(int state)

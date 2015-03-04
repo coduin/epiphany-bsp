@@ -98,7 +98,7 @@ bin/host_bspbench: bspbench/host_bspbench.c
 	gcc $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
 	
 bin/e_bspbench.elf: bspbench/e_bspbench.c
-	e-gcc -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
+	e-gcc -O3 -ffast-math -funroll-loops -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
 
 bin/e_bspbench.srec: bin/e_bspbench.elf
 	e-objcopy --srec-forceS3 --output-target srec $< $@
