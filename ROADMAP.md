@@ -6,16 +6,16 @@
 * [x] A working example. (dotproduct, hello world)
 
 ## 0.2
-* [ ] Buffered communication
-* [ ] A number of non-trivial examples. (e.g. lu-decomposition)
-* [ ] `malloc`-esque memory management tool.
-* [ ] Stable syncing
-* [ ] Refactor build process 
-* [ ] Some debug tools (inspector, ...)
+* [ ] Buffered communication (`bsp_put, bsp_get`)
+* [x] A non-trivial example. (lu-decomposition)
+* [ ] Simple `malloc`-esque memory management tool.
+* [x] Stable syncing
+* [ ] Refactor build process
+* [ ] Usable debug tools (inspector)
 
 ## 0.3
 * [ ] BSP message passing
-* [ ] Support for NLA types (ebsp_matrix, ebsp_vector, ...)
+* [ ] Support for some NLA types (`ebsp_matrix, ebsp_vector, ...`)
 
 ## 1.0
 * [ ] All BSP primitives implemented
