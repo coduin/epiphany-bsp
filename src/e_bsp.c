@@ -129,10 +129,7 @@ void bsp_sync()
     for (i = 0; i < coredata.get_counter; ++i)
     {
         ebsp_get_request* req = &comm_buf->get_requests[coredata.pid][i];
-        e_read(&e_group_config, req->dst,
-                row_from_pid(req->pid),
-                col_from_pid(req->pid),
-                req->src, req->nbytes);
+        memcpy(req->dst, req->src, req->nbytes);
     }
 
     // Handle all bsp_put requests
@@ -205,10 +202,10 @@ void bsp_get(int pid, const void *src, int offset, void *dst, int nbytes)
 #endif
     const void* adj_src = _get_remote_addr(pid, src);
     if (!adj_src) return;
+    adj_src = (void*)((int)adj_src + offset);
 
     ebsp_get_request* req = &comm_buf->get_requests[coredata.pid][coredata.get_counter];
-    req->pid = pid;
-    req->src = (void*)((int)adj_src + offset);
+    req->src = e_get_global_address(row_from_pid(pid), col_from_pid(pid), adj_src);
     req->dst = dst;
     req->nbytes = nbytes;
     coredata.get_counter++;

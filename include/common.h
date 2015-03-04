@@ -24,7 +24,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #pragma once
 
-#define DEBUG
+//#define DEBUG
 
 #define _NPROCS 16
 
@@ -40,11 +40,8 @@ see the files COPYING and COPYING.LESSER. If not, see
 // Maximum amount of bsp_get calls that are possible per sync per core
 #define MAX_GET_REQUESTS 20
 
-// FIXME: all members of the following struct
-// only take up 2 bytes instead of 4 so size coul be cut in half
 typedef struct {
-    int         pid;
-    const void* src; //offset included
+    const void* src; // remote-alias and offset included
     void*       dst;
     int         nbytes;
 } ebsp_get_request;
