@@ -203,7 +203,7 @@ int main()
         if (r % N == s) { // need to swap rows with row k
             for (int j = t; j < dim; j += M) {
                  bsp_hpput(proc_id(k % N, t),
-                        a(r, j), (void*)LOC_ROW_IN,
+                        a(r, j), (void*)LOC_COL_IN,
                         sizeof(float) * (j - t) / M, sizeof(float));
             }
         }
@@ -212,12 +212,12 @@ int main()
 
         if (k % N == s) {
             for (int j = t; j < dim; j += M) {
-                *a(k, j) = *((float*)LOC_ROW_IN + (j - t)/M);
+                *a(k, j) = *((float*)LOC_COL_IN + (j - t) / M);
             }
         }
         if (r % N == s) {
             for (int j = t; j < dim; j += M) {
-                *a(r, j) = *((float*)LOC_ROW_IN + (j - t)/M);
+                *a(r, j) = *((float*)LOC_ROW_IN + (j - t) / M);
             }
         }
 

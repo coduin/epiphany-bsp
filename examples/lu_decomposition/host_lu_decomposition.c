@@ -39,7 +39,7 @@ int M = -1;
 // always choose multiple of 4 such that we dont have to worry
 // about heterogeneous distributions too much,
 // which makes a lot of things much easier
-int dim = 16;
+int dim = 20;
 
 // "local to global" index
 int ltg(int* i, int* j, int l, int s, int t)
