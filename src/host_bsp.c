@@ -425,17 +425,12 @@ int bsp_nprocs()
 
 // Memory
 void _host_sync() {
+    int i;
     // TODO: Right now bsp_pop_reg is ignored
 
     // Check if core 0 did a push_reg
     if (state.comm_buf.pushregloc[0] != NULL)
     {
-        int i;
-#ifdef DEBUG
-        printf("(BSP) DEBUG: bsp_push_reg occurred. core 0 addr = %p\n",
-                state.comm_buf.pushregloc[0]);
-#endif
-
         if (state.num_vars_registered >= MAX_N_REGISTER)
         {
             fprintf(stderr, "ERROR: Trying to register more than %d variables.\n",
@@ -444,9 +439,8 @@ void _host_sync() {
         else
         {
             // Broadcast to local core data
-            off_t offset = offsetof(ebsp_core_data, registermap) +
-                state.num_vars_registered * sizeof(void*) * state.nprocs;
-
+            off_t offset = offsetof(ebsp_core_data,
+                    registermap[state.num_vars_registered][0]);
             for (i = 0; i < state.nprocs; ++i)
                 _write_coredata(i,
                         state.comm_buf.pushregloc,

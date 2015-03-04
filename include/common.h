@@ -37,9 +37,11 @@ see the files COPYING and COPYING.LESSER. If not, see
 // NCORES * MAX_N_REGISTER * 4 bytes to save all this data
 #define MAX_N_REGISTER 40
 
-// Maximum amount of bsp_get calls that are possible per sync
+// Maximum amount of bsp_get calls that are possible per sync per core
 #define MAX_GET_REQUESTS 20
 
+// FIXME: all members of the following struct
+// only take up 2 bytes instead of 4 so size coul be cut in half
 typedef struct {
     int         pid;
     const void* src; //offset included
@@ -57,14 +59,17 @@ typedef struct {
     volatile int        syncstate;
     volatile int        msgflag;
 
+
     // time_passed is epiphany cpu time (so not walltime) in seconds
     float               time_passed;
     unsigned int        last_timer_value;
 
-    void*               registermap[MAX_N_REGISTER * _NPROCS];
+    // counter for ebsp_comm_buf::get_requests[pid]
+    unsigned int        get_counter;
+    // counter for ebsp_comm_buf::put_requests[pid]
+    unsigned int        put_counter;
 
-    ebsp_get_request    get_requests[MAX_GET_REQUESTS];
-    int                 get_counter;
+    void*               registermap[MAX_N_REGISTER][_NPROCS];
 } ebsp_core_data;
 
 typedef struct {
@@ -98,6 +103,7 @@ typedef struct {
     int                 msgflag[_NPROCS];
     ebsp_message_buf    message[_NPROCS];
     ebsp_core_data*     coredata[_NPROCS];
+    ebsp_get_request    get_requests[_NPROCS][MAX_GET_REQUESTS];
     float               remotetimer;
 } ebsp_comm_buf;
 
