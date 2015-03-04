@@ -29,7 +29,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <string.h>
 #include <stdlib.h>
 #include <stddef.h>
-// We need to do this in order to use the timers that give wall time
+
 #define __USE_POSIX199309 1
 #include <time.h>
 extern int clock_nanosleep (clockid_t __clock_id, int __flags,
@@ -213,6 +213,7 @@ void ebsp_set_end_callback(void (*cb)())
 
 int ebsp_spmd()
 {   
+   
     // Start the program
     // The program will block on bsp_begin
     // in state STATE_INIT
