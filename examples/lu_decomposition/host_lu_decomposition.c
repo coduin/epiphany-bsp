@@ -79,7 +79,6 @@ void mat_mult(float* A, float* B, float* C, int n)
 // B = P^T(pi) A))
 void mat_permute(int* pi, float* A, float* B, int n)
 {
-    float* swap_row = malloc(sizeof(float) * n);
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             B[n * i + j] = A[n * pi[i] + j];
