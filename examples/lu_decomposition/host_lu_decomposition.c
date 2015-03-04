@@ -39,7 +39,7 @@ int M = -1;
 // always choose multiple of 4 such that we dont have to worry
 // about heterogeneous distributions too much,
 // which makes a lot of things much easier
-int dim = 20;
+int dim = 16;
 
 // "local to global" index
 int ltg(int* i, int* j, int l, int s, int t)
@@ -61,24 +61,54 @@ int proc_id(int s, int t)
     return s * M + t;
 }
 
+// multiply AB = C (all n x n)
+// assume matrices are stored column-major
+void mat_mult(float* A, float* B, float* C, int n)
+{
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            C[n * i + j] = 0.0f;
+            for (int k = 0; k < n; ++k) {
+                C[n * i + j] += A[n * i + k] * B[n * k + j];
+            }
+        }
+    }
+}
+
+// permute matrix A (n x n) according to the vector pi (n x 1)
+// B = P^T(pi) A))
+void mat_permute(int* pi, float* A, float* B, int n)
+{
+    float* swap_row = malloc(sizeof(float) * n);
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            B[n * i + j] = A[n * pi[i] + j];
+        }
+    }
+}
+
+// print a matrix to stdout
+void mat_pretty_print(float* A, int n)
+{
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            printf("%.2f\t", A[dim * i + j]);
+        }
+        printf("\n");
+    }
+}
+
 int main(int argc, char **argv)
 {
+    srand(12345);
+
     // allocate and zero-initialize matrix
-    float* mat = malloc(sizeof(float) * dim * dim);
+    float* A = malloc(sizeof(float) * dim * dim);
 
     // construct the matrix
-    int i = 0; 
-    int j = 0;
-    for(i = 0; i < dim; ++i) {
-        for(j = 0; j < dim; ++j) {
-            if(i > j) 
-                mat[dim*i + j] = (float)(i + 1) / (j+1);
-            else 
-                mat[dim*i + j] = (float)(j + 1) / (i+1);
-//            if(i == j)
-//                mat[dim * i + j] = 1.0f;
-//            else
-//                mat[dim * i + j] = 0.0f;
+    for(int i = 0; i < dim; ++i) {
+        for(int j = 0; j < dim; ++j) {
+            A[dim * i + j] = rand() % 5 + 1;
         }
     }
 
@@ -107,29 +137,29 @@ int main(int argc, char **argv)
     printf("LUD: Writing info on procs and matrix \n");
     // Write M, N and dim to every processor such that they can figure out 
     // the (s,t) pair, and gtl / ltg functions
-    for(i = 0; i < bsp_nprocs(); ++i) {
+    for (int i = 0; i < bsp_nprocs(); ++i) {
         ebsp_write(i, &M, (off_t)LOC_M, sizeof(int));
         ebsp_write(i, &N, (off_t)LOC_N, sizeof(int));
         ebsp_write(i, &dim, (off_t)LOC_DIM, sizeof(int));
     }
 
-    int s = 0;
-    int t = 0;
-    int l = 0;
-    for (i = 0; i < dim; ++i) {
-        for (j = 0; j < dim; ++j) {
-            gtl(i, j, &l, &s, &t);
-            ebsp_write(proc_id(s, t),
-                    &mat[dim*i + j],
-                    LOC_MATRIX + sizeof(float) * l,
+    int prow = 0;
+    int pcol = 0;
+    int loc = 0;
+    for (int i = 0; i < dim; ++i) {
+        for (int j = 0; j < dim; ++j) {
+            gtl(i, j, &loc, &prow, &pcol);
+            ebsp_write(proc_id(prow, pcol),
+                    &A[dim*i + j],
+                    LOC_MATRIX + sizeof(float) * loc,
                     sizeof(float));
         }
     }
 
     // test global to local and local to global function for random processor
 #ifdef DEBUG
-    s = 3;
-    t = 3;
+    int s = 3;
+    int t = 3;
     printf("e.g. (s,t) = (3,3): \n");
 
     int _M, _N, _dim;
@@ -139,7 +169,8 @@ int main(int argc, char **argv)
 
     printf("M, N, dim: %i, %i, %i\n", _M, _N, _dim);
 
-    for (l = 0; l < (dim * dim) / bsp_nprocs(); ++l) {
+    for (int l = 0; l < (dim * dim) / bsp_nprocs(); ++l) {
+            int i, j;
             ltg(&i, &j, l, s, t);
             float val;
             ebsp_read(proc_id(s, t),
@@ -160,9 +191,9 @@ int main(int argc, char **argv)
 
     printf("----------------------------: \n");
     printf("Matrix: \n");
-    for (i = 0; i < dim; ++i) {
-        for (j = 0; j < dim; ++j) {
-            printf("%.2f\t", mat[dim * i + j]);
+    for (int i = 0; i < dim; ++i) {
+        for (int j = 0; j < dim; ++j) {
+            printf("%.2f\t", A[dim * i + j]);
         }
         printf("\n");
     }
@@ -170,40 +201,102 @@ int main(int argc, char **argv)
     printf("----------------------------: \n");
     printf("LU decomposition: \n");
 
-    for (s = 0; s < N; ++s) {
-        for (t = 0; t < M; ++t) {
-            for (l = 0; l < (dim * dim) / bsp_nprocs(); ++l) {
-                    ltg(&i, &j, l, s, t);
-                    ebsp_read(proc_id(s, t),
-                            LOC_MATRIX + sizeof(float) * l,
-                            &mat[dim*i + j], sizeof(float));
+    float* Y = malloc(sizeof(float) * dim * dim);
+
+    for (int s = 0; s < N; ++s) {
+        for (int t = 0; t < M; ++t) {
+            for (int l = 0; l < (dim * dim) / bsp_nprocs(); ++l) {
+                int i, j;
+                ltg(&i, &j, l, s, t);
+                ebsp_read(proc_id(s, t),
+                        LOC_MATRIX + sizeof(float) * l,
+                        &Y[dim*i + j], sizeof(float));
             }
         }
     }
 
-    for (i = 0; i < dim; ++i) {
-        for (j = 0; j < dim; ++j) {
-            printf("%.2f\t", mat[dim * i + j]);
+    for (int i = 0; i < dim; ++i) {
+        for (int j = 0; j < dim; ++j) {
+            printf("%.2f\t", Y[dim * i + j]);
         }
         printf("\n");
     }
 
+    int* pi = malloc(sizeof(int) * dim);
 
     printf("PI: \n");
     for(int i = 0; i < dim; ++i) {
-        int val = 0;
         ebsp_read(proc_id(i % N, 0),
                 LOC_PI + sizeof(int) * (i / N),
-                &val, sizeof(int));
-        printf("%i\n", val);
+                &pi[i], sizeof(int));
+        printf("%i\n", pi[i]);
     }
 
     printf("----------------------------: \n");
 
-    // want to test here
+    // we test the results here
+    float* L = malloc(sizeof(float) * dim * dim);
+    float* U = malloc(sizeof(float) * dim * dim);
+    float* B = malloc(sizeof(float) * dim * dim);
+
+    for (int i = 0; i < dim; ++i) {
+        for (int j = 0; j < dim; ++j) { 
+            L[dim * i + j] = 0.0f;
+            U[dim * i + j] = 0.0f;
+            B[dim * i + j] = 0.0f;
+        }
+    }
+
+    // obtain L, U from Y
+    for (int i = 0; i < dim; ++i) {
+        for (int j = 0; j < dim; ++j) {
+            if (i == j) {
+                U[dim * i + j] = Y[dim * i + j];
+                L[dim * i + j] = 1.0f;
+            }
+            else if (j < i) {
+                L[dim * i + j] = Y[dim * i + j];
+            } else {
+                U[dim * i + j] = Y[dim * i + j];
+            }
+        }
+    }
+
+    printf("A ---------------------------- \n");
+    mat_pretty_print(A, dim);
+
+    printf("Y ---------------------------- \n");
+    mat_pretty_print(Y, dim);
+
+    printf("L ---------------------------- \n");
+    mat_pretty_print(L, dim);
+
+    printf("U ---------------------------- \n");
+    mat_pretty_print(U, dim);
+
+    printf("PA ---------------------------- \n");
+
+    // first see what the permuted A looks like
+    mat_permute(pi, A, B, dim);
+    mat_pretty_print(B, dim);
+
+    printf("LU ---------------------------- \n");
+
+    // obtain LU
+    mat_mult(L, U, B, dim);
+    mat_pretty_print(B, dim);
+
+    printf("FINISHED ---------------------- \n");
 
     // finalize
     bsp_end();
+
+    // free matrices and vectors
+    free(A);
+    free(L);
+    free(U);
+    free(B);
+    free(pi);
 
     return 0;
 }

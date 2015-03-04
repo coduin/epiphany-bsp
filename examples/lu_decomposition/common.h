@@ -22,12 +22,10 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
-#define LOC_M 0x5000
-#define LOC_N 0x5004
-#define LOC_DIM 0x5008
-#define LOC_MATRIX 0x500c
-
-#define LOC_RESULT 0x5700
+#define LOC_M 0x4800
+#define LOC_N 0x4804
+#define LOC_DIM 0x4808
+#define LOC_MATRIX 0x480c
 
 #define LOC_RS 0x5800
 #define LOC_ARK (LOC_RS + sizeof(int) * M)
