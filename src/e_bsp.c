@@ -32,11 +32,22 @@ see the files COPYING and COPYING.LESSER. If not, see
 ebsp_core_data coredata;
 ebsp_comm_buf* comm_buf = (ebsp_comm_buf*)COMMBUF_EADDR;
 
+// The following belong in ebsp_core_data but since
+// we do not want to include e-lib.h in common.h (as it is used by host)
+// we place these variables here
+// FIXME: the first of these two, sync_barrier, is assumed
+// to have the exact same address on all cores.
+// Currently this is always the case
+volatile e_barrier_t sync_barrier[_NPROCS];
+e_barrier_t*         sync_barrier_tgt[_NPROCS];
+
 void _write_syncstate(int state);
+int row_from_pid(int pid);
+int col_from_pid(int pid);
 
 void bsp_begin()
 {
-    int i;
+    int i, j;
     int row = e_group_config.core_row;
     int col = e_group_config.core_col;
     int cols = e_group_config.group_cols;
@@ -44,9 +55,11 @@ void bsp_begin()
     // Initialize local data
     coredata.pid = col + cols * row;
     coredata.msgflag = 0;
-    for(i = 0; i < MAX_N_REGISTER * coredata.nprocs; i++)
-        coredata.registermap[i] = 0;
+    for(i = 0; i < MAX_N_REGISTER; ++i)
+        for(j = 0; j < _NPROCS; ++j)
+            coredata.registermap[i][j] = 0;
     coredata.get_counter = 0;
+    coredata.put_counter = 0;
 
     // Send &coredata to ARM so that ARM can fill it with values
     comm_buf->coredata[coredata.pid] = &coredata;
@@ -63,6 +76,9 @@ void bsp_begin()
     e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
     e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);
     coredata.last_timer_value = e_ctimer_get(E_CTIMER_0);
+
+    // Initialize the barrier used during syncs
+    e_barrier_init(sync_barrier, sync_barrier_tgt);
 }
 
 void bsp_end()
@@ -106,12 +122,28 @@ float bsp_remote_time()
 // Sync
 void bsp_sync()
 {
+    int i;
+
+    // Handle all bsp_get requests
+    e_barrier(sync_barrier, sync_barrier_tgt);
+    for (i = 0; i < coredata.get_counter; ++i)
+    {
+        ebsp_get_request* req = &comm_buf->get_requests[coredata.pid][i];
+        e_read(&e_group_config, req->dst,
+                row_from_pid(req->pid),
+                col_from_pid(req->pid),
+                req->src, req->nbytes);
+    }
+
+    // Handle all bsp_put requests
+    e_barrier(sync_barrier, sync_barrier_tgt);
+    for (i = 0; i < coredata.put_counter; ++i)
+    {
+        // TODO
+    }
+
+    // Synchronize with host
     _write_syncstate(STATE_SYNC);
-    // step 1 - all bsp_gets
-    //
-    // step 2 - all bsp_puts
-    //
-    // step 3 - host sync
     while (coredata.syncstate != STATE_CONTINUE) {}
 	_write_syncstate(STATE_RUN);
 }
@@ -144,10 +176,11 @@ void* _get_remote_addr(int pid, const void *addr)
     // And return the entry for the remote pid
     int slot;
     for(slot = 0; slot < MAX_N_REGISTER; ++slot)
-        if (coredata.registermap[coredata.nprocs * slot + coredata.pid] == addr)
-            return coredata.registermap[coredata.nprocs * slot + pid];
+        if (coredata.registermap[slot][coredata.pid] == addr)
+            return coredata.registermap[slot][pid];
 #ifdef DEBUG
-    ebsp_message("BSP ERROR: could not find register. targetpid %d, addr = %p", pid, addr);
+    ebsp_message("BSP ERROR: could not find register. targetpid %d, addr = %p",
+            pid, addr);
 #endif
     return 0;
 }
@@ -166,11 +199,19 @@ void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
 
 void bsp_get(int pid, const void *src, int offset, void *dst, int nbytes)
 {
-    coredata.get_requests[coredata.get_counter].pid = pid;
-    coredata.get_requests[coredata.get_counter].src = (void*)((int)src + offset);
-    coredata.get_requests[coredata.get_counter].dst = dst;
-    coredata.get_requests[coredata.get_counter].nbytes = nbytes;
-    ++coredata.get_counter;
+#ifdef DEBUG
+    if (coredata.get_counter >= MAX_GET_REQUESTS)
+        return ebsp_message("BSP ERROR: too many bsp_get calls per sync");
+#endif
+    const void* adj_src = _get_remote_addr(pid, src);
+    if (!adj_src) return;
+
+    ebsp_get_request* req = &comm_buf->get_requests[coredata.pid][coredata.get_counter];
+    req->pid = pid;
+    req->src = (void*)((int)adj_src + offset);
+    req->dst = dst;
+    req->nbytes = nbytes;
+    coredata.get_counter++;
 }
 
 void bsp_hpget(int pid, const void *src, int offset, void *dst, int nbytes)
