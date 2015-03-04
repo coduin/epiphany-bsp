@@ -20,7 +20,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: dirs hello e_hello dot_product memtest timetest bspbench lu_decomposition 
+all: dirs hello e_hello dot_product memtest bspbench lu_decomposition 
 
 dirs:
 	mkdir -p bin
@@ -88,19 +88,6 @@ bin/e_memtest.elf: memtest/e_memtest.c
 	e-gcc -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
 
 bin/e_memtest.srec: bin/e_memtest.elf
-	e-objcopy --srec-forceS3 --output-target srec $< $@
-
-########################################################
-
-timetest: bin/host_timetest bin/e_timetest.elf bin/e_timetest.srec
-
-bin/host_timetest: timetest/host_timetest.c
-	gcc $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
-	
-bin/e_timetest.elf: timetest/e_timetest.c
-	e-gcc -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
-
-bin/e_timetest.srec: bin/e_timetest.elf
 	e-objcopy --srec-forceS3 --output-target srec $< $@
 
 ########################################################
