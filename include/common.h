@@ -37,14 +37,31 @@ see the files COPYING and COPYING.LESSER. If not, see
 // NCORES * MAX_N_REGISTER * 4 bytes to save all this data
 #define MAX_N_REGISTER 40
 
-// Maximum amount of bsp_get calls that are possible per sync per core
-#define MAX_GET_REQUESTS 20
-
 typedef struct {
-    const void* src; // remote-alias and offset included
+    // Both src and dst have the remote alias and offset included if applicable
+    // so a memcpy can be used directly
+    const void* src;
     void*       dst;
+    // The highest bit of nbytes is used to indicate whether this is a
+    // put or a get request. 0 means get, 1 means put
     int         nbytes;
-} ebsp_get_request;
+} ebsp_data_request;
+
+// ebsp_data_requests is the buffer that each core has for bsp_put and bsp_get
+// Since the bsp_put call needs to save the data, space needs to be allocated
+// Every ebsp_data_request could include a char[128] buffer, but this would
+// be a huge waste of space. Instead one large space is allocated (this struct)
+// The START of it contains the ebsp_data_request structures
+// The END contains the data payloads
+// i.e. the first bsp_put will copy the data to [END-nbytes, END[ and the
+// next data payload comes before that. This way we support both many small
+// bsp_put calls and one large bsp_put call with the same total buffer
+// The bsp_get requests are also stored here although they do not use
+// the buffer part
+typedef union {
+    ebsp_data_request   request[1]; // its more than 1 but this suffices
+    char                buffer[512];
+} ebsp_data_requests;
 
 // ebsp_core_data holds local bsp variables for the epiphany cores
 // Every core has a copy in its local space
@@ -61,10 +78,11 @@ typedef struct {
     float               time_passed;
     unsigned int        last_timer_value;
 
-    // counter for ebsp_comm_buf::get_requests[pid]
-    unsigned int        get_counter;
-    // counter for ebsp_comm_buf::put_requests[pid]
-    unsigned int        put_counter;
+    // counter for ebsp_comm_buf::data_requests[pid]
+    unsigned int        request_counter;
+    // total payload stored so far
+    // see also the comments above ebsp_data_requests
+    unsigned int        request_payload_used;
 
     void*               registermap[MAX_N_REGISTER][_NPROCS];
 } ebsp_core_data;
@@ -100,7 +118,7 @@ typedef struct {
     int                 msgflag[_NPROCS];
     ebsp_message_buf    message[_NPROCS];
     ebsp_core_data*     coredata[_NPROCS];
-    ebsp_get_request    get_requests[_NPROCS][MAX_GET_REQUESTS];
+    ebsp_data_requests  data_requests[_NPROCS];
     float               remotetimer;
 } ebsp_comm_buf;
 

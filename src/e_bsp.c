@@ -58,8 +58,8 @@ void bsp_begin()
     for(i = 0; i < MAX_N_REGISTER; ++i)
         for(j = 0; j < _NPROCS; ++j)
             coredata.registermap[i][j] = 0;
-    coredata.get_counter = 0;
-    coredata.put_counter = 0;
+    coredata.request_counter = 0;
+    coredata.request_payload_used = 0;
 
     // Send &coredata to ARM so that ARM can fill it with values
     comm_buf->coredata[coredata.pid] = &coredata;
@@ -123,21 +123,32 @@ float bsp_remote_time()
 void bsp_sync()
 {
     int i;
+    ebsp_data_requests* reqs = &comm_buf->data_requests[coredata.pid];
 
-    // Handle all bsp_get requests
+    // First handle all bsp_get requests
+    // Then handle all bsp_put requests (because of bsp specifications)
+    // They are stored in the same list and recognized by the
+    // highest bit of nbytes
     e_barrier(sync_barrier, sync_barrier_tgt);
-    for (i = 0; i < coredata.get_counter; ++i)
+    for (i = 0; i < coredata.request_counter; ++i)
     {
-        ebsp_get_request* req = &comm_buf->get_requests[coredata.pid][i];
-        memcpy(req->dst, req->src, req->nbytes);
+        // Check if this is a get
+        if ((reqs->request[i].nbytes & (1<<31)) == 0)
+            memcpy(reqs->request[i].dst,
+                    reqs->request[i].src,
+                    reqs->request[i].nbytes & ~(1<<31));
     }
-
-    // Handle all bsp_put requests
     e_barrier(sync_barrier, sync_barrier_tgt);
-    for (i = 0; i < coredata.put_counter; ++i)
+    for (i = 0; i < coredata.request_counter; ++i)
     {
-        // TODO
+        // Check if this is a put
+        if ((reqs->request[i].nbytes & (1<<31)) != 0)
+            memcpy(reqs->request[i].dst,
+                    reqs->request[i].src,
+                    reqs->request[i].nbytes & ~(1<<31));
     }
+    coredata.request_counter = 0;
+    coredata.request_payload_used = 0;
 
     // Synchronize with host
     _write_syncstate(STATE_SYNC);
@@ -182,6 +193,31 @@ void* _get_remote_addr(int pid, const void *addr)
     return 0;
 }
 
+void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes)
+{
+#ifdef DEBUG
+    if ((coredata.request_counter+1)*sizeof(ebsp_data_request) + nbytes >
+            (sizeof(ebsp_data_requests) - coredata.request_payload_used))
+        return ebsp_message("BSP ERROR: too many bsp_put calls per sync");
+#endif
+    void* adj_dst = _get_remote_addr(pid, dst);
+    if (!adj_dst) return;
+    adj_dst = (void*)((int)adj_dst + offset);
+
+    // save request
+    ebsp_data_requests* reqs = &comm_buf->data_requests[coredata.pid];
+    ebsp_data_request* req = &reqs->request[coredata.request_counter];
+    req->src = src;
+    req->dst = e_get_global_address(row_from_pid(pid), col_from_pid(pid), adj_dst);
+    req->nbytes = nbytes | (1<<31);
+    coredata.request_counter++;
+    // save payload
+    coredata.request_payload_used += nbytes;
+    memcpy((void*)((int)reqs + sizeof(ebsp_data_requests) - coredata.request_payload_used),
+                src,
+                nbytes);
+}
+
 void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
 {
     void* adj_dst = _get_remote_addr(pid, dst);
@@ -197,18 +233,20 @@ void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
 void bsp_get(int pid, const void *src, int offset, void *dst, int nbytes)
 {
 #ifdef DEBUG
-    if (coredata.get_counter >= MAX_GET_REQUESTS)
+    if ((coredata.request_counter+1)*sizeof(ebsp_data_request) >
+            (sizeof(ebsp_data_requests) - coredata.request_payload_used))
         return ebsp_message("BSP ERROR: too many bsp_get calls per sync");
 #endif
     const void* adj_src = _get_remote_addr(pid, src);
     if (!adj_src) return;
     adj_src = (void*)((int)adj_src + offset);
 
-    ebsp_get_request* req = &comm_buf->get_requests[coredata.pid][coredata.get_counter];
+    ebsp_data_requests* reqs = &comm_buf->data_requests[coredata.pid];
+    ebsp_data_request* req = &reqs->request[coredata.request_counter];
     req->src = e_get_global_address(row_from_pid(pid), col_from_pid(pid), adj_src);
     req->dst = dst;
     req->nbytes = nbytes;
-    coredata.get_counter++;
+    coredata.request_counter++;
 }
 
 void bsp_hpget(int pid, const void *src, int offset, void *dst, int nbytes)

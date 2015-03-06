@@ -66,6 +66,12 @@ void bsp_sync();
  */
 void bsp_push_reg(const void* variable, const int nbytes);
 
+/** Put a variable to another processor
+ * Buffered version: the data in src is saved at the moment of the call
+ * and it is transferred to the other core at the next sync
+ */
+void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes);
+
 /** Unbuffered version of bsp_put. The data is transferred immediately.
  */
 void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes);
