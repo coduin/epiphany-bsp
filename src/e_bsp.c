@@ -129,6 +129,7 @@ void bsp_sync()
     // Then handle all bsp_put requests (because of bsp specifications)
     // They are stored in the same list and recognized by the
     // highest bit of nbytes
+
     e_barrier(sync_barrier, sync_barrier_tgt);
     for (i = 0; i < coredata.request_counter; ++i)
     {
@@ -138,7 +139,7 @@ void bsp_sync()
                     reqs->request[i].src,
                     reqs->request[i].nbytes & ~(1<<31));
     }
-    e_barrier(sync_barrier, sync_barrier_tgt);
+    //e_barrier(sync_barrier, sync_barrier_tgt);
     for (i = 0; i < coredata.request_counter; ++i)
     {
         // Check if this is a put
@@ -186,20 +187,16 @@ void* _get_remote_addr(int pid, const void *addr)
     for(slot = 0; slot < MAX_N_REGISTER; ++slot)
         if (coredata.registermap[slot][coredata.pid] == addr)
             return coredata.registermap[slot][pid];
-#ifdef DEBUG
     ebsp_message("BSP ERROR: could not find register. targetpid %d, addr = %p",
             pid, addr);
-#endif
     return 0;
 }
 
 void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes)
 {
-#ifdef DEBUG
     if ((coredata.request_counter+1)*sizeof(ebsp_data_request) + nbytes >
             (sizeof(ebsp_data_requests) - coredata.request_payload_used))
         return ebsp_message("BSP ERROR: too many bsp_put calls per sync");
-#endif
     void* adj_dst = _get_remote_addr(pid, dst);
     if (!adj_dst) return;
     adj_dst = (void*)((int)adj_dst + offset);
@@ -232,11 +229,9 @@ void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
 
 void bsp_get(int pid, const void *src, int offset, void *dst, int nbytes)
 {
-#ifdef DEBUG
     if ((coredata.request_counter+1)*sizeof(ebsp_data_request) >
             (sizeof(ebsp_data_requests) - coredata.request_payload_used))
         return ebsp_message("BSP ERROR: too many bsp_get calls per sync");
-#endif
     const void* adj_src = _get_remote_addr(pid, src);
     if (!adj_src) return;
     adj_src = (void*)((int)adj_src + offset);

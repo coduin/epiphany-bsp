@@ -9,10 +9,10 @@
 */
 
 /* This program needs order 6*MAXH+3*MAXN memory */
-#define NITERSN 1000000   /* number of iterations. Default: 100 */
-#define NITERSH 100   /* number of iterations. Default: 100 */
-#define MAXN 256       /* maximum length of DAXPY computation. Default: 1024 */
-#define MAXH 32       /* maximum h in h-relation. Default: 256 */
+#define NITERSN 1000000 /* number of iterations. Default: 100 */
+#define NITERSH 500     /* number of iterations. Default: 100 */
+#define MAXN 256        /* maximum length of DAXPY computation. Default: 1024 */
+#define MAXH 64         /* maximum h in h-relation. Default: 256 */
 #define MEGA 1000000.0
 #define KILO    1000.0
 
@@ -29,9 +29,10 @@
 #define SZULL (sizeof( long long))
 #define ulong long long
 
+char HEAP[0x2000];
 
 float *vecallocd(int n) { 
-    static int address=0x4000;/* FIXME HARDCODE WARNING */
+    static int address = (int)&HEAP;
     /* This function allocates a vector of floats of length n */ 
     float *pd; 
  
@@ -40,14 +41,14 @@ float *vecallocd(int n) {
     } else { 
         pd = (float *) address;
         address += (n*SZDBL); 
-        if(address >= 0x7e00) { /* FIXME HARDCODE WARNING */
-            ebsp_message("ERROR: vecallocd(%4d) -> %p. Alloc used [0x4000, %p[ Stack used [%p, 0x8000[", n, pd, address, &pd);
-            return NULL; /* OUT OF MEMORY (in 0x4000 - 0x6000) */
+        if (address >= ((int)&HEAP + sizeof(HEAP))) {
+            ebsp_message("ERROR: vecallocd(%4d) -> %p. Alloc used [%p, %p[ Stack used [%p, 0x8000[", n, pd, &HEAP, address, &pd);
+            return NULL; /* OUT OF MEMORY */
         }
     } 
 
     if (bsp_pid() == 0)
-        ebsp_message("vecallocd(%4d) -> %p. Alloc used [0x4000, %p[ Stack used [%p, 0x8000[", n, pd, address, &pd);
+        ebsp_message("vecallocd(%4d) -> %p. Alloc used [%p, %p[ Stack used [%p, 0x8000[", n, pd, &HEAP, (int)&HEAP + sizeof(HEAP), &pd);
     
     return pd; 
 } /* end vecallocd */ 
@@ -173,6 +174,7 @@ int main() { /*  bsp_bench */
     }
 
     /**** Determine g and l ****/
+    float unbufferedTime;
     for (h=0; h<=MAXH; h++) {
         /* Initialize communication pattern */
         for (i=0; i<h; i++) {
@@ -202,9 +204,29 @@ int main() { /*  bsp_bench */
         /* Compute time of one h-relation */
         if (s == 0) {
             t[h] = (time*r)/(float)NITERSH;
-            ebsp_message("Time of %5d-relation = %lf sec = %8.0lf flops",
+            ebsp_message("Time of %5d-relation = %lf sec = %8.0lf flops (bsp_hpput)",
                    h, time/NITERSH, t[h]);
         }
+
+        unbufferedTime = time;
+        /* Measure time of NITERS h-relations using buffered put */
+        bsp_sync(); 
+        time0 = bsp_remote_time(); 
+        for (iter=0; iter<NITERSH; iter++) {
+            for (i=0; i<h; i++)
+                bsp_put(destproc[i], &src[i], dest, destindex[i]*SZDBL, SZDBL);
+            bsp_sync(); 
+        }
+        time1 = bsp_remote_time();
+        time = time1 - time0;
+ 
+        /* Compute time of one h-relation */
+        if (s == 0) {
+            t[h] = (time*r)/(float)NITERSH;
+            ebsp_message("Time of %5d-relation = %lf sec = %8.0lf flops (bsp_put  ) put/hpput = %f",
+                   h, time/NITERSH, t[h], time/unbufferedTime);
+        }
+
     }
 
     if (s == 0) {

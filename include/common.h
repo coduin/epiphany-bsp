@@ -35,7 +35,8 @@ see the files COPYING and COPYING.LESSER. If not, see
 // An address takes 4 bytes, and MAX_N_REGISTER is the maximum
 // amount of variables that can be registered so in total we need
 // NCORES * MAX_N_REGISTER * 4 bytes to save all this data
-#define MAX_N_REGISTER 40
+// For MAX_N_REGISTER = 40 this means 2560 bytes
+#define MAX_N_REGISTER 20
 
 typedef struct {
     // Both src and dst have the remote alias and offset included if applicable
@@ -59,8 +60,10 @@ typedef struct {
 // The bsp_get requests are also stored here although they do not use
 // the buffer part
 typedef union {
-    ebsp_data_request   request[1]; // its more than 1 but this suffices
-    char                buffer[512];
+    // its more than 1 but this suffices for the union
+    ebsp_data_request   request[1];
+    // 2048 allows for exactly 128 bsp_puts of 4 bytes payload each, per core
+    char                buffer[2048];
 } ebsp_data_requests;
 
 // ebsp_core_data holds local bsp variables for the epiphany cores
