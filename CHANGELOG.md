@@ -1,6 +1,7 @@
 # Changelog
 
 ## 0.2
+- Added `bsp_get`, `bsp_hpget` and `bsp_put`
 - Fixed timer to use real time instead of clockcycles
 - Added `ebsp_message`
 - External memory in one large block
