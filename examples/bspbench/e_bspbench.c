@@ -9,9 +9,10 @@
 */
 
 /* This program needs order 6*MAXH+3*MAXN memory */
-#define NITERS 10000   /* number of iterations. Default: 100 */
-#define MAXN 128       /* maximum length of DAXPY computation. Default: 1024 */
-#define MAXH 256       /* maximum h in h-relation. Default: 256 */
+#define NITERSN 1000000   /* number of iterations. Default: 100 */
+#define NITERSH 100   /* number of iterations. Default: 100 */
+#define MAXN 256       /* maximum length of DAXPY computation. Default: 1024 */
+#define MAXH 32       /* maximum h in h-relation. Default: 256 */
 #define MEGA 1000000.0
 #define KILO    1000.0
 
@@ -39,8 +40,10 @@ float *vecallocd(int n) {
     } else { 
         pd = (float *) address;
         address += (n*SZDBL); 
-        if(address >= 0x6000) /* FIXME HARDCODE WARNING */
+        if(address >= 0x7e00) { /* FIXME HARDCODE WARNING */
+            ebsp_message("ERROR: vecallocd(%4d) -> %p. Alloc used [0x4000, %p[ Stack used [%p, 0x8000[", n, pd, address, &pd);
             return NULL; /* OUT OF MEMORY (in 0x4000 - 0x6000) */
+        }
     } 
 
     if (bsp_pid() == 0)
@@ -90,7 +93,6 @@ void leastsquares(int h0, int h1, float *t, float *g, float *l) {
 
 } /* end leastsquares */
 
-
 int main() { /*  bsp_bench */
     /* void leastsquares(int h0, int h1, float *t, float *g, float *l); */
     int p, s, s1, iter, i, n, h, *destproc, *destindex;
@@ -133,15 +135,16 @@ int main() { /*  bsp_bench */
         for (i=0; i<n; i++) {
             z[i] = y[i] = x[i] = (float)i;
         }
+
         /* Measure time of 2*NITERS DAXPY operations of length n */
         time0 = bsp_remote_time();
-        for (iter=0; iter<NITERS; iter++) {
+        for (iter=0; iter<NITERSN; iter++) {
             for (i=0; i<n; i++)
                 y[i] += alpha*x[i];
-            for (i=0; i<n; i++)
+            for (i=0; i<n; i++)        
                 z[i] -= beta*x[i];
         }
-        time1 = bsp_remote_time(); 
+        time1 = bsp_remote_time();
         time = time1-time0; 
         bsp_hpput(0,&time,Time,s*SZDBL,SZDBL);
         bsp_sync();
@@ -155,7 +158,7 @@ int main() { /*  bsp_bench */
             }
             if (mintime > 0.0f) {
                 /* Compute r = average computing rate in flop/s */
-                nflops = 4*NITERS*n;
+                nflops = 4*NITERSN*n;
                 r = 0.0f;
                 for(s1=0; s1<p; s1++)
                     r += nflops/Time[s1];
@@ -188,7 +191,7 @@ int main() { /*  bsp_bench */
         /* Measure time of NITERS h-relations */
         bsp_sync(); 
         time0 = bsp_remote_time(); 
-        for (iter=0; iter<NITERS; iter++) {
+        for (iter=0; iter<NITERSH; iter++) {
             for (i=0; i<h; i++)
                 bsp_hpput(destproc[i], &src[i], dest, destindex[i]*SZDBL, SZDBL);
             bsp_sync(); 
@@ -198,9 +201,9 @@ int main() { /*  bsp_bench */
  
         /* Compute time of one h-relation */
         if (s == 0) {
-            t[h] = (time*r)/(float)NITERS;
+            t[h] = (time*r)/(float)NITERSH;
             ebsp_message("Time of %5d-relation = %lf sec = %8.0lf flops",
-                   h, time/NITERS, t[h]);
+                   h, time/NITERSH, t[h]);
         }
     }
 

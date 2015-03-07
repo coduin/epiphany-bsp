@@ -22,19 +22,15 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
-// # TODO: Features
-// [ ] Red for memory that changed from last run
-// [ ] actually dump memory from epiphany.
-// [ ] Optional: notes on memory regions
-// [ ] Fix maximum cores/memory
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <e-hal.h>
 #include <host_bsp.h>
+
 #include <ncurses.h>
+#include <signal.h>
 
 typedef enum
 {
@@ -271,8 +267,28 @@ void ebsp_inspector_finalize() {
     endwin();
 }
 
+void ebsp_inspector_finish()
+{
+    bsp_end();
+
+    // free memory buffer
+    free(i_state.buf);
+ 
+    // close the curses window
+    endwin();
+
+    // exit
+    exit(0);
+}
+
 void ebsp_inspector_enable()
 {
+    // FIXME terminate with signals properly
+    signal(SIGINT, ebsp_inspector_finish);
+
+    // TODO redirect stdout
+    // ... (freopen, dup)
+
     memset(&i_state, 0, sizeof(e_h_viewer_state));
 
     i_state.mem_max = 0x8000;

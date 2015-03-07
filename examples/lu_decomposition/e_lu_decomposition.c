@@ -25,16 +25,17 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <e_bsp.h>
 #include "e-lib.h"
 
+#include <math.h>
 #include "common.h"
 
 int M = 0;
 int N = 0;
+int dim = 0;
 int s = 0;
 int t = 0;
-int dim = 0;
-int entries_per_row = 0;
+int entries_per_col = 0;
 
-inline int proc_id(int s, int t)
+int proc_id(int s, int t)
 {
     return s * M + t;
 }
@@ -47,31 +48,31 @@ int ltg(int* i, int* j, int l)
 }
 
 // "global to local" index
-inline int gtl(int i, int j)
+int gtl(int i, int j)
 {
     // here we assume correct processor
     return (i / M) * (dim / M) + (j / M);
 }
 
-inline float* a(int i, int j) {
+float* a(int i, int j) {
     return (float*)LOC_MATRIX + gtl(i, j);
 }
 
 int main()
 {
-    int i, j, k;
     bsp_begin();
 
     int n = bsp_nprocs(); 
     int p = bsp_pid();
 
-    M = (*(char*)LOC_M);
-    N = (*(char*)LOC_N);
-    dim = (*(char*)LOC_DIM);
-    entries_per_row = dim / M;
+    M = (*(int*)LOC_M);
+    N = (*(int*)LOC_N);
+    dim = (*(int*)LOC_DIM);
 
     s = p / M;
     t = p % M;
+
+    entries_per_col = dim / N;
 
     // register variable to store r and a_rk
     // need arrays equal to number of procs in our proc column
@@ -84,32 +85,44 @@ int main()
     bsp_push_reg((void*)LOC_R, sizeof(int));
     bsp_sync();
 
-    // FIXME: PI is actually distributed as well.
     bsp_push_reg((void*)LOC_PI_IN, sizeof(int));
+    bsp_sync();
+
+    bsp_push_reg((void*)LOC_ROW_IN, sizeof(int));
+    bsp_sync();
+
+    bsp_push_reg((void*)LOC_COL_IN, sizeof(int));
     bsp_sync();
 
     // also initialize pi as identity
     if (t == 0)
-        for (i = 0; i < N; ++i)
-            *((int*)LOC_PI + i) = i;
+        for (int i = 0; i < entries_per_col; ++i)
+            *((int*)LOC_PI + i) = s + i * N;
 
-    for (k = 0; k < dim; ++k) {
+    for (int k = 0; k < dim; ++k) {
 
         //----------------------
         // STAGE 1: Pivot search
         //----------------------
-        if (k % M == 0) {
+        if (k % M == t) {
+            // COMPUTE PIVOT IN COLUMN K
             int rs = -1;
-            float a_rk = -1.0;
-            for (i = k; i < dim; ++i) {
-                float a_ik = abs(*a(i, k));
+            float a_rk = -1.0f;
+
+            int start_i = (k / N) * N + s;
+            if (s % N < k % N)
+                start_i += N;
+
+            for (int i = start_i; i < dim; i += N) {
+                float a_ik = fabsf(*a(i, k));
                 if (a_ik > a_rk) {
                     a_rk = a_ik;
                     rs = i;
                 }
             }
 
-            for (j = 0; j < N; ++j) {
+            // HORIZONTAL COMMUNICATION
+            for (int j = 0; j < N; ++j) {
                 // put r_s in P(*,t)
                 bsp_hpput(proc_id(j, t),
                          &rs, (void*)LOC_RS,
@@ -117,15 +130,19 @@ int main()
 
                 // put a_(r_s, k) in P(*,t)
                 bsp_hpput(proc_id(j, t),
-                         &rs, (void*)LOC_ARK,
+                         &a_rk, (void*)LOC_ARK,
                          s * sizeof(float), sizeof(float));
             }
 
             bsp_sync(); // (0) + (1)
 
-            a_rk = -1.0;
-            for (j = 0; j < N; ++j) {
-                float val = abs(*(((float*)LOC_ARK + j)));
+            a_rk = -1.0f;
+            for (int j = 0; j < N; ++j) {
+                if (*((int*)LOC_RS + j) < 0)
+                    continue;
+
+                float val = fabsf(*(((float*)LOC_ARK + j)));
+
                 if (val > a_rk) {
                     a_rk = val;
                     rs = *((int*)LOC_RS + j);
@@ -133,7 +150,7 @@ int main()
             }
 
             // put r in P(s, *)
-            for(j = 0; j < M; ++j) {
+            for(int j = 0; j < M; ++j) {
                 bsp_hpput(proc_id(s, j),
                         &rs, (void*)LOC_R,
                         0, sizeof(int));
@@ -150,35 +167,43 @@ int main()
         // STAGE 2: Index and row swaps
         // ----------------------------
         int r = *((int*)LOC_R);
+
+        ebsp_message("(r, k), (%i, %i)", r, k);
+
         if (k % N == s && t == 0) {
             bsp_hpput(proc_id(r % N, 0),
-                    ((int*)LOC_PI + k), (void*)LOC_PI_IN,
+                    ((int*)LOC_PI + (k / N)), (void*)LOC_PI_IN,
                     0, sizeof(int));
         }
+
         if (r % N == s && t == 0) {
+            // here offset is set to one in case k % N == r % N
             bsp_hpput(proc_id(k % N, 0),
-                    ((int*)LOC_PI + r), (void*)LOC_PI_IN,
+                    ((int*)LOC_PI + (r / N)), (void*)LOC_PI_IN,
                     sizeof(int), sizeof(int));
         }
+
         bsp_sync(); // (4)
 
-        if (k % N == s && t == 0)
-            *((int*)LOC_PI + k) = *((int*)LOC_PI_IN + 1);
+        if (k % N == s && t == 0) {
+            *((int*)LOC_PI + (k / N)) = *((int*)LOC_PI_IN + 1);
+        }
+
         if (r % N == s && t == 0)
-            *((int*)LOC_PI + r) = *((int*)LOC_PI_IN);
+            *((int*)LOC_PI + (r / N)) = *((int*)LOC_PI_IN);
 
         if (k % N == s) { // need to swap rows with row r
-            for (j = t; j < dim; j += M) {
+            for (int j = t; j < dim; j += M) {
                  bsp_hpput(proc_id(r % N, t),
                         a(k, j), (void*)LOC_ROW_IN,
                         sizeof(float) * (j - t) / M, sizeof(float));
             }
         }
 
-        if (r % N == s) { // need to swap rows with row r
-            for (j = t; j < dim; j += M) {
+        if (r % N == s) { // need to swap rows with row k
+            for (int j = t; j < dim; j += M) {
                  bsp_hpput(proc_id(k % N, t),
-                        a(r, j), (void*)LOC_ROW_IN,
+                        a(r, j), (void*)LOC_COL_IN,
                         sizeof(float) * (j - t) / M, sizeof(float));
             }
         }
@@ -186,13 +211,13 @@ int main()
         bsp_sync(); // (5) + (6)
 
         if (k % N == s) {
-            for (j = t; j < dim; j += M) {
-                (*a(k, j)) = *((float*)LOC_ROW_IN + (j - t)/M);
+            for (int j = t; j < dim; j += M) {
+                *a(k, j) = *((float*)LOC_COL_IN + (j - t) / M);
             }
         }
         if (r % N == s) {
-            for (j = t; j < dim; j += M) {
-                (*a(r, j)) = *((float*)LOC_ROW_IN + (j - t)/M);
+            for (int j = t; j < dim; j += M) {
+                *a(r, j) = *((float*)LOC_ROW_IN + (j - t) / M);
             }
         }
 
@@ -203,7 +228,7 @@ int main()
         // ----------------------
         if (k % N == s && k % M == t) {
             // put a_kk in P(*, t)
-            for (j = 0; j < N; j += M) {
+            for (int j = 0; j < N; ++j) {
                  bsp_hpput(proc_id(j, t),
                         a(k, k), (void*)LOC_ROW_IN,
                         0, sizeof(float));
@@ -212,40 +237,51 @@ int main()
 
         bsp_sync(); // (8)
 
+        int start_idx = (k / N) * N + s;
+        if (s % N <= k % N)
+            start_idx += N;
+
+        int start_jdx = (k / M) * M + t;
+        if (t % N <= k % M)
+            start_jdx += M;
+
         if (k % M == t) {
-            for (i = k; i < n && i % N == s; ++i) {
-                (*a(i, k)) = *a(i,k) / (*((int*)LOC_ROW_IN));
+            for (int i = start_idx; i < dim; i += N) {
+                *a(i, k) = *a(i, k) / (*((float*)LOC_ROW_IN));
             }
         }
 
+        // HORIZONTAL COMMUNICATION
         if (k % M == t) {
             // put a_ik in P(s, *)
-            for (i = k; i < n && i % N == s; ++i) {
-                for (j = 0; j < M; ++j) {
-                    bsp_hpput(proc_id(s, j),
+            for (int i = start_idx; i < dim; i += N) {
+                for (int sj = 0; sj < M; ++sj) {
+                    bsp_hpput(proc_id(s, sj),
                             a(i, k), (void*)LOC_COL_IN,
                             sizeof(float) * i, sizeof(float));
                 }
             }
         }
+
+        // VERTICAL COMMUNICATION
         if (k % N == s) {
             // put a_ki in P(*, t)
-            for (i = k; i < n && i % M == t; ++i) {
-                for (j = 0; j < N; ++j) {
-                    bsp_hpput(proc_id(j, t),
-                            a(k, i), (void*)LOC_ROW_IN,
-                            sizeof(float) * i, sizeof(float));
+            for (int j = start_jdx; j < dim; j += M) {
+                for (int si = 0; si < N; ++si) {
+                    bsp_hpput(proc_id(si, t),
+                            a(k, j), (void*)LOC_ROW_IN,
+                            sizeof(float) * j, sizeof(float));
                 }
             }
         }
 
         bsp_sync(); // (9) + (10)
 
-        for (i = k; i < n && i % N == s; ++i) {
-            for (j = k; j < n && j % M == t; ++j) {
-                int a_ik = *((float*)LOC_COL_IN + i);
-                int a_kj = *((float*)LOC_ROW_IN + j);
-                (*a(i, j)) = *a(i, j) - a_ik * a_kj;
+        for (int i = start_idx; i < dim; i += N) {
+            for (int j = start_jdx; j < dim; j += M) {
+                float a_ik = *((float*)LOC_COL_IN + i);
+                float a_kj = *((float*)LOC_ROW_IN + j);
+                *a(i, j) = *a(i, j) - a_ik * a_kj;
             }
         }
     }
