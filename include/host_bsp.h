@@ -23,41 +23,7 @@ see the files COPYING and COPYING.LESSER. If not, see
  */
 
 #pragma once
-
 #include <e-hal.h>
-#include <e-loader.h>
-#include "common.h"
-
-typedef struct _bsp_state_t
-{
-    // The number of processors available
-    int nprocs;
-
-    // The name of the e-program
-    char* e_name;
-
-    // Number of rows or columns in use
-    int rows;
-    int cols;
-
-    // Number of processors in use
-    int nprocs_used;
-
-    // External memory that holsd ebsp_comm_buf
-    e_mem_t emem;
-    // Local copy of ebsp_comm_buf to copy from and
-    // copy into.
-    ebsp_comm_buf comm_buf;
-
-    void (*sync_callback)(void);
-    void (*end_callback)(void);
-
-    int num_vars_registered;
-
-    // Epiphany specific variables
-    e_platform_t platform;
-    e_epiphany_t dev;
-} bsp_state_t;
 
 /** This writes data from the host processor to the co-processor.
  *  This can be useful for distributing initial data, or when dividing work

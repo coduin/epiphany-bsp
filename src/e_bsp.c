@@ -55,11 +55,18 @@ void bsp_begin()
     // Initialize local data
     coredata.pid = col + cols * row;
     coredata.msgflag = 0;
-    for(i = 0; i < MAX_N_REGISTER; ++i)
-        for(j = 0; j < _NPROCS; ++j)
-            coredata.registermap[i][j] = 0;
     coredata.request_counter = 0;
     coredata.request_payload_used = 0;
+    coredata.var_pushed = 0;
+
+    // Initialize epiphany timer
+    coredata.time_passed = 0.0f;
+    e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
+    e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);
+    coredata.last_timer_value = e_ctimer_get(E_CTIMER_0);
+
+    // Initialize the barrier used during syncs
+    e_barrier_init(sync_barrier, sync_barrier_tgt);
 
     // Send &coredata to ARM so that ARM can fill it with values
     comm_buf->coredata[coredata.pid] = &coredata;
@@ -70,15 +77,6 @@ void bsp_begin()
     _write_syncstate(STATE_RUN);
 
     // Now the ARM has entered nprocs
-
-    // Initialize epiphany timer
-    coredata.time_passed = 0.0f;
-    e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
-    e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);
-    coredata.last_timer_value = e_ctimer_get(E_CTIMER_0);
-
-    // Initialize the barrier used during syncs
-    e_barrier_init(sync_barrier, sync_barrier_tgt);
 }
 
 void bsp_end()
@@ -151,6 +149,13 @@ void bsp_sync()
     coredata.request_counter = 0;
     coredata.request_payload_used = 0;
 
+    if (coredata.var_pushed)
+    {
+        coredata.var_pushed = 0;
+        if (coredata.pid == 0)
+            comm_buf->bsp_var_counter++;
+    }
+
     // Synchronize with host
     _write_syncstate(STATE_SYNC);
     while (coredata.syncstate != STATE_CONTINUE) {}
@@ -163,10 +168,18 @@ void _write_syncstate(int state)
     comm_buf->syncstate[coredata.pid] = state; // being polled by ARM
 }
 
-// Memory
 void bsp_push_reg(const void* variable, const int nbytes)
 {
-    comm_buf->pushregloc[coredata.pid] = (void*)variable;
+    if (coredata.var_pushed)
+        return ebsp_message("BSP ERROR: multiple bsp_push_reg calls within one sync");
+
+    if (comm_buf->bsp_var_counter == MAX_BSP_VARS)
+        return ebsp_message("BSP ERROR: Trying to push more than MAX_BSP_VARS vars");
+
+    comm_buf->bsp_var_list[comm_buf->bsp_var_counter][coredata.pid] =
+        (void*)variable;
+
+    coredata.var_pushed = 1;
 }
 
 int row_from_pid(int pid)
@@ -184,10 +197,10 @@ void* _get_remote_addr(int pid, const void *addr)
     // Find the slot for our local pid
     // And return the entry for the remote pid
     int slot;
-    for(slot = 0; slot < MAX_N_REGISTER; ++slot)
-        if (coredata.registermap[slot][coredata.pid] == addr)
-            return coredata.registermap[slot][pid];
-    ebsp_message("BSP ERROR: could not find register. targetpid %d, addr = %p",
+    for(slot = 0; slot < MAX_BSP_VARS; ++slot)
+        if (comm_buf->bsp_var_list[slot][coredata.pid] == addr)
+            return comm_buf->bsp_var_list[slot][pid];
+    ebsp_message("BSP ERROR: could not find bsp var. targetpid %d, addr = %p",
             pid, addr);
     return 0;
 }

@@ -28,15 +28,13 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #define _NPROCS 16
 
-#define MAX_NAME_SIZE 30
-
 // Every variable that is registered with bsp_push_reg
 // gives 16 addresses (the locations on the different cores).
-// An address takes 4 bytes, and MAX_N_REGISTER is the maximum
+// An address takes 4 bytes, and MAX_BSP_VARS is the maximum
 // amount of variables that can be registered so in total we need
-// NCORES * MAX_N_REGISTER * 4 bytes to save all this data
-// For MAX_N_REGISTER = 40 this means 2560 bytes
-#define MAX_N_REGISTER 20
+// NCORES * MAX_BSP_VARS * 4 bytes to save all this data
+// For MAX_BSP_VARS = 40 this means 2560 bytes
+#define MAX_BSP_VARS 20
 
 typedef struct {
     // Both src and dst have the remote alias and offset included if applicable
@@ -76,7 +74,6 @@ typedef struct {
     volatile int        syncstate;
     volatile int        msgflag;
 
-
     // time_passed is epiphany cpu time (so not walltime) in seconds
     float               time_passed;
     unsigned int        last_timer_value;
@@ -87,7 +84,8 @@ typedef struct {
     // see also the comments above ebsp_data_requests
     unsigned int        request_payload_used;
 
-    void*               registermap[MAX_N_REGISTER][_NPROCS];
+    // if this core has done a bsp_push_reg
+    int                 var_pushed;
 } ebsp_core_data;
 
 typedef struct {
@@ -122,6 +120,8 @@ typedef struct {
     ebsp_message_buf    message[_NPROCS];
     ebsp_core_data*     coredata[_NPROCS];
     ebsp_data_requests  data_requests[_NPROCS];
+    void*               bsp_var_list[MAX_BSP_VARS][_NPROCS];
+    unsigned int        bsp_var_counter;
     float               remotetimer;
 } ebsp_comm_buf;
 

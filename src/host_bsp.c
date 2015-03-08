@@ -23,12 +23,12 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include "host_bsp.h"
-#include "common.h"
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <e-loader.h>
+#include "common.h"
 
 #define __USE_POSIX199309 1
 #include <time.h>
@@ -36,14 +36,46 @@ extern int clock_nanosleep (clockid_t __clock_id, int __flags,
 			    const struct timespec *__req,
 			    struct timespec *__rem);
 
-// Global state
+#define MAX_PROGRAM_NAME_SIZE 64
+
+// Global BSP state
+typedef struct
+{
+    // The number of processors available
+    int nprocs;
+
+    // The name of the e-program
+    char e_name[MAX_PROGRAM_NAME_SIZE];
+
+    // Number of rows or columns in use
+    int rows;
+    int cols;
+
+    // Number of processors in use
+    int nprocs_used;
+
+    // External memory that holsd ebsp_comm_buf
+    e_mem_t emem;
+    // Local copy of ebsp_comm_buf to copy from and
+    // copy into.
+    ebsp_comm_buf comm_buf;
+
+    void (*sync_callback)(void);
+    void (*end_callback)(void);
+
+    int num_vars_registered;
+
+    // Epiphany specific variables
+    e_platform_t platform;
+    e_epiphany_t dev;
+} bsp_state_t;
+
 bsp_state_t state;
 int bsp_initialized = 0;;
 
 void _host_sync();
 void _microsleep(int microseconds); //1000 gives 1 millisecond
 void _get_p_coords(int pid, int* row, int* col);
-bsp_state_t* _get_state();
 
 int ebsp_write(int pid, void* src, off_t dst, int size)
 {
@@ -123,8 +155,8 @@ int bsp_init(const char* _e_name,
     state.nprocs = state.platform.rows * state.platform.cols;
 
     // Copy the name to the state
-    state.e_name = (char*)malloc(MAX_NAME_SIZE);
-    strcpy(state.e_name, _e_name);
+    memcpy(state.e_name, _e_name, MAX_PROGRAM_NAME_SIZE);
+    state.e_name[MAX_PROGRAM_NAME_SIZE-1] = 0;
 
     bsp_initialized = 1;
 
@@ -249,6 +281,8 @@ int ebsp_spmd()
     }
 #ifdef DEBUG
     printf("(BSP) DEBUG: All epiphany cores are ready for initialization.\n");
+    printf("(BSP) DEBUG: ebsp uses %d KB = %p B of external memory.\n",
+            sizeof(ebsp_comm_buf)/1024, sizeof(ebsp_comm_buf));
 #endif
 
     // Time storage
@@ -259,7 +293,8 @@ int ebsp_spmd()
     clock_gettime(CLOCK_MONOTONIC, &ts_start);
     // Current time. Repeat these two lines every iteration
     clock_gettime(CLOCK_MONOTONIC, &ts_end);
-    time_elapsed = (ts_end.tv_sec - ts_start.tv_sec + (ts_end.tv_nsec - ts_start.tv_nsec) * 1.0e-9);
+    time_elapsed = (ts_end.tv_sec - ts_start.tv_sec +
+            (ts_end.tv_nsec - ts_start.tv_nsec) * 1.0e-9);
 
     // All cores are waiting.
     // We can now send data and 'start' them
@@ -405,7 +440,6 @@ int bsp_end()
         return 0;
     }
 
-    free(state.e_name);
     memset(&state, 0, sizeof(state));
     bsp_initialized = 0;
 
@@ -424,45 +458,8 @@ int bsp_nprocs()
 // Private functions
 //------------------
 
-// Memory
 void _host_sync() {
-    int i;
-    // TODO: Right now bsp_pop_reg is ignored
-
-    // Check if core 0 did a push_reg
-    if (state.comm_buf.pushregloc[0] != NULL)
-    {
-        if (state.num_vars_registered >= MAX_N_REGISTER)
-        {
-            fprintf(stderr, "ERROR: Trying to register more than %d variables.\n",
-                    MAX_N_REGISTER);
-        }
-        else
-        {
-            // Broadcast to local core data
-            off_t offset = offsetof(ebsp_core_data,
-                    registermap[state.num_vars_registered][0]);
-            for (i = 0; i < state.nprocs; ++i)
-                _write_coredata(i,
-                        state.comm_buf.pushregloc,
-                        offset,
-                        sizeof(void*) * state.nprocs);
-
-            state.num_vars_registered++;
-#ifdef DEBUG
-            printf("(BSP) DEBUG: New variables registered: %i/%i\n",
-                    state.num_vars_registered, MAX_N_REGISTER);
-#endif
-        }
-
-        // Reset pushregloc to zero
-        for (i = 0; i < state.nprocs; ++i)
-            state.comm_buf.pushregloc[i] = 0;
-
-        _write_extmem(&state.comm_buf.pushregloc,
-                offsetof(ebsp_comm_buf, pushregloc),
-                _NPROCS * sizeof(void*));
-    }
+    return;
 }
 
 void _microsleep(int microseconds)
@@ -478,10 +475,5 @@ void _get_p_coords(int pid, int* row, int* col)
 {
     (*row) = pid / state.cols;
     (*col) = pid % state.cols;
-}
-
-bsp_state_t* _get_state()
-{
-    return &state;
 }
 

@@ -27,8 +27,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include "common.h"
 #include "_ansi.h"
 
-//const char registermap_buffer_shm_name[] = REGISTERMAP_BUFFER_SHM_NAME;
-
 /** Starts the BSP program.
  */
 void bsp_begin();
