@@ -24,6 +24,10 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #pragma once
 
+// A lot of structures here are shared between ARM and epiphany
+// To make sure they use the same alignment, we use maximum packing
+#pragma pack(push,1)
+
 //#define DEBUG
 
 #define _NPROCS 16
@@ -33,9 +37,18 @@ see the files COPYING and COPYING.LESSER. If not, see
 // An address takes 4 bytes, and MAX_BSP_VARS is the maximum
 // amount of variables that can be registered so in total we need
 // NCORES * MAX_BSP_VARS * 4 bytes to save all this data
-// For MAX_BSP_VARS = 40 this means 2560 bytes
-#define MAX_BSP_VARS 20
+#define MAX_BSP_VARS 64
 
+// The maximum amount of buffered put/get operations each
+// core is allowed to do per sync step
+#define MAX_DATA_REQUESTS 128
+
+// The maximum amount of payload data for bsp_put operations
+// This is shared amongst all cores!
+#define MAX_PAYLOAD_SIZE 0x8000
+
+// Every bsp_put or bsp_get call results in an ebsp_data_request
+// Additionally, bsp_put calls write to the ebsp_payload_buffer
 typedef struct {
     // Both src and dst have the remote alias and offset included if applicable
     // so a memcpy can be used directly
@@ -46,23 +59,16 @@ typedef struct {
     int         nbytes;
 } ebsp_data_request;
 
-// ebsp_data_requests is the buffer that each core has for bsp_put and bsp_get
-// Since the bsp_put call needs to save the data, space needs to be allocated
-// Every ebsp_data_request could include a char[128] buffer, but this would
-// be a huge waste of space. Instead one large space is allocated (this struct)
-// The START of it contains the ebsp_data_request structures
-// The END contains the data payloads
-// i.e. the first bsp_put will copy the data to [END-nbytes, END[ and the
-// next data payload comes before that. This way we support both many small
-// bsp_put calls and one large bsp_put call with the same total buffer
-// The bsp_get requests are also stored here although they do not use
-// the buffer part
-typedef union {
-    // its more than 1 but this suffices for the union
-    ebsp_data_request   request[1];
-    // 2048 allows for exactly 128 bsp_puts of 4 bytes payload each, per core
-    char                buffer[2048];
-} ebsp_data_requests;
+// bsp_put calls need to save the data payload
+// Instead of having a separate buffer for each core there is one large
+// buffer used for all cores together. This is because there are many
+// applications that require a single core sending huge amounts of data
+// while other cores send nothing. Since all cores access the same
+// buffer there is a payload_mutex to ensure correctness
+typedef struct {
+    unsigned int    buffer_size; // buffer used so far
+    char            buf[MAX_PAYLOAD_SIZE];
+} ebsp_payload_buffer;
 
 // ebsp_core_data holds local bsp variables for the epiphany cores
 // Every core has a copy in its local space
@@ -80,9 +86,6 @@ typedef struct {
 
     // counter for ebsp_comm_buf::data_requests[pid]
     unsigned int        request_counter;
-    // total payload stored so far
-    // see also the comments above ebsp_data_requests
-    unsigned int        request_payload_used;
 
     // if this core has done a bsp_push_reg
     int                 var_pushed;
@@ -113,15 +116,21 @@ typedef struct {
 // the data for different cores (all syncstate flags are
 // in one memory chunk, all msgflags in the next) we can read
 // all syncstate flags in ONE e_read call instead of 16
-typedef struct {
+typedef struct
+{
+    // Epiphany --> ARM communication
     int                 syncstate[_NPROCS];
-    void*               pushregloc[_NPROCS];
     int                 msgflag[_NPROCS];
     ebsp_message_buf    message[_NPROCS];
     ebsp_core_data*     coredata[_NPROCS];
-    ebsp_data_requests  data_requests[_NPROCS];
+
+    // Epiphany <--> Epiphany
     void*               bsp_var_list[MAX_BSP_VARS][_NPROCS];
     unsigned int        bsp_var_counter;
+    ebsp_data_request   data_requests[_NPROCS][MAX_DATA_REQUESTS];
+    ebsp_payload_buffer data_payloads;
+
+    // ARM --> Epiphany
     float               remotetimer;
 } ebsp_comm_buf;
 
@@ -174,3 +183,5 @@ typedef struct {
 // This was 'measured' by comparing with ARM wall-time measurements
 // resulting in roughly 600 Mhz
 #define CLOCKSPEED 600000000.0f
+
+#pragma pop(pack)

@@ -1,6 +1,8 @@
 # Changelog
 
 ## 0.2
+- All shared structures now have maximal packing because the two compilers use non-compatible alignments
+- All cores now use the same memory for `bsp_put` data payload allowing a lot larger payloads
 - Moved `bsp_var_list` from on-core memory to external memory
 - Host no longer interferes with variable registrattion
 - Added `bsp_get`, `bsp_hpget` and `bsp_put`

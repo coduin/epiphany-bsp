@@ -282,7 +282,7 @@ int ebsp_spmd()
 #ifdef DEBUG
     printf("(BSP) DEBUG: All epiphany cores are ready for initialization.\n");
     printf("(BSP) DEBUG: ebsp uses %d KB = %p B of external memory.\n",
-            sizeof(ebsp_comm_buf)/1024, sizeof(ebsp_comm_buf));
+            sizeof(ebsp_comm_buf)/1024, (void*)sizeof(ebsp_comm_buf));
 #endif
 
     // Time storage

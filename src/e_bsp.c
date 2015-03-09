@@ -32,14 +32,25 @@ see the files COPYING and COPYING.LESSER. If not, see
 ebsp_core_data coredata;
 ebsp_comm_buf* comm_buf = (ebsp_comm_buf*)COMMBUF_EADDR;
 
-// The following belong in ebsp_core_data but since
+// The following variables belong in ebsp_core_data but since
 // we do not want to include e-lib.h in common.h (as it is used by host)
 // we place these variables here
-// FIXME: the first of these two, sync_barrier, is assumed
+
+// FIXME: sync_barrier and payload_mutex, are assumed
 // to have the exact same address on all cores.
 // Currently this is always the case
-volatile e_barrier_t sync_barrier[_NPROCS];
-e_barrier_t*         sync_barrier_tgt[_NPROCS];
+volatile e_barrier_t    sync_barrier[_NPROCS];
+e_barrier_t*            sync_barrier_tgt[_NPROCS];
+e_mutex_t               payload_mutex;
+
+// All error messages are written here so that we can store
+// them in external ram if needed
+const char err_pushreg_multiple[] = "BSP ERROR: multiple bsp_push_reg calls within one sync";
+const char err_pushreg_overflow[] = "BSP ERROR: Trying to push more than MAX_BSP_VARS vars";
+const char err_var_not_found[]    = "BSP ERROR: could not find bsp var. targetpid %d, addr = %p";
+const char err_get_overflow[]     = "BSP ERROR: too many bsp_get requests per sync";
+const char err_put_overflow[]     = "BSP ERROR: too many bsp_put requests per sync";
+const char err_put_overflow2[]    = "BSP ERROR: too large bsp_put payload per sync";
 
 void _write_syncstate(int state);
 int row_from_pid(int pid);
@@ -56,7 +67,6 @@ void bsp_begin()
     coredata.pid = col + cols * row;
     coredata.msgflag = 0;
     coredata.request_counter = 0;
-    coredata.request_payload_used = 0;
     coredata.var_pushed = 0;
 
     // Initialize epiphany timer
@@ -67,6 +77,9 @@ void bsp_begin()
 
     // Initialize the barrier used during syncs
     e_barrier_init(sync_barrier, sync_barrier_tgt);
+
+    // Initialize the mutex for bsp_put
+    e_mutex_init(0, 0, &payload_mutex, MUTEXATTR_NULL);
 
     // Send &coredata to ARM so that ARM can fill it with values
     comm_buf->coredata[coredata.pid] = &coredata;
@@ -121,7 +134,7 @@ float bsp_remote_time()
 void bsp_sync()
 {
     int i;
-    ebsp_data_requests* reqs = &comm_buf->data_requests[coredata.pid];
+    ebsp_data_request* reqs = &comm_buf->data_requests[coredata.pid][0];
 
     // First handle all bsp_get requests
     // Then handle all bsp_put requests (because of bsp specifications)
@@ -132,22 +145,26 @@ void bsp_sync()
     for (i = 0; i < coredata.request_counter; ++i)
     {
         // Check if this is a get
-        if ((reqs->request[i].nbytes & (1<<31)) == 0)
-            memcpy(reqs->request[i].dst,
-                    reqs->request[i].src,
-                    reqs->request[i].nbytes & ~(1<<31));
+        if ((reqs[i].nbytes & (1<<31)) == 0)
+            memcpy(reqs[i].dst,
+                    reqs[i].src,
+                    reqs[i].nbytes & ~(1<<31));
     }
-    //e_barrier(sync_barrier, sync_barrier_tgt);
+    e_barrier(sync_barrier, sync_barrier_tgt);
     for (i = 0; i < coredata.request_counter; ++i)
     {
         // Check if this is a put
-        if ((reqs->request[i].nbytes & (1<<31)) != 0)
-            memcpy(reqs->request[i].dst,
-                    reqs->request[i].src,
-                    reqs->request[i].nbytes & ~(1<<31));
+        if ((reqs[i].nbytes & (1<<31)) != 0)
+            memcpy(reqs[i].dst,
+                    reqs[i].src,
+                    reqs[i].nbytes & ~(1<<31));
     }
     coredata.request_counter = 0;
-    coredata.request_payload_used = 0;
+
+    // This can be done at any point during the sync
+    // (as long as it is after the first barrier so all cores are syncing)
+    // and only one core needs to set this, but this also works
+    comm_buf->data_payloads.buffer_size = 0;
 
     if (coredata.var_pushed)
     {
@@ -171,10 +188,10 @@ void _write_syncstate(int state)
 void bsp_push_reg(const void* variable, const int nbytes)
 {
     if (coredata.var_pushed)
-        return ebsp_message("BSP ERROR: multiple bsp_push_reg calls within one sync");
+        return ebsp_message(err_pushreg_multiple);
 
     if (comm_buf->bsp_var_counter == MAX_BSP_VARS)
-        return ebsp_message("BSP ERROR: Trying to push more than MAX_BSP_VARS vars");
+        return ebsp_message(err_pushreg_overflow);
 
     comm_buf->bsp_var_list[comm_buf->bsp_var_counter][coredata.pid] =
         (void*)variable;
@@ -192,66 +209,91 @@ int col_from_pid(int pid)
     return pid % e_group_config.group_cols;
 }
 
-void* _get_remote_addr(int pid, const void *addr)
+// This incoroporates the bsp_var_list as well as
+// the epiphany global address system
+// The resulting address can be written to directly
+void* _get_remote_addr(int pid, const void *addr, int offset)
 {
     // Find the slot for our local pid
-    // And return the entry for the remote pid
+    // And return the entry for the remote pid including the epiphany mapping
     int slot;
     for(slot = 0; slot < MAX_BSP_VARS; ++slot)
         if (comm_buf->bsp_var_list[slot][coredata.pid] == addr)
-            return comm_buf->bsp_var_list[slot][pid];
-    ebsp_message("BSP ERROR: could not find bsp var. targetpid %d, addr = %p",
-            pid, addr);
+            return e_get_global_address(row_from_pid(pid),
+                    col_from_pid(pid),
+                    (void*)((int)comm_buf->bsp_var_list[slot][pid] + offset));
+    ebsp_message(err_var_not_found, pid, addr);
     return 0;
 }
 
 void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes)
 {
-    if ((coredata.request_counter+1)*sizeof(ebsp_data_request) + nbytes >
-            (sizeof(ebsp_data_requests) - coredata.request_payload_used))
-        return ebsp_message("BSP ERROR: too many bsp_put calls per sync");
-    void* adj_dst = _get_remote_addr(pid, dst);
-    if (!adj_dst) return;
-    adj_dst = (void*)((int)adj_dst + offset);
+    // Check if we can store the request
+    if (coredata.request_counter >= MAX_DATA_REQUESTS)
+        return ebsp_message(err_put_overflow);
 
-    // save request
-    ebsp_data_requests* reqs = &comm_buf->data_requests[coredata.pid];
-    ebsp_data_request* req = &reqs->request[coredata.request_counter];
-    req->src = src;
-    req->dst = e_get_global_address(row_from_pid(pid), col_from_pid(pid), adj_dst);
+    // Find remote address
+    void* dst_remote = _get_remote_addr(pid, dst, offset);
+    if (!dst_remote) return;
+
+    // Check if we can store the payload
+    // A mutex is needed for this.
+    // While holding the mutex this core checks if it can store
+    // the payload and if so, updates the buffer
+    // Note that the mutex is NOT held while writing the payload itself
+    // A possible error message is given after unlocking
+    unsigned int payload_offset;
+
+    e_mutex_lock(0, 0, &payload_mutex);
+
+    payload_offset = comm_buf->data_payloads.buffer_size;
+
+    if (payload_offset + nbytes > MAX_PAYLOAD_SIZE)
+        payload_offset = -1;
+    else
+        comm_buf->data_payloads.buffer_size += nbytes;
+
+    e_mutex_unlock(0, 0, &payload_mutex);
+
+    if (payload_offset == -1)
+        return ebsp_message(err_put_overflow2);
+
+    // We are now ready to save the request and payload
+    void* payload_ptr = &comm_buf->data_payloads.buf[payload_offset];
+
+    // TODO: Measure if e_dma_copy is faster here for both request and payload
+
+    // Save request
+    ebsp_data_request* req = &comm_buf->data_requests[coredata.pid][coredata.request_counter];
+    req->src = payload_ptr;
+    req->dst = dst_remote;
     req->nbytes = nbytes | (1<<31);
     coredata.request_counter++;
-    // save payload
-    coredata.request_payload_used += nbytes;
-    memcpy((void*)((int)reqs + sizeof(ebsp_data_requests) - coredata.request_payload_used),
-                src,
-                nbytes);
+
+    // Save payload
+    memcpy(payload_ptr, src, nbytes);
 }
 
 void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
 {
-    void* adj_dst = _get_remote_addr(pid, dst);
-    if (!adj_dst) return;
-
-    adj_dst = (void*)((int)adj_dst + offset);
-    e_write(&e_group_config, src,
-            row_from_pid(pid),
-            col_from_pid(pid),
-            adj_dst, nbytes);
+    void* dst_remote = _get_remote_addr(pid, dst, offset);
+    if (!dst_remote) return;
+    memcpy(dst_remote, src, nbytes);
+    //e_write(&e_group_config, src,
+    //        row_from_pid(pid),
+    //        col_from_pid(pid),
+    //        adj_dst, nbytes);
 }
 
 void bsp_get(int pid, const void *src, int offset, void *dst, int nbytes)
 {
-    if ((coredata.request_counter+1)*sizeof(ebsp_data_request) >
-            (sizeof(ebsp_data_requests) - coredata.request_payload_used))
-        return ebsp_message("BSP ERROR: too many bsp_get calls per sync");
-    const void* adj_src = _get_remote_addr(pid, src);
-    if (!adj_src) return;
-    adj_src = (void*)((int)adj_src + offset);
+    if (coredata.request_counter >= MAX_DATA_REQUESTS)
+        return ebsp_message(err_get_overflow);
+    const void* src_remote = _get_remote_addr(pid, src, offset);
+    if (!src_remote) return;
 
-    ebsp_data_requests* reqs = &comm_buf->data_requests[coredata.pid];
-    ebsp_data_request* req = &reqs->request[coredata.request_counter];
-    req->src = e_get_global_address(row_from_pid(pid), col_from_pid(pid), adj_src);
+    ebsp_data_request* req = &comm_buf->data_requests[coredata.pid][coredata.request_counter];
+    req->src = src_remote;
     req->dst = dst;
     req->nbytes = nbytes;
     coredata.request_counter++;
@@ -259,14 +301,13 @@ void bsp_get(int pid, const void *src, int offset, void *dst, int nbytes)
 
 void bsp_hpget(int pid, const void *src, int offset, void *dst, int nbytes)
 {
-    const void* adj_src = _get_remote_addr(pid, src);
-    if (!adj_src) return;
-
-    adj_src = (const void*)((int)adj_src + offset);
-    e_read(&e_group_config, dst,
-            row_from_pid(pid),
-            col_from_pid(pid),
-            adj_src, nbytes);
+    const void* src_remote = _get_remote_addr(pid, src, offset);
+    if (!src_remote) return;
+    memcpy(dst, src_remote, nbytes);
+    //e_read(&e_group_config, dst,
+    //        row_from_pid(pid),
+    //        col_from_pid(pid),
+    //        adj_src, nbytes);
 }
 
 void ebsp_message(const char* format, ... )
