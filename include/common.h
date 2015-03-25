@@ -47,6 +47,9 @@ see the files COPYING and COPYING.LESSER. If not, see
 // This is shared amongst all cores!
 #define MAX_PAYLOAD_SIZE 0x8000
 
+// See ebsp_data_request::nbytes
+#define DATA_PUT_BIT    (1<<31)
+
 // Every bsp_put or bsp_get call results in an ebsp_data_request
 // Additionally, bsp_put calls write to the ebsp_payload_buffer
 typedef struct {

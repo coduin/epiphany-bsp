@@ -145,19 +145,19 @@ void bsp_sync()
     for (i = 0; i < coredata.request_counter; ++i)
     {
         // Check if this is a get
-        if ((reqs[i].nbytes & (1<<31)) == 0)
+        if ((reqs[i].nbytes & DATA_PUT_BIT) == 0)
             memcpy(reqs[i].dst,
                     reqs[i].src,
-                    reqs[i].nbytes & ~(1<<31));
+                    reqs[i].nbytes & ~DATA_PUT_BIT);
     }
     e_barrier(sync_barrier, sync_barrier_tgt);
     for (i = 0; i < coredata.request_counter; ++i)
     {
         // Check if this is a put
-        if ((reqs[i].nbytes & (1<<31)) != 0)
+        if ((reqs[i].nbytes & DATA_PUT_BIT) != 0)
             memcpy(reqs[i].dst,
                     reqs[i].src,
-                    reqs[i].nbytes & ~(1<<31));
+                    reqs[i].nbytes & ~DATA_PUT_BIT);
     }
     coredata.request_counter = 0;
 
@@ -267,7 +267,7 @@ void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes)
     ebsp_data_request* req = &comm_buf->data_requests[coredata.pid][coredata.request_counter];
     req->src = payload_ptr;
     req->dst = dst_remote;
-    req->nbytes = nbytes | (1<<31);
+    req->nbytes = nbytes | DATA_PUT_BIT;
     coredata.request_counter++;
 
     // Save payload
