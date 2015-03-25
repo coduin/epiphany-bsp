@@ -340,10 +340,11 @@ int ebsp_spmd()
 
         _microsleep(1); //1000 is 1 millisecond
 
-        // Read the full communication buffer
-        // Including pushreg states and so on
+        // Read the first part of the communication buffer
+        // that contains sync states: read all up till coredata (not inclusive)
         if (e_read(&state.emem, 0, 0, 0, &state.comm_buf,
-                    sizeof(ebsp_comm_buf)) != sizeof(ebsp_comm_buf))
+                    offsetof(ebsp_comm_buf, coredata))
+                != offsetof(ebsp_comm_buf, coredata))
         {
             fprintf(stderr, "ERROR: e_read ebsp_comm_buf failed in ebsp_spmd.\n");
             return 0;
