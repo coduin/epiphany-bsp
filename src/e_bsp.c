@@ -69,12 +69,6 @@ void bsp_begin()
     coredata.request_counter = 0;
     coredata.var_pushed = 0;
 
-    // Initialize epiphany timer
-    coredata.time_passed = 0.0f;
-    e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
-    e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);
-    coredata.last_timer_value = e_ctimer_get(E_CTIMER_0);
-
     // Initialize the barrier used during syncs
     e_barrier_init(sync_barrier, sync_barrier_tgt);
 
@@ -90,6 +84,11 @@ void bsp_begin()
     _write_syncstate(STATE_RUN);
 
     // Now the ARM has entered nprocs
+
+    // Initialize epiphany timer
+    coredata.time_passed = 0.0f;
+    e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
+    coredata.last_timer_value = e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);
 }
 
 void bsp_end()
@@ -112,15 +111,18 @@ int bsp_pid()
 
 float bsp_time()
 {
+    // TODO: Add timer overhead the calculation
     unsigned int cur_time = e_ctimer_get(E_CTIMER_0);
     coredata.time_passed += (coredata.last_timer_value - cur_time) / CLOCKSPEED;
     e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
     // Tested: between setting E_CTIMER_MAX and 
     // reading the timer, it decreased by 23 clockcycles
     coredata.last_timer_value = e_ctimer_get(E_CTIMER_0);
+    //coredata.last_timer_value = cur_time;
+
 #ifdef DEBUG
     if (cur_time == 0)
-        return -1.0;
+        return -1.0f;
 #endif
     return coredata.time_passed;
 }
@@ -174,9 +176,10 @@ void bsp_sync()
     }
 
     // Synchronize with host
-    _write_syncstate(STATE_SYNC);
-    while (coredata.syncstate != STATE_CONTINUE) {}
-    _write_syncstate(STATE_RUN);
+    //_write_syncstate(STATE_SYNC);
+    //while (coredata.syncstate != STATE_CONTINUE) {}
+    //_write_syncstate(STATE_RUN);
+    e_barrier(sync_barrier, sync_barrier_tgt);
 }
 
 void _write_syncstate(int state)

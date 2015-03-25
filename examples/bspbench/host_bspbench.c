@@ -45,7 +45,8 @@ int main(int argc, char **argv){
     for(j=0; j<=64; j++){
         float tmp;
         co_read(0, (off_t)(0x4000+j*sizeof(float)), &tmp, sizeof(float));
-        printf("h[%d]=%E\n",j,tmp);
+        //printf("h[%d]=%E\n",j,tmp);
+        printf("%d %f\n",j,tmp);
     }
 
     printf("The bottom line for this BSP computer is:\n");

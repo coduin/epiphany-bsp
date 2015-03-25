@@ -10,7 +10,7 @@
 
 /* This program needs order 6*MAXH+3*MAXN memory */
 #define NITERSN 1000000 /* number of iterations. Default: 100 */
-#define NITERSH 500     /* number of iterations. Default: 100 */
+#define NITERSH 4000    /* number of iterations. Default: 100 */
 #define MAXN 256        /* maximum length of DAXPY computation. Default: 1024 */
 #define MAXH 64         /* maximum h in h-relation. Default: 256 */
 #define MEGA 1000000.0
@@ -168,7 +168,7 @@ int main() { /*  bsp_bench */
                 ebsp_message("n = %5d min = %7.3lf max = %7.3lf av = %7.3lf Mflop/s",
                        n, nflops/(maxtime*MEGA),nflops/(mintime*MEGA), r/MEGA);
             } else {
-                ebsp_message("n = %5d unable to compute. at least one core took 0 time.", n);
+                ebsp_message("n = %5d unable to compute, at least one core took 0 time", n);
             }
         }
     }
