@@ -338,7 +338,7 @@ int ebsp_spmd()
                 offsetof(ebsp_comm_buf, remotetimer),
                 sizeof(float));
 
-        _microsleep(100); //1000 is 1 millisecond
+        _microsleep(1); //1000 is 1 millisecond
 
         // Read the full communication buffer
         // Including pushreg states and so on

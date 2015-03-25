@@ -84,8 +84,8 @@ typedef struct {
     volatile int        msgflag;
 
     // time_passed is epiphany cpu time (so not walltime) in seconds
-    float               time_passed;
-    unsigned int        last_timer_value;
+    volatile float        time_passed;
+    volatile unsigned int last_timer_value;
 
     // counter for ebsp_comm_buf::data_requests[pid]
     unsigned int        request_counter;
