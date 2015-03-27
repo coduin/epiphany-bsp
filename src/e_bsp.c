@@ -439,15 +439,16 @@ void bsp_qsize(int *packets, int *accum_bytes)
     *accum_bytes = 0;
 
     ebsp_message_queue* q = &comm_buf->message_queue[coredata.queue_index];
+    int mindex = coredata.message_index;
     int qsize = q->count;
 
     // currently searching at message_index
-    for (; coredata.message_index < qsize; coredata.message_index++)
+    for (; mindex < qsize; mindex++)
     {
-        if (q->message[coredata.message_index].pid != coredata.pid)
+        if (q->message[mindex].pid != coredata.pid)
             continue;
-        *packets++;
-        *accum_bytes += q->message[coredata.message_index].nbytes;
+        *packets += 1;
+        *accum_bytes += q->message[mindex].nbytes;
     }
     return;
 }

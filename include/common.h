@@ -49,6 +49,10 @@ see the files COPYING and COPYING.LESSER. If not, see
 // See ebsp_data_request::nbytes
 #define DATA_PUT_BIT    (1<<31)
 
+// Structures that are shared between ARM and epiphany
+// need to use the same alignment: use maximum packing
+#pragma pack(push,1)
+
 // Every bsp_put or bsp_get call results in an ebsp_data_request
 // Additionally, bsp_put calls write to the ebsp_payload_buffer
 typedef struct {
@@ -60,10 +64,6 @@ typedef struct {
     // put or a get request. 0 means get, 1 means put
     int         nbytes;
 } ebsp_data_request;
-
-// Structures that are shared between ARM and epiphany
-// need to use the same alignment: use maximum packing
-#pragma pack(push,1)
 
 // bsp_put calls need to save the data payload
 // Instead of having a separate buffer for each core there is one large

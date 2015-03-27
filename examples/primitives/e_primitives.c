@@ -33,9 +33,6 @@ int main()
     int n = bsp_nprocs(); 
     int p = bsp_pid();
 
-    // First send a message indicating that we have started
-    ebsp_message("Core %d/%d is running!", p, n);
-
     // Get the initial data from the host
     int packets;
     int accum_bytes;
@@ -43,7 +40,7 @@ int main()
     const int data_count = 1000;
     float data_buffer[data_count];
 
-     bsp_qsize(&packets, &accum_bytes);
+    bsp_qsize(&packets, &accum_bytes);
     tagsize = ebsp_get_tagsize();
 
     // Double-check if the host has set the proper tagsize
@@ -63,7 +60,6 @@ int main()
             ebsp_message("Received more bytes than local buffer could hold.");
     }
 
-   
     int status;
     int tag;
     int offset = 0;
