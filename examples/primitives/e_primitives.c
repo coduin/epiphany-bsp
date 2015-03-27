@@ -48,7 +48,8 @@ int main()
     {
         if (p==0)
             ebsp_message("ERROR: tagsize is %d instead of 4", tagsize);
-        return bsp_end();
+        bsp_end();
+        return 0;
     }
 
     // Output some info, but only from core 0 to prevent spamming the console
