@@ -99,7 +99,7 @@ int main()
 
     float squaresum = 0.0f;
     for (int i = 0; i < received_count; i++)
-        squaresum += payload[i] * payload[i];
+        squaresum += data_buffer[i] * data_buffer[i];
 
     // Send result to processor 0
     bsp_hpput(0, &squaresum, &squaresums, p*sizeof(float), sizeof(float));

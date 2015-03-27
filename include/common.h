@@ -44,7 +44,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 // The maximum amount of payload data for bsp_put and bsp_send operations
 // This is shared amongst all cores!
-#define MAX_PAYLOAD_SIZE 0x8000
+#define MAX_PAYLOAD_SIZE (16*0x8000)
 
 // See ebsp_data_request::nbytes
 #define DATA_PUT_BIT    (1<<31)

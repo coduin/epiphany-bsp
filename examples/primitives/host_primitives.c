@@ -26,7 +26,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdio.h>
 
 // Data to be processed by the epiphany cores
-const int data_count = 16*1000;
+#define data_count (16*1000)
 float data[data_count];
 
 int main(int argc, char **argv)
@@ -41,10 +41,10 @@ int main(int argc, char **argv)
     // Get the number of processors available
     int nprocs = bsp_nprocs();
 
-    printf("bsp_nprocs(): %i\n", bsp_nprocs());
+    printf("bsp_nprocs(): %i\n", nprocs);
 
     // Initialize the epiphany system, and load the e-program
-    if (!bsp_begin(nprocs()))
+    if (!bsp_begin(nprocs))
     {
         fprintf(stderr, "ERROR: bsp_begin() failed\n");
         return -1;
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
     int chunk_count = (data_count + nprocs - 1)/nprocs;
 
     ebsp_set_tagsize(&tagsize);
-    for (int p = 0; p < nprocs(); p++)
+    for (int p = 0; p < nprocs; p++)
     {
         tag = 100+p;
         ebsp_senddown(p, &tag,
