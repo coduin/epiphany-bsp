@@ -68,6 +68,9 @@ typedef struct
     // Epiphany specific variables
     e_platform_t platform;
     e_epiphany_t dev;
+
+    // Timer storage
+    struct timespec ts_start, ts_end;
 } bsp_state_t;
 
 bsp_state_t state;
@@ -107,10 +110,9 @@ int ebsp_read(int pid, off_t src, void* dst, int size)
     return 1;
 }
 
-int _write_coredata(int pid, void* src, off_t offset, int size)
+int _write_core_syncstate(int pid, int syncstate)
 {
-    return co_write(pid, src,
-            (off_t)state.comm_buf.coredata[pid] + offset, size);
+    return ebsp_write(pid, &syncstate, (off_t)state.comm_buf.syncstate_ptr, 4);
 }
 
 int _write_extmem(void* src, off_t offset, int size)
@@ -223,6 +225,8 @@ int bsp_begin(int nprocs)
     // Set initial buffer to zero
     memset(&state.comm_buf, 0, sizeof(ebsp_comm_buf));
 
+    state.comm_buf.nprocs = nprocs;
+
     // Write to epiphany
     if (!_write_extmem(&state.comm_buf, 0, sizeof(ebsp_comm_buf)))
     {
@@ -243,29 +247,48 @@ void ebsp_set_end_callback(void (*cb)())
     state.end_callback = cb;
 }
 
+void _update_remote_timer()
+{
+    // Current time. Repeat these lines every iteration
+    clock_gettime(CLOCK_MONOTONIC, &state.ts_end);
+
+    float time_elapsed = (state.ts_end.tv_sec - state.ts_start.tv_sec +
+            (state.ts_end.tv_nsec - state.ts_start.tv_nsec) * 1.0e-9);
+
+    _write_extmem(&time_elapsed,
+            offsetof(ebsp_comm_buf, remotetimer),
+            sizeof(float));
+}
+
 int ebsp_spmd()
 {   
-   
+    // Starting time
+    clock_gettime(CLOCK_MONOTONIC, &state.ts_start);
+    _update_remote_timer();
+  
     // Start the program
-    // The program will block on bsp_begin
-    // in state STATE_INIT
+    // Only if in DEBUG mode:
+    // The program will block on bsp_begin in state STATE_INIT
     // untill we send a STATE_CONTINUE
-    // Before that, we have to fill its buffers
-    // with data like timers
     if (e_start_group(&state.dev) != E_OK) {
         fprintf(stderr, "ERROR: e_start_group() failed.\n");
         return 0;
     }
 
-    int i;
+    // Every iteration we only have to read the start of the buffer
+    // because that is where the syncstate flags are located
+    // We have to read everything up to remotetimer (not included)
+    const int read_size = offsetof(ebsp_comm_buf, remotetimer);
+
+#ifdef DEBUG
     int cores_initialized;
     while (1)
     {
         _microsleep(1000); // 1 millisecond
 
-        // Read the full communication buffer
-        if (e_read(&state.emem, 0, 0, 0, &state.comm_buf,
-                    sizeof(ebsp_comm_buf)) != sizeof(ebsp_comm_buf))
+        // Read the communication buffer
+        if (e_read(&state.emem, 0, 0, 0, &state.comm_buf, read_size)
+                != read_size)
         {
             fprintf(stderr, "ERROR: e_read ebsp_comm_buf failed in ebsp_spmd.\n");
             return 0;
@@ -273,50 +296,22 @@ int ebsp_spmd()
 
         // Check every core
         cores_initialized = 0;
-        for (i = 0; i < state.nprocs; ++i)
+        for (int i = 0; i < state.nprocs; ++i)
             if (state.comm_buf.syncstate[i] == STATE_INIT)
                 ++cores_initialized;
         if (cores_initialized == state.nprocs)
             break;
     }
-#ifdef DEBUG
     printf("(BSP) DEBUG: All epiphany cores are ready for initialization.\n");
     printf("(BSP) DEBUG: ebsp uses %d KB = %p B of external memory.\n",
             sizeof(ebsp_comm_buf)/1024, (void*)sizeof(ebsp_comm_buf));
+
+    _update_remote_timer();
+
+    // Send start signal
+    for (int i = 0; i < state.nprocs; ++i)
+        _write_core_syncstate(i, STATE_CONTINUE);
 #endif
-
-    // Time storage
-    struct timespec ts_start, ts_end;
-    float time_elapsed;
-
-    // Starting time
-    clock_gettime(CLOCK_MONOTONIC, &ts_start);
-    // Current time. Repeat these two lines every iteration
-    clock_gettime(CLOCK_MONOTONIC, &ts_end);
-    time_elapsed = (ts_end.tv_sec - ts_start.tv_sec +
-            (ts_end.tv_nsec - ts_start.tv_nsec) * 1.0e-9);
-
-    // All cores are waiting.
-    // We can now send data and 'start' them
-    _write_extmem(&time_elapsed,
-            offsetof(ebsp_comm_buf, remotetimer),
-            sizeof(float));
-    for (i = 0; i < state.nprocs; ++i)
-    {
-        // Core i has written its coredata address
-        // Now we can initialize it
-        _write_coredata(i,
-                &state.nprocs,
-                offsetof(ebsp_core_data, nprocs),
-                sizeof(int));
-
-        // All data is initialized. Send start signal
-        int flag = STATE_CONTINUE;
-        _write_coredata(i,
-                &flag,
-                offsetof(ebsp_core_data, syncstate),
-                sizeof(int));
-    }
 
     int total_syncs = 0;
     int extmem_corrupted = 0;
@@ -331,20 +326,13 @@ int ebsp_spmd()
 #endif
 
     while (finish_counter != state.nprocs) {
-        // Update timer
-        clock_gettime(CLOCK_MONOTONIC, &ts_end);
-        time_elapsed = (ts_end.tv_sec - ts_start.tv_sec + (ts_end.tv_nsec - ts_start.tv_nsec) * 1.0e-9);
-        _write_extmem(&time_elapsed,
-                offsetof(ebsp_comm_buf, remotetimer),
-                sizeof(float));
-
+        _update_remote_timer();
         _microsleep(1); //1000 is 1 millisecond
 
         // Read the first part of the communication buffer
         // that contains sync states: read all up till coredata (not inclusive)
-        if (e_read(&state.emem, 0, 0, 0, &state.comm_buf,
-                    offsetof(ebsp_comm_buf, coredata))
-                != offsetof(ebsp_comm_buf, coredata))
+        if (e_read(&state.emem, 0, 0, 0, &state.comm_buf, read_size)
+                != read_size)
         {
             fprintf(stderr, "ERROR: e_read ebsp_comm_buf failed in ebsp_spmd.\n");
             return 0;
@@ -355,7 +343,7 @@ int ebsp_spmd()
         sync_counter     = 0;
         finish_counter   = 0;
         continue_counter = 0;
-        for (i = 0; i < state.nprocs; i++) {
+        for (int i = 0; i < state.nprocs; i++) {
             switch (state.comm_buf.syncstate[i]){
                 case STATE_RUN:      run_counter++; break;
                 case STATE_SYNC:     sync_counter++; break;
@@ -367,20 +355,20 @@ int ebsp_spmd()
                                      i, state.comm_buf.syncstate[i]);
                          break;
             }
-            if (state.comm_buf.msgflag[i])
-            {
-                printf("$%02d: %s\n", i, state.comm_buf.message[i].msg);
-                // Reset flag so we do not read it again
-                state.comm_buf.msgflag[i] = 0;
-                // Write the int to the external comm_buf
-                _write_extmem(&state.comm_buf.msgflag[i],
-                        offsetof(ebsp_comm_buf, msgflag[i]),
-                        sizeof(int));
-                // Signal epiphany core that message was read
-                // so that it can (possibly) output the next message
-                _write_coredata(i, &state.comm_buf.msgflag[i],
-                        offsetof(ebsp_core_data, msgflag), sizeof(int));
-            }
+        }
+
+        // Check messages
+        if (state.comm_buf.msgflag)
+        {
+            printf("$%02d: %s\n",
+                    state.comm_buf.msgflag - 1, //flag = pid+1
+                    state.comm_buf.msgbuf);
+            // Reset flag to let epiphany cores continue
+            state.comm_buf.msgflag = 0;
+            // Write the int to the external comm_buf
+            _write_extmem((void*)&state.comm_buf.msgflag,
+                    offsetof(ebsp_comm_buf, msgflag),
+                    sizeof(int));
         }
 
 #ifdef DEBUG
@@ -401,22 +389,20 @@ int ebsp_spmd()
             // line of debug output is needed here
             printf("(BSP) DEBUG: Sync %d after %f seconds\n", total_syncs, time_elapsed);
 #endif
-            _host_sync();
             
             // if call back, call and wait
             if (state.sync_callback)
                 state.sync_callback();
 
             // First reset the comm_buf
-            for (i = 0; i < state.nprocs; i++)
+            for (int i = 0; i < state.nprocs; i++)
                 state.comm_buf.syncstate[i] = STATE_CONTINUE;
             _write_extmem(&state.comm_buf.syncstate,
                     offsetof(ebsp_comm_buf, syncstate),
                     _NPROCS * sizeof(int));
             // Now write it to all cores to continue their execution
-            for (i = 0; i < state.nprocs; i++)
-                _write_coredata(i, &state.comm_buf.syncstate[i],
-                        offsetof(ebsp_core_data, syncstate), sizeof(int));
+            for (int i = 0; i < state.nprocs; i++)
+                _write_core_syncstate(i, STATE_CONTINUE);
         }
     }
     printf("(BSP) INFO: Program finished\n");
@@ -458,10 +444,6 @@ int bsp_nprocs()
 //------------------
 // Private functions
 //------------------
-
-void _host_sync() {
-    return;
-}
 
 void _microsleep(int microseconds)
 {

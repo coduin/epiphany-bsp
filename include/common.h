@@ -24,10 +24,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #pragma once
 
-// A lot of structures here are shared between ARM and epiphany
-// To make sure they use the same alignment, we use maximum packing
-#pragma pack(push,1)
-
 //#define DEBUG
 
 #define _NPROCS 16
@@ -43,7 +39,10 @@ see the files COPYING and COPYING.LESSER. If not, see
 // core is allowed to do per sync step
 #define MAX_DATA_REQUESTS 128
 
-// The maximum amount of payload data for bsp_put operations
+// Maximum send operations for all cores together per sync step
+#define MAX_MESSAGES      256
+
+// The maximum amount of payload data for bsp_put and bsp_send operations
 // This is shared amongst all cores!
 #define MAX_PAYLOAD_SIZE 0x8000
 
@@ -62,6 +61,10 @@ typedef struct {
     int         nbytes;
 } ebsp_data_request;
 
+// Structures that are shared between ARM and epiphany
+// need to use the same alignment: use maximum packing
+#pragma pack(push,1)
+
 // bsp_put calls need to save the data payload
 // Instead of having a separate buffer for each core there is one large
 // buffer used for all cores together. This is because there are many
@@ -73,30 +76,20 @@ typedef struct {
     char            buf[MAX_PAYLOAD_SIZE];
 } ebsp_payload_buffer;
 
-// ebsp_core_data holds local bsp variables for the epiphany cores
-// Every core has a copy in its local space
+// The pid in this struct is only needed in the current implementation
+// where there is one large message queue for all cores instead
+// of a single queue per core. This might change soon
 typedef struct {
-    int                 pid;
-    int                 nprocs;
-
-    // ARM core will set this, epiphany will poll this
-    volatile int        syncstate;
-    volatile int        msgflag;
-
-    // time_passed is epiphany cpu time (so not walltime) in seconds
-    volatile float        time_passed;
-    volatile unsigned int last_timer_value;
-
-    // counter for ebsp_comm_buf::data_requests[pid]
-    unsigned int        request_counter;
-
-    // if this core has done a bsp_push_reg
-    int                 var_pushed;
-} ebsp_core_data;
+    int     pid;
+    void*   tag; // saved in same buffer as payload
+    void*   payload;
+    int     nbytes; // payload bytes
+} ebsp_message_header;
 
 typedef struct {
-    char msg[128];
-} ebsp_message_buf;
+    unsigned int        count; // total messages so far
+    ebsp_message_header message[MAX_MESSAGES];
+} ebsp_message_queue;
 
 // ebsp_comm_buf is a struct for epiphany -> ARM communication
 // It is located in "external memory", meaning on the epiphany device
@@ -119,23 +112,28 @@ typedef struct {
 // the data for different cores (all syncstate flags are
 // in one memory chunk, all msgflags in the next) we can read
 // all syncstate flags in ONE e_read call instead of 16
+
 typedef struct
 {
     // Epiphany --> ARM communication
     int                 syncstate[_NPROCS];
-    int                 msgflag[_NPROCS];
-    ebsp_message_buf    message[_NPROCS];
-    ebsp_core_data*     coredata[_NPROCS];
+    int*                syncstate_ptr; // So that ARM knows where syncstate is
+    volatile int        msgflag; // 0: no msg. 1+pid: msg
+    char                msgbuf[128]; // shared by all cores (mutexed)
+
+    // ARM --> Epiphany
+    float               remotetimer;
+    int                 nprocs;
 
     // Epiphany <--> Epiphany
     void*               bsp_var_list[MAX_BSP_VARS][_NPROCS];
     unsigned int        bsp_var_counter;
     ebsp_data_request   data_requests[_NPROCS][MAX_DATA_REQUESTS];
-    ebsp_payload_buffer data_payloads;
-
-    // ARM --> Epiphany
-    float               remotetimer;
+    ebsp_message_queue  message_queue[2];
+    ebsp_payload_buffer data_payloads; // used for put/get/send
 } ebsp_comm_buf;
+
+#pragma pop(pack)
 
 // The following info can be found in the linker scripts.
 //
@@ -187,4 +185,3 @@ typedef struct
 // resulting in roughly 600 Mhz
 #define CLOCKSPEED 600000000.0f
 
-#pragma pop(pack)
