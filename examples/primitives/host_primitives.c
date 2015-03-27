@@ -25,6 +25,10 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <host_bsp.h>
 #include <stdio.h>
 
+// Data to be processed by the epiphany cores
+const int data_count = 16*1000;
+float data[data_count];
+
 int main(int argc, char **argv)
 {
     // Initialize the BSP system
@@ -34,11 +38,13 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    // Show the number of processors available
+    // Get the number of processors available
+    int nprocs = bsp_nprocs();
+
     printf("bsp_nprocs(): %i\n", bsp_nprocs());
 
     // Initialize the epiphany system, and load the e-program
-    if (!bsp_begin(bsp_nprocs()))
+    if (!bsp_begin(nprocs()))
     {
         fprintf(stderr, "ERROR: bsp_begin() failed\n");
         return -1;
@@ -54,17 +60,20 @@ int main(int argc, char **argv)
     int tagsize = sizeof(int);
 
     // Payload
-    float data[16][16];
-    for (int i = 0; i < 16; i++)
-        for (int j = 0; j < 16; j++)
-            data[i][j] = (float)(i+j+1);
+    for (int i = 0; i < data_count; i++)
+        data[i] = (float)(1+i);
 
     // Send the data
+    // We divide it in nprocs parts
+    int chunk_count = (data_count + nprocs - 1)/nprocs;
+
     ebsp_set_tagsize(&tagsize);
-    for (int i = 0; i < bsp_nprocs(); i++)
+    for (int p = 0; p < nprocs(); p++)
     {
-        tag = i;
-        ebsp_senddown(i, &tag, &data[i][0], 16*sizeof(float));
+        tag = 100+p;
+        ebsp_senddown(p, &tag,
+                &data[p*chunk_count],
+                sizeof(float)*chunk_count);
     }
 
     // Run the SPMD on the e-cores

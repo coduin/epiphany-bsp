@@ -493,6 +493,36 @@ int bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
     return m->nbytes;
 }
 
+void EXT_MEM_TEXT bsp_abort(const char * format, ...)
+{
+    // Because of the way these arguments work we can not
+    // simply call ebsp_message here
+    // so this function contains a copy of ebsp_message
+
+    // Write the message to a buffer
+    char buf[128];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(&buf[0], sizeof(buf), format, args);
+    va_end(args);
+
+    // Lock mutex
+    e_mutex_lock(0, 0, &coredata.ebsp_message_mutex);
+    // Write the message
+    memcpy(&comm_buf->msgbuf[0], &buf[0], sizeof(buf));
+    comm_buf->msgflag = coredata.pid+1;
+    // Wait for it to be printed
+    while(comm_buf->msgflag != 0){}
+    // Unlock mutex
+    e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
+
+    // TODO: Abort all cores
+    // For now, just send an interrupt to all cores
+    // and hope they are not in a temporary state
+    // with interrupts disabled which often happens
+    bsp_end();
+}
+
 void EXT_MEM_TEXT ebsp_message(const char* format, ... )
 {
     // Write the message to a buffer

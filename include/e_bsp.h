@@ -107,6 +107,12 @@ void bsp_get_tag(int *status, void *tag);
 void bsp_move(void *payload, int buffer_size);
 int bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
 
+/** bsp_abort aborts the program after outputting a message
+ * This terminates all running epiphany-cores regardless of their status
+ */
+void _EXFUN(bsp_abort, (const char *, ...)
+               _ATTRIBUTE ((__format__ (__printf__, 1, 2))));
+
 /*
  * Allocate external memory.
  * Keep in mind that this memory is slow so should not be used

@@ -40,15 +40,16 @@ int main()
     int packets;
     int accum_bytes;
     int tagsize;
-    bsp_qsize(&packets, &accum_bytes);
+    const int data_count = 1000;
+    float data_buffer[data_count];
+
+     bsp_qsize(&packets, &accum_bytes);
     tagsize = ebsp_get_tagsize();
 
     // Double-check if the host has set the proper tagsize
     if (tagsize != 4)
     {
-        if (p==0)
-            ebsp_message("ERROR: tagsize is %d instead of 4", tagsize);
-        bsp_end();
+        bsp_abort("ERROR: tagsize is %d instead of 4", tagsize);
         return 0;
     }
 
@@ -57,11 +58,15 @@ int main()
     {
         ebsp_message("Queue contains %d bytes in %d packet(s).",
                 accum_bytes, packets);
+
+        if (accum_bytes > sizeof(float)*data_count)
+            ebsp_message("Received more bytes than local buffer could hold.");
     }
 
+   
     int status;
     int tag;
-    float payload[16];
+    int offset = 0;
     
     for (int i = 0; i < packets; i++)
     {
@@ -72,28 +77,28 @@ int main()
             ebsp_message("bsp_get_tag failed");
             break;
         }
-        if (status != sizeof(float)*16)
-        {
-            ebsp_message("Message in queue has invalid payload size");
-            break;
-        }
+        // Truncate everything that does not fit
+        if (offset + status > sizeof(float)*data_count)
+            status = sizeof(float)*data_count - offset;
 
         // Get message payload
-        bsp_move(&payload, sizeof(payload));
+        bsp_move(&data_buffer[offset], status);
+        offset += status;
 
         if (p==0)
             ebsp_message("Received %d bytes message with tag %d",
                     status, tag);
     }
+    
+    int received_count = offset / sizeof(float);
 
     // Register a variable
     float squaresums[16];
     bsp_push_reg(&squaresums, sizeof(squaresums));
     bsp_sync();
 
-    // Do computations
     float squaresum = 0.0f;
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < received_count; i++)
         squaresum += payload[i] * payload[i];
 
     // Send result to processor 0
