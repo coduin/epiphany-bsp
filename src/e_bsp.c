@@ -355,6 +355,11 @@ void bsp_hpget(int pid, const void *src, int offset, void *dst, int nbytes)
     memcpy(dst, src_remote, nbytes);
 }
 
+int ebsp_get_tagsize()
+{
+    return coredata.tag_size;
+}
+
 void bsp_set_tagsize(int *tag_bytes)
 {
     coredata.tag_size_next = *tag_bytes;

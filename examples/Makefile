@@ -23,7 +23,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: dirs hello e_hello dot_product memtest bspbench lu_decomposition 
+all: dirs hello e_hello primitives dot_product memtest bspbench lu_decomposition 
 
 dirs:
 	mkdir -p bin
@@ -105,6 +105,20 @@ bin/e_bspbench.elf: bspbench/e_bspbench.c
 
 bin/e_bspbench.srec: bin/e_bspbench.elf
 	e-objcopy --srec-forceS3 --output-target srec $< $@
+
+########################################################
+
+primitives: bin/host_primitives bin/e_primitives.elf bin/e_primitives.srec
+
+bin/host_primitives: primitives/host_primitives.c
+	gcc $(CFLAGS) $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
+	
+bin/e_primitives.elf: primitives/e_primitives.c
+	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
+
+bin/e_primitives.srec: bin/e_primitives.elf
+	e-objcopy --srec-forceS3 --output-target srec $< $@
+
 
 ########################################################
 

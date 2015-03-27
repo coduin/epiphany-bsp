@@ -99,6 +99,7 @@ void bsp_hpget(int pid, const void *src, int offset, void *dst, int nbytes);
  * Before the first sync, the queue contains messages from the ARM host
  * They are invalidated after the first call to bsp_sync
  */
+int ebsp_get_tagsize();
 void bsp_set_tagsize(int *tag_bytes);
 void bsp_send(int pid, const void *tag, const void *payload, int nbytes);
 void bsp_qsize(int *packets, int *accum_bytes);
@@ -106,6 +107,18 @@ void bsp_get_tag(int *status, void *tag);
 void bsp_move(void *payload, int buffer_size);
 int bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
 
+/*
+ * Allocate external memory.
+ * Keep in mind that this memory is slow so should not be used
+ * for floating point computations
+ */
+void* ebsp_ext_malloc(int nbytes);
+
+/*
+ * Free allocated external memory.
+ * Not implemented yet
+ */
+void ebsp_free(void* ptr);
 
 /** ebsp_message outputs a debug message by sending it to shared memory
  * So that the host processor can output it to the terminal
