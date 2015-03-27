@@ -99,8 +99,8 @@ void bsp_begin()
     coredata.nprocs = comm_buf->nprocs;
     coredata.request_counter = 0;
     coredata.var_pushed = 0;
-    coredata.tag_size = 0;
-    coredata.tag_size_next = 0;
+    coredata.tag_size = comm_buf->initial_tagsize;
+    coredata.tag_size_next = coredata.tag_size;
     coredata.queue_index = 0;
     coredata.message_index = 0;
 
@@ -132,8 +132,8 @@ void bsp_begin()
 
 void bsp_end()
 {
-    bsp_sync();
     _write_syncstate(STATE_FINISH);
+    // Finish execution
     __asm__("trap 3");
 }
 

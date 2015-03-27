@@ -124,6 +124,7 @@ typedef struct
     // ARM --> Epiphany
     float               remotetimer;
     int                 nprocs;
+    int                 initial_tagsize;
 
     // Epiphany <--> Epiphany
     void*               bsp_var_list[MAX_BSP_VARS][_NPROCS];
