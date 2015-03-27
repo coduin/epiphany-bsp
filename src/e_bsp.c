@@ -28,10 +28,15 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdarg.h>
 #include <string.h>
 
+// Use this define to place functions or variables in external memory
+// TEXT is for functions and normal variables
+// RO is for read only globals
+#define EXT_MEM_TEXT __attribute__((section("EBSP_TEXT")))
+#define EXT_MEM_RO   __attribute__((section("EBSP_RO")))
+
 //
 // All internal bsp variables for this core
 //
-
 typedef struct {
     // ARM core will set this, epiphany will poll this
     volatile int        syncstate;
@@ -68,27 +73,23 @@ typedef struct {
 } ebsp_core_data;
 
 ebsp_core_data coredata;
-ebsp_comm_buf* const comm_buf = (ebsp_comm_buf*)COMMBUF_EADDR;
 
-// The following variables belong in ebsp_core_data but since
-// we do not want to include e-lib.h in common.h (as it is used by host)
-// we place these variables here
+//ebsp_comm_buf * const comm_buf = (ebsp_comm_buf*)COMMBUF_EADDR;
+#define comm_buf ((ebsp_comm_buf*)COMMBUF_EADDR)
 
-// All error messages are written here so that we can store
-// them in external ram if needed
-const char err_pushreg_multiple[] = "BSP ERROR: multiple bsp_push_reg calls within one sync";
-const char err_pushreg_overflow[] = "BSP ERROR: Trying to push more than MAX_BSP_VARS vars";
-const char err_var_not_found[]    = "BSP ERROR: could not find bsp var. targetpid %d, addr = %p";
-const char err_get_overflow[]     = "BSP ERROR: too many bsp_get requests per sync";
-const char err_put_overflow[]     = "BSP ERROR: too many bsp_put requests per sync";
-const char err_put_overflow2[]    = "BSP ERROR: too large bsp_put payload per sync";
-const char err_send_overflow[]    = "BSP ERROR: too many bsp_send requests per sync";
+const char err_pushreg_multiple[] EXT_MEM_RO = "BSP ERROR: multiple bsp_push_reg calls within one sync";
+const char err_pushreg_overflow[] EXT_MEM_RO = "BSP ERROR: Trying to push more than MAX_BSP_VARS vars";
+const char err_var_not_found[]    EXT_MEM_RO = "BSP ERROR: could not find bsp var. targetpid %d, addr = %p";
+const char err_get_overflow[]     EXT_MEM_RO = "BSP ERROR: too many bsp_get requests per sync";
+const char err_put_overflow[]     EXT_MEM_RO = "BSP ERROR: too many bsp_put requests per sync";
+const char err_put_overflow2[]    EXT_MEM_RO = "BSP ERROR: too large bsp_put payload per sync";
+const char err_send_overflow[]    EXT_MEM_RO = "BSP ERROR: too many bsp_send requests per sync";
 
 void _write_syncstate(int state);
 int row_from_pid(int pid);
 int col_from_pid(int pid);
 
-void bsp_begin()
+void EXT_MEM_TEXT bsp_begin()
 {
     int row = e_group_config.core_row;
     int col = e_group_config.core_col;
@@ -99,8 +100,8 @@ void bsp_begin()
     coredata.nprocs = comm_buf->nprocs;
     coredata.request_counter = 0;
     coredata.var_pushed = 0;
-    coredata.tag_size = 0;
-    coredata.tag_size_next = 0;
+    coredata.tag_size = comm_buf->initial_tagsize;
+    coredata.tag_size_next = coredata.tag_size;
     coredata.queue_index = 0;
     coredata.message_index = 0;
 
@@ -119,7 +120,7 @@ void bsp_begin()
 
 #ifdef DEBUG
     // Wait for ARM before starting
-    _write_syncstate(STATE_INIT);
+    _write_syncstate(STATE_EREADY);
     while (coredata.syncstate != STATE_CONTINUE) {}
 #endif
     _write_syncstate(STATE_RUN);
@@ -132,8 +133,8 @@ void bsp_begin()
 
 void bsp_end()
 {
-    bsp_sync();
     _write_syncstate(STATE_FINISH);
+    // Finish execution
     __asm__("trap 3");
 }
 
@@ -148,7 +149,7 @@ int bsp_pid()
     return coredata.pid;
 }
 
-float bsp_time()
+float EXT_MEM_TEXT bsp_time()
 {
     // TODO: Add timer overhead the calculation
     unsigned int cur_time = e_ctimer_get(E_CTIMER_0);
@@ -215,8 +216,10 @@ void bsp_sync()
     }
 
     // Switch queue between 0 and 1
-    coredata.queue_index++;
-    if (coredata.queue_index == 2)
+    // Is there a way that produces shorter assembly?
+    if (coredata.queue_index == 0)
+        coredata.queue_index = 1;
+    else
         coredata.queue_index = 0;
 
     coredata.tag_size = coredata.tag_size_next;
@@ -485,7 +488,7 @@ int bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
     return m->nbytes;
 }
 
-void ebsp_message(const char* format, ... )
+void EXT_MEM_TEXT ebsp_message(const char* format, ... )
 {
     // Write the message to a buffer
     char buf[128];

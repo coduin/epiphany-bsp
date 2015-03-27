@@ -124,6 +124,7 @@ typedef struct
     // ARM --> Epiphany
     float               remotetimer;
     int                 nprocs;
+    int                 initial_tagsize;
 
     // Epiphany <--> Epiphany
     void*               bsp_var_list[MAX_BSP_VARS][_NPROCS];
@@ -179,6 +180,7 @@ typedef struct
 #define STATE_CONTINUE  3
 #define STATE_FINISH    4
 #define STATE_INIT      5
+#define STATE_EREADY    6
 
 // Clockspeed of Epiphany in cycles/second
 // This was 'measured' by comparing with ARM wall-time measurements

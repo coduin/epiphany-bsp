@@ -222,17 +222,9 @@ int bsp_begin(int nprocs)
         return 0;
     }
 
-    // Set initial buffer to zero
+    // Set initial buffer to zero so that it can be filled by messages
+    // before calling ebsp_spmd
     memset(&state.comm_buf, 0, sizeof(ebsp_comm_buf));
-
-    state.comm_buf.nprocs = nprocs;
-
-    // Write to epiphany
-    if (!_write_extmem(&state.comm_buf, 0, sizeof(ebsp_comm_buf)))
-    {
-        fprintf(stderr, "ERROR: e_write ebsp_comm_buf failed in bsp_begin.\n");
-        return 0;
-    }
 
     return 1;
 }
@@ -262,13 +254,24 @@ void _update_remote_timer()
 
 int ebsp_spmd()
 {   
+    // Write communication buffer containing nprocs,
+    // messages and initial_tagsize
+    state.comm_buf.nprocs = state.nprocs_used;
+    for (int i = 0; i < state.nprocs; ++i)
+        state.comm_buf.syncstate[i] = STATE_INIT;
+    if (!_write_extmem(&state.comm_buf, 0, sizeof(ebsp_comm_buf)))
+    {
+        fprintf(stderr, "ERROR: initial extmem write failed in ebsp_spmd.\n");
+        return 0;
+    }
+
     // Starting time
     clock_gettime(CLOCK_MONOTONIC, &state.ts_start);
     _update_remote_timer();
   
     // Start the program
-    // Only if in DEBUG mode:
-    // The program will block on bsp_begin in state STATE_INIT
+    // Only in DEBUG mode:
+    // The program will block on bsp_begin in state STATE_EREADY
     // untill we send a STATE_CONTINUE
     if (e_start_group(&state.dev) != E_OK) {
         fprintf(stderr, "ERROR: e_start_group() failed.\n");
@@ -297,7 +300,7 @@ int ebsp_spmd()
         // Check every core
         cores_initialized = 0;
         for (int i = 0; i < state.nprocs; ++i)
-            if (state.comm_buf.syncstate[i] == STATE_INIT)
+            if (state.comm_buf.syncstate[i] == STATE_EREADY)
                 ++cores_initialized;
         if (cores_initialized == state.nprocs)
             break;
@@ -345,6 +348,7 @@ int ebsp_spmd()
         continue_counter = 0;
         for (int i = 0; i < state.nprocs; i++) {
             switch (state.comm_buf.syncstate[i]){
+                case STATE_INIT:     break;
                 case STATE_RUN:      run_counter++; break;
                 case STATE_SYNC:     sync_counter++; break;
                 case STATE_FINISH:   finish_counter++; break;
@@ -439,6 +443,49 @@ int bsp_end()
 int bsp_nprocs()
 {
     return state.nprocs;
+}
+
+void ebsp_set_tagsize(int *tag_bytes)
+{
+    int oldsize = state.comm_buf.initial_tagsize;
+    state.comm_buf.initial_tagsize = *tag_bytes;
+    *tag_bytes = oldsize;
+}
+
+void ebsp_senddown(int pid, const void *tag, const void *payload, int nbytes)
+{
+    ebsp_message_queue* q = &state.comm_buf.message_queue[0];
+    unsigned int index = q->count;
+    unsigned int payload_offset = state.comm_buf.data_payloads.buffer_size;
+    unsigned int diff = COMMBUF_EADDR - (unsigned int)&state.comm_buf;
+    void *tag_ptr;
+    void *payload_ptr;
+
+    if (index >= MAX_MESSAGES)
+    {
+        fprintf(stderr, "ERROR: Maximal message count reached in ebsp_senddown.\n");
+        return;
+    }
+    if (payload_offset + state.comm_buf.initial_tagsize
+            + nbytes > MAX_PAYLOAD_SIZE)
+    {
+        fprintf(stderr, "ERROR: Maximal data payload sent in ebsp_senddown.\n");
+        return;
+    }
+
+    q->count++;
+    state.comm_buf.data_payloads.buffer_size += nbytes;
+
+    tag_ptr = &state.comm_buf.data_payloads.buf[payload_offset];
+    payload_offset += state.comm_buf.initial_tagsize;
+    payload_ptr = &state.comm_buf.data_payloads.buf[payload_offset];
+
+    q->message[index].pid = pid;
+    q->message[index].tag = (void*)((int)tag_ptr + diff);
+    q->message[index].payload = (void*)((int)payload_ptr + diff);
+    q->message[index].nbytes = nbytes;
+    memcpy(tag_ptr, tag, state.comm_buf.initial_tagsize);
+    memcpy(payload_ptr, payload, nbytes);
 }
 
 //------------------

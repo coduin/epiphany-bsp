@@ -1,5 +1,6 @@
 ESDK=${EPIPHANY_HOME}
 ELDF=${ESDK}/bsps/current/fast.ldf
+ELDF=ebsp_fast.ldf
 
 HOST_LIBNAME = libhost-bsp
 E_LIBNAME	= libe-bsp

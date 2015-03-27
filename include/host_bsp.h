@@ -100,4 +100,12 @@ int bsp_end();
  */
 int bsp_nprocs();
 
-// TODO: Consider function ebsp_push_result()
+/* BSP Message Passing
+ * These functions can be used to send messages to message queue
+ * of the programs for initialization. The messages will only
+ * remain in the queue until bsp_sync has been called for the first time.
+ *
+ * See e_bsp.h for more information
+ */
+void ebsp_set_tagsize(int *tag_bytes);
+void ebsp_senddown(int pid, const void *tag, const void *payload, int nbytes);
