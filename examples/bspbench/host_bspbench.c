@@ -26,6 +26,19 @@ int main(int argc, char **argv){
     if(!bsp_begin(bsp_nprocs())) {
         fprintf(stderr, "[BSPBENCH] bsp_begin() failed\n");
     }
+
+    int tagsize = sizeof(int);
+    int tag = 5;
+    char payload[16];
+    int nbytes = 16;
+
+    ebsp_set_tagsize(&tagsize);
+    for (int i = 0; i < bsp_nprocs(); i++)
+    {
+        payload[0] = i;
+        ebsp_senddown(i, &tag, &payload, nbytes);
+    }
+
     printf("Using %i processors!\n", bsp_nprocs()); fflush(stdout);
     ebsp_spmd();
     printf("ebsp_spmd finished.\n");

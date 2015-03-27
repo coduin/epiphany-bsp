@@ -91,13 +91,13 @@ void bsp_hpget(int pid, const void *src, int offset, void *dst, int nbytes);
 /* BSP Message Passing functions
  * Every message contains a fixed-length (can change per superstep)
  * tag and a variable-length payload.
- * Default tag-size is zero.
+ * Default tag-size is zero unless the host has sent messages
+ * and used ebsp_set_tagsize
  *
  * The order of receiving messages is not guaranteed
  *
- * Reading messages automatically happens from the eCore<->eCore queue
- * first and when all of those are finished, messages are read
- * from the ARM->eCore queue
+ * Before the first sync, the queue contains messages from the ARM host
+ * They are invalidated after the first call to bsp_sync
  */
 void bsp_set_tagsize(int *tag_bytes);
 void bsp_send(int pid, const void *tag, const void *payload, int nbytes);
