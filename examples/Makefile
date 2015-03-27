@@ -1,7 +1,7 @@
 ESDK=${EPIPHANY_HOME}
 ELDF=${ESDK}/bsps/current/fast.ldf
 
-CFLAGS=-std=c99 -O3 -ffast-math -funroll-loops 
+CFLAGS=-std=c99 -O2 -ffast-math
 
 INCLUDES = \
 		   -I../include\

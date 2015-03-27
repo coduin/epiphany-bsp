@@ -32,7 +32,7 @@ bin/host/%.o: %.c
 	
 bin/e/%.o: %.c
 	mkdir -p bin/e bin/lib
-	e-gcc -fno-strict-aliasing -std=c99 -T ${ELDF} $(INCLUDES) -c $< -o $@ ${HOST_LIBS} -le-lib
+	e-gcc -Os -fno-strict-aliasing -std=c99 -T ${ELDF} $(INCLUDES) -c $< -o $@ ${HOST_LIBS} -le-lib
 
 all: host e
 
