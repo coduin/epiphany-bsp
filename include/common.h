@@ -50,8 +50,12 @@ see the files COPYING and COPYING.LESSER. If not, see
 #define DATA_PUT_BIT    (1<<31)
 
 // Structures that are shared between ARM and epiphany
-// need to use the same alignment: use maximum packing
-#pragma pack(push,1)
+// need to use the same alignment
+// By default, the epiphany compiler will align structs
+// to 8-byte and the ARM compiler will align to 4-byte.
+// Since all contents of the structs are 4-byte, we can
+// safely use 4-byte packing without losing speed
+#pragma pack(push,4)
 
 // Every bsp_put or bsp_get call results in an ebsp_data_request
 // Additionally, bsp_put calls write to the ebsp_payload_buffer
@@ -134,7 +138,7 @@ typedef struct
     ebsp_payload_buffer data_payloads; // used for put/get/send
 } ebsp_comm_buf;
 
-#pragma pop(pack)
+#pragma pack(pop)
 
 // The following info can be found in the linker scripts.
 //

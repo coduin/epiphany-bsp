@@ -2,6 +2,11 @@ ESDK=${EPIPHANY_HOME}
 ELDF=${ESDK}/bsps/current/fast.ldf
 ELDF=ebsp_fast.ldf
 
+# For easy switching between compiling on x86_64 and parallella
+# This could probably be auto detected (todo)
+PLATFORM_PREFIX=arm-linux-gnueabihf-
+PLATFORM_PREFIX=
+
 HOST_LIBNAME = libhost-bsp
 E_LIBNAME	= libe-bsp
 LIBEXT = .a
@@ -29,7 +34,7 @@ vpath %.c src
 
 bin/host/%.o: %.c
 	mkdir -p bin/host bin/lib
-	gcc -O3 -std=c99 $(INCLUDES) -c $< -o $@ ${HOST_LIBS} -le-hal -lncurses
+	$(PLATFORM_PREFIX)gcc -O3 -std=c99 $(INCLUDES) -c $< -o $@ ${HOST_LIBS} -le-hal -lncurses
 	
 bin/e/%.o: %.c
 	mkdir -p bin/e bin/lib
@@ -42,10 +47,20 @@ host: bin/lib/$(HOST_LIBNAME)$(LIBEXT)
 e: bin/lib/$(E_LIBNAME)$(LIBEXT)
 
 bin/lib/$(HOST_LIBNAME)$(LIBEXT): $(HOST_OBJS)
-	ar rvs $@ $^ 
+	$(PLATFORM_PREFIX)ar rvs $@ $^ 
 
 bin/lib/$(E_LIBNAME)$(LIBEXT): $(E_OBJS)
 	e-ar rvs $@ $^ 
+
+sizecheck: src/sizeof_check.cpp
+	@echo "-----------------------"
+	@echo "Sizecheck using e-g++"
+	@echo "-----------------------"
+	e-g++ -Wall $(INCLUDES) -c $< -o bin/sizecheck
+	@echo "-----------------------"
+	@echo "Sizecheck using g++"
+	@echo "-----------------------"
+	$(PLATFORM_PREFIX)-g++ -Wall $(INCLUDES) -c $< -o bin/sizecheck
 
 ########################################################
 
