@@ -27,6 +27,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <stdlib.h>
 
 // Use this define to place functions or variables in external memory
 // TEXT is for functions and normal variables
@@ -65,11 +66,14 @@ typedef struct {
     volatile e_barrier_t sync_barrier[_NPROCS];
     e_barrier_t*        sync_barrier_tgt[_NPROCS];
 
-    // Mutex is used for message_queue and data_payloads
+    // Mutex is used for message_queue (send) and data_payloads (put)
     e_mutex_t           payload_mutex;
 
     // Mutex for ebsp_message
     e_mutex_t           ebsp_message_mutex;
+
+    // Mutex for malloc C function
+    e_mutex_t           malloc_mutex;
 } ebsp_core_data;
 
 ebsp_core_data coredata;
@@ -105,14 +109,11 @@ void EXT_MEM_TEXT bsp_begin()
     coredata.queue_index = 0;
     coredata.message_index = 0;
 
-    // Initialize the barrier used during syncs
+    // Initialize the barrier and mutexes
     e_barrier_init(coredata.sync_barrier, coredata.sync_barrier_tgt);
-
-    // Initialize the mutex for bsp_put, bsp_send
     e_mutex_init(0, 0, &coredata.payload_mutex, MUTEXATTR_NULL);
-
-    // Mutex for ebsp_message
     e_mutex_init(0, 0, &coredata.ebsp_message_mutex, MUTEXATTR_NULL);
+    e_mutex_init(0, 0, &coredata.malloc_mutex, MUTEXATTR_NULL);
 
     // Send &syncstate to ARM
     if (coredata.pid == 0)
@@ -536,3 +537,28 @@ void EXT_MEM_TEXT ebsp_message(const char* format, ... )
     e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
 }
 
+void* EXT_MEM_TEXT ebsp_ext_malloc(unsigned int nbytes)
+{
+    void *ret = 0;
+    e_mutex_lock(0, 0, &coredata.malloc_mutex);
+    ret = malloc(nbytes);
+    // Sometimes (less than 5%) malloc fails and returns 0
+    // TODO: Implement malloc ourselves
+    // We could try
+    // http://www.parallella.org/forums/viewtopic.php?f=13&t=517
+    // https://github.com/CIB/ule_script
+    if ((unsigned int)ret + nbytes > COMMBUF_EADDR)
+    {
+        free(ret);
+        ret = 0;
+    }
+    e_mutex_unlock(0, 0, &coredata.malloc_mutex);
+    return ret;
+}
+
+void EXT_MEM_TEXT ebsp_free(void* ptr)
+{
+    e_mutex_lock(0, 0, &coredata.malloc_mutex);
+    free(ptr);
+    e_mutex_unlock(0, 0, &coredata.malloc_mutex);
+}

@@ -64,6 +64,10 @@ void bsp_sync();
  */
 void bsp_push_reg(const void* variable, const int nbytes);
 
+/* De-registers a variable. Takes effect at the next sync.
+ */
+void bsp_pop_reg(const void* variable);
+
 /** Put a variable to another processor
  * Buffered version: the data in src is saved at the moment of the call
  * and it is transferred to the other core at the next sync
@@ -118,11 +122,10 @@ void _EXFUN(bsp_abort, (const char *, ...)
  * Keep in mind that this memory is slow so should not be used
  * for floating point computations
  */
-void* ebsp_ext_malloc(int nbytes);
+void* ebsp_ext_malloc(unsigned int nbytes);
 
 /*
  * Free allocated external memory.
- * Not implemented yet
  */
 void ebsp_free(void* ptr);
 

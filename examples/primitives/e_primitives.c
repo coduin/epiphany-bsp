@@ -115,6 +115,29 @@ int main()
         ebsp_message("Total square sum is %f", sum);
     }
 
+    // Allocate external (slow, but larger) memory
+    // Use ebsp_ext_malloc 100 times per core to check if it works
+    void *ptrs[100];
+    void *allptrs[16][100];
+    bsp_push_reg(&allptrs, sizeof(allptrs));
+    bsp_sync();
+    for (int i = 0; i < 100; i++)
+    {
+        ptrs[i] = ebsp_ext_malloc(1);
+        bsp_hpput(0, &ptrs[i], &allptrs, (size_t)&allptrs[p][i]-(size_t)&allptrs[0][0], sizeof(void*));
+    }
+    bsp_sync();
+
+    if (p==0)
+    {
+        for (int a = 0; a < n; ++a)
+            for (int i = 0; i < 100; i++)
+                ebsp_message("core %d allocated %p", a, allptrs[a][i]);
+    }
+
+    for (int i = 0; i < 100; i++)
+        ebsp_free(ptrs[i]);
+
     // Finalize
     bsp_end();
 
