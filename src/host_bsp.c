@@ -329,7 +329,8 @@ int ebsp_spmd()
     printf("(BSP) DEBUG: All epiphany cores initialized.\n");
 #endif
 
-    while (finish_counter != state.nprocs) {
+    for (;;)
+    {
         _update_remote_timer();
         _microsleep(1); //1000 is 1 millisecond
 
@@ -415,6 +416,8 @@ int ebsp_spmd()
             printf("(BSP) ERROR: bsp_abort was called\n");
             break;
         }
+        if (finish_counter == state.nprocs)
+            break;
     }
     printf("(BSP) INFO: Program finished\n");
 

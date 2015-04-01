@@ -2,11 +2,16 @@ ESDK=${EPIPHANY_HOME}
 ELDF=${ESDK}/bsps/current/fast.ldf
 ELDF=../ebsp_fast.ldf
 
-# For easy switching between compiling on x86_64 and parallella
-PLATFORM_PREFIX=arm-linux-gnueabihf-
-PLATFORM_PREFIX=
+# ARCH will be either x86_64, x86, or armv7l (parallella)
+ARCH=$(shell uname -m)
 
-CFLAGS=-std=c99 -O3 -ffast-math
+ifeq ($(ARCH),x86_64)
+PLATFORM_PREFIX=arm-linux-gnueabihf-
+else
+PLATFORM_PREFIX=
+endif
+
+CFLAGS=-std=c99 -O3 -ffast-math -Wall
 
 INCLUDES = \
 		   -I../include\

@@ -112,7 +112,7 @@ int main()
         for (int i = 0; i < 16; i++)
             sum += squaresums[i];
 
-        ebsp_message("Total square sum is %f", squaresum);
+        ebsp_message("Total square sum is %f", sum);
     }
 
     // Finalize

@@ -2,10 +2,14 @@ ESDK=${EPIPHANY_HOME}
 ELDF=${ESDK}/bsps/current/fast.ldf
 ELDF=ebsp_fast.ldf
 
-# For easy switching between compiling on x86_64 and parallella
-# This could probably be auto detected (todo)
+# ARCH will be either x86_64, x86, or armv7l (parallella)
+ARCH=$(shell uname -m)
+
+ifeq ($(ARCH),x86_64)
 PLATFORM_PREFIX=arm-linux-gnueabihf-
+else
 PLATFORM_PREFIX=
+endif
 
 HOST_LIBNAME = libhost-bsp
 E_LIBNAME	= libe-bsp
@@ -34,11 +38,11 @@ vpath %.c src
 
 bin/host/%.o: %.c
 	mkdir -p bin/host bin/lib
-	$(PLATFORM_PREFIX)gcc -O3 -std=c99 $(INCLUDES) -c $< -o $@ ${HOST_LIBS} -le-hal -lncurses
+	$(PLATFORM_PREFIX)gcc -O3 -Wall -std=c99 $(INCLUDES) -c $< -o $@ ${HOST_LIBS} -le-hal -lncurses
 	
 bin/e/%.o: %.c
 	mkdir -p bin/e bin/lib
-	e-gcc -Os -fno-strict-aliasing -std=c99 -T ${ELDF} $(INCLUDES) -c $< -o $@ ${HOST_LIBS} -le-lib
+	e-gcc -Os -fno-strict-aliasing -std=c99 -Wall -T ${ELDF} $(INCLUDES) -c $< -o $@ ${HOST_LIBS} -le-lib
 
 all: host e
 
