@@ -9,8 +9,8 @@
 */
 
 /* This program needs order 6*MAXH+3*MAXN memory */
-#define NITERSN 1000000 /* number of iterations. Default: 100 */
-#define NITERSH 4000    /* number of iterations. Default: 100 */
+#define NITERSN 500000 /* number of iterations. Default: 100 */
+#define NITERSH 8000   /* number of iterations. Default: 100 */
 #define MAXN 256        /* maximum length of DAXPY computation. Default: 1024 */
 #define MAXH 64         /* maximum h in h-relation. Default: 256 */
 #define MEGA 1000000.0
@@ -191,9 +191,10 @@ int main() { /*  bsp_bench */
         }
 
         /* Measure time of NITERS h-relations */
+        int total_iters = (int)(NITERSH/(h+1));
         bsp_sync(); 
         time0 = bsp_remote_time(); 
-        for (iter=0; iter<NITERSH; iter++) {
+        for (iter=0; iter<total_iters; iter++) {
             for (i=0; i<h; i++)
                 bsp_hpput(destproc[i], &src[i], dest, destindex[i]*SZDBL, SZDBL);
             bsp_sync(); 
@@ -203,7 +204,7 @@ int main() { /*  bsp_bench */
  
         /* Compute time of one h-relation */
         if (s == 0) {
-            t[h] = (time*r)/(float)NITERSH;
+            t[h] = (time*r)/(float)total_iters;
             ebsp_message("Time of %5d-relation = %lf sec = %8.0lf flops (bsp_hpput)",
                    h, time/NITERSH, t[h]);
         }
@@ -212,7 +213,7 @@ int main() { /*  bsp_bench */
         /* Measure time of NITERS h-relations using buffered put */
         bsp_sync(); 
         time0 = bsp_remote_time(); 
-        for (iter=0; iter<NITERSH; iter++) {
+        for (iter=0; iter<total_iters; iter++) {
             for (i=0; i<h; i++)
                 bsp_put(destproc[i], &src[i], dest, destindex[i]*SZDBL, SZDBL);
             bsp_sync(); 
@@ -222,7 +223,7 @@ int main() { /*  bsp_bench */
  
         /* Compute time of one h-relation */
         if (s == 0) {
-            t[h] = (time*r)/(float)NITERSH;
+            t[h] = (time*r)/(float)total_iters;
             ebsp_message("Time of %5d-relation = %lf sec = %8.0lf flops (bsp_put  ) put/hpput = %f",
                    h, time/NITERSH, t[h], time/unbufferedTime);
         }
