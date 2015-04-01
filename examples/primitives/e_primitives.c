@@ -37,8 +37,9 @@ int main()
     int packets;
     int accum_bytes;
     int tagsize;
-    const int data_count = 1000;
-    float data_buffer[data_count];
+    const int max_data_count = 1000;
+    const int max_data_bytes = sizeof(float)*max_data_count;
+    float data_buffer[max_data_count];
 
     bsp_qsize(&packets, &accum_bytes);
     tagsize = ebsp_get_tagsize();
@@ -56,7 +57,7 @@ int main()
         ebsp_message("Queue contains %d bytes in %d packet(s).",
                 accum_bytes, packets);
 
-        if (accum_bytes > sizeof(float)*data_count)
+        if (accum_bytes > max_data_bytes)
             ebsp_message("Received more bytes than local buffer could hold.");
     }
 
@@ -74,8 +75,12 @@ int main()
             break;
         }
         // Truncate everything that does not fit
-        if (offset + status > sizeof(float)*data_count)
-            status = sizeof(float)*data_count - offset;
+        // Note that local variables will be optimized into registers
+        // so do not worry about using an excessive amount of local variables
+        // since there are more than 50 non-reserved registers available
+        int space = max_data_bytes - offset;
+        if (status > space)
+            status = space;
 
         // Get message payload
         bsp_move(&data_buffer[offset], status);
@@ -93,19 +98,19 @@ int main()
     bsp_push_reg(&squaresums, sizeof(squaresums));
     bsp_sync();
 
-    float squaresum = 0.0f;
+    float sum = 0.0f;
     for (int i = 0; i < received_count; i++)
-        squaresum += data_buffer[i] * data_buffer[i];
+        sum += data_buffer[i] * data_buffer[i];
 
     // Send result to processor 0
-    bsp_hpput(0, &squaresum, &squaresums, p*sizeof(float), sizeof(float));
+    bsp_hpput(0, &sum, &squaresums, p*sizeof(float), sizeof(float));
     bsp_sync();
     
     if (p == 0)
     {
-        squaresum = 0.0f;
+        sum = 0.0f;
         for (int i = 0; i < 16; i++)
-            squaresum += squaresums[i];
+            sum += squaresums[i];
 
         ebsp_message("Total square sum is %f", squaresum);
     }

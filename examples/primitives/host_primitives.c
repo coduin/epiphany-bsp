@@ -65,15 +65,15 @@ int main(int argc, char **argv)
 
     // Send the data
     // We divide it in nprocs parts
-    int chunk_count = (data_count + nprocs - 1)/nprocs;
+    int chunk_size = (data_count + nprocs - 1)/nprocs;
 
     ebsp_set_tagsize(&tagsize);
     for (int p = 0; p < nprocs; p++)
     {
-        tag = 100+p;
+        tag = 100+p; // random tag
         ebsp_senddown(p, &tag,
-                &data[p*chunk_count],
-                sizeof(float)*chunk_count);
+                &data[p*chunk_size],
+                sizeof(float)*chunk_size);
     }
 
     // Run the SPMD on the e-cores

@@ -175,37 +175,31 @@ float bsp_remote_time()
 // Sync
 void bsp_sync()
 {
-    int i;
+    // Handle all bsp_get requests before bsp_put request. They are stored in
+    // the same list and recognized by the highest bit of nbytes
+
+    // Instead of copying the code twice, we put it in a loop
+    // so that the code is shorter (this is tested)
     ebsp_data_request* reqs = &comm_buf->data_requests[coredata.pid][0];
-
-    // First handle all bsp_get requests
-    // Then handle all bsp_put requests (because of bsp specifications)
-    // They are stored in the same list and recognized by the
-    // highest bit of nbytes
-
-    e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
-    for (i = 0; i < coredata.request_counter; ++i)
+    for (int put = 0;;)
     {
-        // Check if this is a get
-        if ((reqs[i].nbytes & DATA_PUT_BIT) == 0)
-            memcpy(reqs[i].dst,
-                    reqs[i].src,
-                    reqs[i].nbytes & ~DATA_PUT_BIT);
-    }
-    e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
-    for (i = 0; i < coredata.request_counter; ++i)
-    {
-        // Check if this is a put
-        if ((reqs[i].nbytes & DATA_PUT_BIT) != 0)
-            memcpy(reqs[i].dst,
-                    reqs[i].src,
-                    reqs[i].nbytes & ~DATA_PUT_BIT);
+        e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
+        for (int i = 0; i < coredata.request_counter; ++i)
+        {
+            int nbytes = reqs[i].nbytes;
+            // Check if this is a get or a put
+            if ((nbytes & DATA_PUT_BIT) == put)
+                memcpy(reqs[i].dst, reqs[i].src, nbytes & ~DATA_PUT_BIT);
+        }
+        if (put == 0) put = DATA_PUT_BIT;
+        else break;
     }
     coredata.request_counter = 0;
 
     // This can be done at any point during the sync
-    // (as long as it is after the first barrier so all cores are syncing)
-    // and only one core needs to set this, but this also works
+    // (as long as it is after the first barrier and before the last one
+    // so all cores are syncing) and only one core needs to set this, but
+    // letting all cores set it produces smaller code (binary size)
     comm_buf->data_payloads.buffer_size = 0;
 
     if (coredata.var_pushed)
@@ -216,20 +210,18 @@ void bsp_sync()
     }
 
     // Switch queue between 0 and 1
-    // Is there a way that produces shorter assembly?
-    if (coredata.queue_index == 0)
-        coredata.queue_index = 1;
-    else
-        coredata.queue_index = 0;
+    // xor seems to produce the shortest assembly
+    coredata.queue_index ^= 1;
 
     coredata.tag_size = coredata.tag_size_next;
     coredata.message_index = 0;
+
+    e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
 
     // Synchronize with host
     //_write_syncstate(STATE_SYNC);
     //while (coredata.syncstate != STATE_CONTINUE) {}
     //_write_syncstate(STATE_RUN);
-    e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
 }
 
 void _write_syncstate(int state)
@@ -269,8 +261,7 @@ void* _get_remote_addr(int pid, const void *addr, int offset)
 {
     // Find the slot for our local pid
     // And return the entry for the remote pid including the epiphany mapping
-    int slot;
-    for(slot = 0; slot < MAX_BSP_VARS; ++slot)
+    for (int slot = 0; slot < MAX_BSP_VARS; ++slot)
         if (comm_buf->bsp_var_list[slot][coredata.pid] == addr)
             return e_get_global_address(row_from_pid(pid),
                     col_from_pid(pid),
@@ -317,11 +308,10 @@ void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes)
     // TODO: Measure if e_dma_copy is faster here for both request and payload
 
     // Save request
-    ebsp_data_request* req = &comm_buf->data_requests[coredata.pid][coredata.request_counter];
+    ebsp_data_request* req = &comm_buf->data_requests[coredata.pid][coredata.request_counter++];
     req->src = payload_ptr;
     req->dst = dst_remote;
     req->nbytes = nbytes | DATA_PUT_BIT;
-    coredata.request_counter++;
 
     // Save payload
     memcpy(payload_ptr, src, nbytes);
@@ -517,11 +507,13 @@ void EXT_MEM_TEXT bsp_abort(const char * format, ...)
     // Unlock mutex
     e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
 
-    // TODO: Abort all cores
-    // For now, just send an interrupt to all cores
-    // and hope they are not in a temporary state
-    // with interrupts disabled which often happens
-    bsp_end();
+    // Abort all cores and notify host
+    _write_syncstate(STATE_ABORT);
+    // Experimental Epiphany feature that sends
+    // and abort signal to all cores
+    __asm__("MBKPT");
+    // Halt this core
+    __asm__("trap 3");
 }
 
 void EXT_MEM_TEXT ebsp_message(const char* format, ... )

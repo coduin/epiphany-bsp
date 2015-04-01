@@ -322,6 +322,7 @@ int ebsp_spmd()
     int sync_counter;
     int finish_counter;
     int continue_counter;
+    int abort_counter;
 
 #ifdef DEBUG
     int iter = 0;
@@ -346,6 +347,7 @@ int ebsp_spmd()
         sync_counter     = 0;
         finish_counter   = 0;
         continue_counter = 0;
+        abort_counter    = 0;
         for (int i = 0; i < state.nprocs; i++) {
             switch (state.comm_buf.syncstate[i]){
                 case STATE_INIT:     break;
@@ -353,6 +355,7 @@ int ebsp_spmd()
                 case STATE_SYNC:     sync_counter++; break;
                 case STATE_FINISH:   finish_counter++; break;
                 case STATE_CONTINUE: continue_counter++; break;
+                case STATE_ABORT:    abort_counter++; break;
                 default: extmem_corrupted++;
                          if( extmem_corrupted <= 32) //to avoid output overflow
                              fprintf(stderr, "ERROR: External memory corrupted. syncstate[%d] = %d.\n",
@@ -407,6 +410,10 @@ int ebsp_spmd()
             // Now write it to all cores to continue their execution
             for (int i = 0; i < state.nprocs; i++)
                 _write_core_syncstate(i, STATE_CONTINUE);
+        }
+        if (abort_counter != 0) {
+            printf("(BSP) ERROR: bsp_abort was called\n");
+            break;
         }
     }
     printf("(BSP) INFO: Program finished\n");

@@ -6,7 +6,7 @@ ELDF=../ebsp_fast.ldf
 PLATFORM_PREFIX=arm-linux-gnueabihf-
 PLATFORM_PREFIX=
 
-CFLAGS=-std=c99 -O3 -ffast-math -funroll-loops
+CFLAGS=-std=c99 -O3 -ffast-math
 
 INCLUDES = \
 		   -I../include\
