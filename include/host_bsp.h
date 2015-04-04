@@ -102,10 +102,29 @@ int bsp_nprocs();
 
 /* BSP Message Passing
  * These functions can be used to send messages to message queue
- * of the programs for initialization. The messages will only
- * remain in the queue until bsp_sync has been called for the first time.
+ * of the programs for initialization and retrieve messages to 
+ * gather results.
+ * The initialization messages will only remain in the queue until bsp_sync
+ * has been called for the first time.
+ * The default tag-size is zero.
+ *
+ * Sending messages must be done after bsp_init
+ * Retrieving messages must be done before bsp_end
  *
  * See e_bsp.h for more information
  */
+
+/* Set initial tagsize. Should be called at most once. */
 void ebsp_set_tagsize(int *tag_bytes);
+
+/* Send initial messages */
 void ebsp_senddown(int pid, const void *tag, const void *payload, int nbytes);
+
+/* The following functions are only for gathering result messages
+ * at the end of a BSP program */
+int ebsp_get_tagsize();
+void ebsp_qsize(int *packets, int *accum_bytes);
+void ebsp_get_tag(int *status, void *tag);
+void ebsp_move(void *payload, int buffer_size);
+int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
+

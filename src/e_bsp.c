@@ -57,8 +57,8 @@ typedef struct {
 
     // message_index is an index into an epiphany<->epiphany queue and
     // when it reached the end, it is an index into the arm->epiphany queue
-    unsigned int        tag_size;
-    unsigned int        tag_size_next; // next superstep
+    unsigned int        tagsize;
+    unsigned int        tagsize_next; // next superstep
     unsigned int        queue_index;
     unsigned int        message_index;
 
@@ -104,8 +104,8 @@ void EXT_MEM_TEXT bsp_begin()
     coredata.nprocs = comm_buf->nprocs;
     coredata.request_counter = 0;
     coredata.var_pushed = 0;
-    coredata.tag_size = comm_buf->initial_tagsize;
-    coredata.tag_size_next = coredata.tag_size;
+    coredata.tagsize = comm_buf->tagsize;
+    coredata.tagsize_next = coredata.tagsize;
     coredata.queue_index = 0;
     coredata.message_index = 0;
 
@@ -214,7 +214,7 @@ void bsp_sync()
     // xor seems to produce the shortest assembly
     coredata.queue_index ^= 1;
 
-    coredata.tag_size = coredata.tag_size_next;
+    coredata.tagsize = coredata.tagsize_next;
     coredata.message_index = 0;
 
     e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
@@ -348,19 +348,21 @@ void bsp_hpget(int pid, const void *src, int offset, void *dst, int nbytes)
 
 int ebsp_get_tagsize()
 {
-    return coredata.tag_size;
+    return coredata.tagsize;
 }
 
 void bsp_set_tagsize(int *tag_bytes)
 {
-    coredata.tag_size_next = *tag_bytes;
-    *tag_bytes = coredata.tag_size;
+    coredata.tagsize_next = *tag_bytes;
+    comm_buf->tagsize = *tag_bytes;
+    *tag_bytes = coredata.tagsize;
 }
 
 void bsp_send(int pid, const void *tag, const void *payload, int nbytes)
 {
     unsigned int index;
     unsigned int payload_offset;
+    unsigned int total_nbytes = coredata.tagsize + nbytes;
 
     ebsp_message_queue* q = &comm_buf->message_queue[coredata.queue_index];
 
@@ -369,7 +371,7 @@ void bsp_send(int pid, const void *tag, const void *payload, int nbytes)
     index = q->count;
     payload_offset = comm_buf->data_payloads.buffer_size;
 
-    if ((payload_offset + coredata.tag_size + nbytes > MAX_PAYLOAD_SIZE)
+    if ((payload_offset + total_nbytes > MAX_PAYLOAD_SIZE)
             || (index >= MAX_MESSAGES))
     {
         index = -1;
@@ -378,7 +380,7 @@ void bsp_send(int pid, const void *tag, const void *payload, int nbytes)
     else
     {
         q->count++;
-        comm_buf->data_payloads.buffer_size += nbytes;
+        comm_buf->data_payloads.buffer_size += total_nbytes;
     }
 
     e_mutex_unlock(0, 0, &coredata.payload_mutex);
@@ -388,7 +390,7 @@ void bsp_send(int pid, const void *tag, const void *payload, int nbytes)
 
     // We are now ready to save the request and payload
     void* tag_ptr = &comm_buf->data_payloads.buf[payload_offset];
-    payload_offset += coredata.tag_size;
+    payload_offset += coredata.tagsize;
     void* payload_ptr = &comm_buf->data_payloads.buf[payload_offset];
 
     q->message[index].pid = pid;
@@ -396,14 +398,12 @@ void bsp_send(int pid, const void *tag, const void *payload, int nbytes)
     q->message[index].payload = payload_ptr;
     q->message[index].nbytes = nbytes;
 
-    memcpy(tag_ptr, tag, coredata.tag_size);
+    memcpy(tag_ptr, tag, coredata.tagsize);
     memcpy(payload_ptr, payload, nbytes);
 }
 
 // Gets the next message from the queue, does not pop
 // Returns 0 if no message
-// Checks both epiphany<->epiphany queue
-// and ARM->epiphany queue
 ebsp_message_header* _next_queue_message()
 {
     ebsp_message_queue* q = &comm_buf->message_queue[coredata.queue_index];
@@ -453,7 +453,7 @@ void bsp_get_tag(int *status, void *tag)
         return;
     }
     *status = m->nbytes;
-    memcpy(tag, m->tag, coredata.tag_size);
+    memcpy(tag, m->tag, coredata.tagsize);
 }
 
 void bsp_move(void *payload, int buffer_size)

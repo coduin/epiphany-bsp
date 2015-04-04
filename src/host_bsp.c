@@ -54,11 +54,13 @@ typedef struct
     // Number of processors in use
     int nprocs_used;
 
-    // External memory that holsd ebsp_comm_buf
+    // External memory that holds ebsp_comm_buf
     e_mem_t emem;
     // Local copy of ebsp_comm_buf to copy from and
     // copy into.
     ebsp_comm_buf comm_buf;
+    // For reading out the final queue
+    int message_index;
 
     void (*sync_callback)(void);
     void (*end_callback)(void);
@@ -255,7 +257,7 @@ void _update_remote_timer()
 int ebsp_spmd()
 {   
     // Write communication buffer containing nprocs,
-    // messages and initial_tagsize
+    // messages and tagsize
     state.comm_buf.nprocs = state.nprocs_used;
     for (int i = 0; i < state.nprocs; ++i)
         state.comm_buf.syncstate[i] = STATE_INIT;
@@ -457,9 +459,26 @@ int bsp_nprocs()
 
 void ebsp_set_tagsize(int *tag_bytes)
 {
-    int oldsize = state.comm_buf.initial_tagsize;
-    state.comm_buf.initial_tagsize = *tag_bytes;
+    int oldsize = state.comm_buf.tagsize;
+    state.comm_buf.tagsize = *tag_bytes;
     *tag_bytes = oldsize;
+}
+
+// Converting between epiphany and arm pointers
+// Only for things stored in state.comm_buf !
+
+void* _arm_to_e_pointer(void* ptr)
+{
+    return (void*)((unsigned int)ptr
+            - (unsigned int)&state.comm_buf
+            + COMMBUF_EADDR);
+}
+
+void* _e_to_arm_pointer(void* ptr)
+{
+    return (void*)((unsigned int)ptr
+            - COMMBUF_EADDR
+            + (unsigned int)&state.comm_buf);
 }
 
 void ebsp_senddown(int pid, const void *tag, const void *payload, int nbytes)
@@ -467,7 +486,7 @@ void ebsp_senddown(int pid, const void *tag, const void *payload, int nbytes)
     ebsp_message_queue* q = &state.comm_buf.message_queue[0];
     unsigned int index = q->count;
     unsigned int payload_offset = state.comm_buf.data_payloads.buffer_size;
-    unsigned int diff = COMMBUF_EADDR - (unsigned int)&state.comm_buf;
+    unsigned int total_nbytes = state.comm_buf.tagsize + nbytes;
     void *tag_ptr;
     void *payload_ptr;
 
@@ -476,26 +495,102 @@ void ebsp_senddown(int pid, const void *tag, const void *payload, int nbytes)
         fprintf(stderr, "ERROR: Maximal message count reached in ebsp_senddown.\n");
         return;
     }
-    if (payload_offset + state.comm_buf.initial_tagsize
-            + nbytes > MAX_PAYLOAD_SIZE)
+    if (payload_offset + total_nbytes > MAX_PAYLOAD_SIZE)
     {
         fprintf(stderr, "ERROR: Maximal data payload sent in ebsp_senddown.\n");
         return;
     }
 
     q->count++;
-    state.comm_buf.data_payloads.buffer_size += nbytes;
+    state.comm_buf.data_payloads.buffer_size += total_nbytes;
 
     tag_ptr = &state.comm_buf.data_payloads.buf[payload_offset];
-    payload_offset += state.comm_buf.initial_tagsize;
+    payload_offset += state.comm_buf.tagsize;
     payload_ptr = &state.comm_buf.data_payloads.buf[payload_offset];
 
     q->message[index].pid = pid;
-    q->message[index].tag = (void*)((int)tag_ptr + diff);
-    q->message[index].payload = (void*)((int)payload_ptr + diff);
+    q->message[index].tag = _arm_to_e_pointer(tag_ptr);
+    q->message[index].payload = _arm_to_e_pointer(payload_ptr);
     q->message[index].nbytes = nbytes;
-    memcpy(tag_ptr, tag, state.comm_buf.initial_tagsize);
+    memcpy(tag_ptr, tag, state.comm_buf.tagsize);
     memcpy(payload_ptr, payload, nbytes);
+}
+
+int ebsp_get_tagsize()
+{
+    return state.comm_buf.tagsize;
+}
+
+void ebsp_qsize(int *packets, int *accum_bytes)
+{
+    *packets = 0;
+    *accum_bytes = 0;
+
+    ebsp_message_queue* q = &state.comm_buf.message_queue[0];
+    int mindex = state.message_index;
+    int qsize = q->count;
+
+    // Count everything after mindex
+    for (; mindex < qsize; mindex++)
+    {
+        *packets += 1;
+        *accum_bytes += q->message[mindex].nbytes;
+    }
+    return;
+}
+
+ebsp_message_header* _next_queue_message()
+{
+    ebsp_message_queue* q = &state.comm_buf.message_queue[0];
+    if (state.message_index < q->count)
+        return &q->message[state.message_index];
+    return 0;
+}
+
+void _pop_queue_message()
+{
+    state.message_index++;
+}
+
+void ebsp_get_tag(int *status, void *tag)
+{
+    ebsp_message_header* m = _next_queue_message();
+    if (m == 0)
+    {
+        *status = -1;
+        return;
+    }
+    *status = m->nbytes;
+    memcpy(tag, _e_to_arm_pointer(m->tag), state.comm_buf.tagsize);
+}
+
+void ebsp_move(void *payload, int buffer_size)
+{
+    ebsp_message_header* m = _next_queue_message();
+    _pop_queue_message();
+    if (m == 0)
+    {
+        // This part is not defined by the BSP standard
+        return;
+    }
+
+    if (buffer_size == 0) // Specified by BSP standard
+        return;
+
+    if (m->nbytes < buffer_size)
+        buffer_size = m->nbytes;
+
+    memcpy(payload, _e_to_arm_pointer(m->payload), buffer_size);
+}
+
+int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
+{
+    ebsp_message_header* m = _next_queue_message();
+    _pop_queue_message();
+    if (m == 0) return -1;
+    *tag_ptr_buf = _e_to_arm_pointer(m->tag);
+    *payload_ptr_buf = _e_to_arm_pointer(m->payload);
+    return m->nbytes;
 }
 
 //------------------
