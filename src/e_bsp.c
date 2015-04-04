@@ -202,6 +202,10 @@ void bsp_sync()
     // so all cores are syncing) and only one core needs to set this, but
     // letting all cores set it produces smaller code (binary size)
     comm_buf->data_payloads.buffer_size = 0;
+    comm_buf->message_queue[coredata.queue_index].count = 0;
+    // Switch queue between 0 and 1
+    // xor seems to produce the shortest assembly
+    coredata.queue_index ^= 1;
 
     if (coredata.var_pushed)
     {
@@ -209,10 +213,6 @@ void bsp_sync()
         if (coredata.pid == 0)
             comm_buf->bsp_var_counter++;
     }
-
-    // Switch queue between 0 and 1
-    // xor seems to produce the shortest assembly
-    coredata.queue_index ^= 1;
 
     coredata.tagsize = coredata.tagsize_next;
     coredata.message_index = 0;
