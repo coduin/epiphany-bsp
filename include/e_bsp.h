@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 and the GNU Lesser General Public License along with this program,
 see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
- */
+*/
 
 #pragma once
 
@@ -28,11 +28,11 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include "_ansi.h"
 
 /** Starts the BSP program.
- */
+*/
 void bsp_begin();
 
 /** Finalizes and cleans up the BSP program.
- */
+*/
 void bsp_end();
 
 /** Returns the number of available processors.
@@ -61,11 +61,11 @@ float bsp_remote_time();
 void bsp_sync();
 
 /** Registers a variable. Takes effect at the next sync.
- */
+*/
 void bsp_push_reg(const void* variable, const int nbytes);
 
 /* De-registers a variable. Takes effect at the next sync.
- */
+*/
 void bsp_pop_reg(const void* variable);
 
 /** Put a variable to another processor
@@ -75,7 +75,7 @@ void bsp_pop_reg(const void* variable);
 void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes);
 
 /** Unbuffered version of bsp_put. The data is transferred immediately.
- */
+*/
 void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes);
 
 /** Gets a variable from a processor.
@@ -111,29 +111,41 @@ void bsp_get_tag(int *status, void *tag);
 void bsp_move(void *payload, int buffer_size);
 int bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
 
+/* ebsp_sendup is used to send messages back to the host after the computation
+ * is finished. It is used to transfer the results of a computation
+ *
+ * Usage restrictions:
+ * - ebsp_sendup can only be used between the last bsp_sync and bsp_end
+ * - ebsp_sendup can only be used when no bsp_send messages have been passed
+ *   after the last sync
+ * - after calling ebsp_sendup at least once, a call to any other
+ *   queue functions or to bsp_sync will lead to undefined results
+ */
+void ebsp_sendup(const void *tag, const void *payload, int nbytes);
+
 /** bsp_abort aborts the program after outputting a message
  * This terminates all running epiphany-cores regardless of their status
  */
 void _EXFUN(bsp_abort, (const char *, ...)
-               _ATTRIBUTE ((__format__ (__printf__, 1, 2))));
+        _ATTRIBUTE ((__format__ (__printf__, 1, 2))));
 
-/*
- * Allocate external memory.
- * Keep in mind that this memory is slow so should not be used
- * for floating point computations
- */
-void* ebsp_ext_malloc(unsigned int nbytes);
+    /*
+     * Allocate external memory.
+     * Keep in mind that this memory is slow so should not be used
+     * for floating point computations
+     */
+    void* ebsp_ext_malloc(unsigned int nbytes);
 
-/*
- * Free allocated external memory.
- */
-void ebsp_free(void* ptr);
+    /*
+     * Free allocated external memory.
+     */
+    void ebsp_free(void* ptr);
 
-/** ebsp_message outputs a debug message by sending it to shared memory
- * So that the host processor can output it to the terminal
- * The attributes in this definition make sure that the compiler checks the
- * arguments for errors
- */
+    /** ebsp_message outputs a debug message by sending it to shared memory
+     * So that the host processor can output it to the terminal
+     * The attributes in this definition make sure that the compiler checks the
+     * arguments for errors
+     */
 void _EXFUN(ebsp_message, (const char *, ...)
-               _ATTRIBUTE ((__format__ (__printf__, 1, 2))));
+        _ATTRIBUTE ((__format__ (__printf__, 1, 2))));
 

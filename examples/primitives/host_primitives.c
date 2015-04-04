@@ -24,10 +24,17 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #include <host_bsp.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 // Data to be processed by the epiphany cores
 #define data_count (16*1000)
 float data[data_count];
+
+int nprocs;
+
+void generate_data();
+void send_data();
+void retrieve_data();
 
 int main(int argc, char **argv)
 {
@@ -39,7 +46,7 @@ int main(int argc, char **argv)
     }
 
     // Get the number of processors available
-    int nprocs = bsp_nprocs();
+    nprocs = bsp_nprocs();
 
     printf("bsp_nprocs(): %i\n", nprocs);
 
@@ -50,18 +57,33 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    //
-    // Send some initial data to the processors
-    // (matrix data for example)
-    //
+    // Send some initial data to the processors (i.e. matrices)
+    generate_data();
+    send_data();
 
+    // Run the SPMD on the e-cores
+    ebsp_spmd();
+
+    printf("Retrieving results\n");
+
+    // Retrieve results
+    retrieve_data();
+
+    // Finalize
+    bsp_end();
+}
+
+void generate_data()
+{
+    for (int i = 0; i < data_count; i++)
+        data[i] = (float)(1+i);
+}
+
+void send_data()
+{
     // Give it a tag. For example an integer
     int tag;
     int tagsize = sizeof(int);
-
-    // Payload
-    for (int i = 0; i < data_count; i++)
-        data[i] = (float)(1+i);
 
     // Send the data
     // We divide it in nprocs parts
@@ -75,10 +97,48 @@ int main(int argc, char **argv)
                 &data[p*chunk_size],
                 sizeof(float)*chunk_size);
     }
-
-    // Run the SPMD on the e-cores
-    ebsp_spmd();
-
-    // Finalize
-    bsp_end();
 }
+
+
+void retrieve_data()
+{
+    // Note: we save the results in the same buffer as the one used for sending
+    int packets;
+    int accum_bytes;
+    int tagsize;
+
+    ebsp_qsize(&packets, &accum_bytes);
+    tagsize = ebsp_get_tagsize();
+
+    printf("Queue contains %d bytes in %d packet(s), tagsize %d\n",
+            accum_bytes, packets, tagsize);
+
+    void* tag = malloc(tagsize);
+    int status;
+    
+    for (int i = 0; i < packets; i++)
+    {
+        ebsp_get_tag(&status, tag);
+        if (status == -1)
+        {
+            printf("bsp_get_tag failed");
+            break;
+        }
+        // Truncate everything that does not fit
+        if (status > sizeof(data))
+        {
+            printf("Truncating message of %d bytes to %d bytes.\n", status, sizeof(data));
+            status = sizeof(data);
+        }
+
+        // Get data
+        ebsp_move(&data, status);
+
+        printf("Received %d bytes with tag %d:\n", status, *(int*)tag);
+        int count = status / sizeof(float);
+        for (int j = 0; j < count; ++j)
+            printf("\t%f\n", data[j]);
+    }
+    free(tag);
+}
+

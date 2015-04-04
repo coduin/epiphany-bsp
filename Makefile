@@ -66,6 +66,10 @@ sizecheck: src/sizeof_check.cpp
 	@echo "-----------------------"
 	$(PLATFORM_PREFIX)-g++ -Wall $(INCLUDES) -c $< -o bin/sizecheck
 
+assembly: src/e_bsp.c
+	mkdir -p bin/e
+	e-gcc -fverbose-asm -g -Os -fno-strict-aliasing -std=c99 -Wall -T ${ELDF} $(INCLUDES) -S $< -o bin/e/e_bsp.s -le-lib
+
 ########################################################
 
 clean:
