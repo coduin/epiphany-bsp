@@ -421,6 +421,15 @@ int ebsp_spmd()
         if (finish_counter == state.nprocs)
             break;
     }
+    // Read the communication buffer
+    // to get final messages from the program
+    if (e_read(&state.emem, 0, 0, 0, &state.comm_buf, sizeof(ebsp_comm_buf))
+            != sizeof(ebsp_comm_buf))
+    {
+        fprintf(stderr, "ERROR: e_read full ebsp_comm_buf failed in ebsp_spmd.\n");
+        return 0;
+    }
+
     printf("(BSP) INFO: Program finished\n");
 
     if (state.end_callback)
