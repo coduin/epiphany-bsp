@@ -160,6 +160,9 @@ int extmem_test()
 {
     int errors = 0;
 
+    if (p==0)
+        ebsp_message("Memory test: allocating 100 memory objects per core");
+
     // Allocate external (slow, but larger) memory
     // Use ebsp_ext_malloc and ebsp_free 100 times per core to check if it works
     void* ptrs[100];
@@ -172,16 +175,19 @@ int extmem_test()
     for (int i = 0; i < 100; i += 2)
         ptrs[i] = ebsp_ext_malloc(1);
 
+    ebsp_message("Allocation done");
+
     // Now we will rotate all the pointers between all cores to check
     // if they are all unique. We have to rotate n-1 times
     // Store the other core's pointers in otherptrs
     void* otherptrs[100];
     bsp_push_reg(&otherptrs, sizeof(otherptrs));
     bsp_sync();
-    for (int core = p+1; core != p; core++)
+    for (int core = p+1; ; core++)
     {
         if (core == n) core = 0; // wrap around
-        bsp_hpput(core, &ptrs, &otherptrs, sizeof(ptrs));
+        if (core == p) break;
+        bsp_hpput(core, &ptrs, &otherptrs, 0, sizeof(ptrs));
         bsp_sync();
         // Now check for equality
         for (int j = 0; j < 100; j++)
@@ -189,9 +195,12 @@ int extmem_test()
                 ++errors;
     }
 
+    if (p==0)
+        ebsp_message("Memory test complete (%d)", errors);
+
     // Free the memory
     for (int i = 0; i < 100; i++)
         ebsp_free(ptrs[i]);
 
-    return 0;
+    return errors;
 }
