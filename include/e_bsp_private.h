@@ -82,3 +82,5 @@ extern ebsp_core_data coredata;
 #define comm_buf ((ebsp_comm_buf*)COMMBUF_EADDR)
 //ebsp_comm_buf * const comm_buf = (ebsp_comm_buf*)COMMBUF_EADDR;
 
+void _init_malloc_state();
+

@@ -53,6 +53,8 @@ void EXT_MEM_TEXT bsp_begin()
     e_mutex_init(0, 0, &coredata.ebsp_message_mutex, MUTEXATTR_NULL);
     e_mutex_init(0, 0, &coredata.malloc_mutex, MUTEXATTR_NULL);
 
+    _init_malloc_state();
+
     // Send &syncstate to ARM
     if (coredata.pid == 0)
         comm_buf->syncstate_ptr = (int8_t*)&coredata.syncstate;
