@@ -191,7 +191,7 @@ int extmem_test()
         bsp_sync();
         // Now check for equality
         for (int j = 0; j < 100; j++)
-            if (ptrs[j] != otherptrs[j])
+            if (ptrs[j] == otherptrs[j])
                 ++errors;
     }
 
