@@ -25,34 +25,42 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <e_bsp.h>
 #include "e-lib.h"
 
+int n, p;
+
 // Get initial data from the host
-// By concatenating all messages after each other into the buffer
+// by concatenating all messages after each other into the buffer
 // As input, nbytes contains the maximum buffer size
 // On return, nbytes contains the amount of bytes that were retrieved
 void get_initial_data(void *buffer, unsigned int *nbytes);
 
+// Test allocating and freeing of external memory
+int extmem_test();
+
 int main()
 {
+    float data_buffer[1000];
+    float squaresums[16];
+    float sum;
+    unsigned int nbytes = sizeof(data_buffer);
+    unsigned int data_count;
+
     // Initialize
     bsp_begin();
 
-    int n = bsp_nprocs(); 
-    int p = bsp_pid();
+    n = bsp_nprocs(); 
+    p = bsp_pid();
 
-    // Get the initial data from the host
+    // Get the initial data from the host using the message passing queue
     // Note that this must happen before the first call to bsp_sync
-    float data_buffer[1000];
-    unsigned int nbytes = sizeof(data_buffer);
     get_initial_data(&data_buffer, &nbytes);
 
     // Register a variable
-    float squaresums[16];
     bsp_push_reg(&squaresums, sizeof(squaresums));
     bsp_sync();
 
     // Do computations on data
-    int data_count = nbytes / sizeof(float);
-    float sum = 0.0f;
+    data_count = nbytes / sizeof(float);
+    sum = 0.0f;
     for (int i = 0; i < data_count; i++)
         sum += data_buffer[i] * data_buffer[i];
 
@@ -60,44 +68,26 @@ int main()
     bsp_hpput(0, &sum, &squaresums, p*sizeof(float), sizeof(float));
     bsp_sync();
 
+    // Compute final result on processor 0
     if (p == 0)
     {
         sum = 0.0f;
         for (int i = 0; i < 16; i++)
             sum += squaresums[i];
-
-        ebsp_message("Total square sum is %f", sum);
-
     }
 
-    // Allocate external (slow, but larger) memory
-    // Use ebsp_ext_malloc 100 times per core to check if it works
-    void *ptrs[100];
-    void *allptrs[16][100];
-    bsp_push_reg(&allptrs, sizeof(allptrs));
-    bsp_sync();
-    for (int i = 0; i < 100; i++)
-    {
-        ptrs[i] = ebsp_ext_malloc(1);
-        bsp_hpput(0, &ptrs[i], &allptrs, (size_t)&allptrs[p][i]-(size_t)&allptrs[0][0], sizeof(void*));
-    }
-    bsp_sync();
+    // Allocate external memory
+    int memresult = extmem_test();
 
-    if (p==0)
-    {
-        for (int a = 0; a < n; ++a)
-            for (int i = 0; i < 100; i++)
-                ebsp_message("core %d allocated %p", a, allptrs[a][i]);
-    }
-
-    for (int i = 0; i < 100; i++)
-        ebsp_free(ptrs[i]);
-
+    // Everything is done. The only thing left now is sending results
     if (p == 0)
     {
-        // Send back the result
+        // Send back the result of the sum
         int tag = 1;
         ebsp_send_up(&tag, &sum, sizeof(float));
+        // Send back the result of the memory test
+        tag = 2;
+        ebsp_send_up(&tag, &memresult, sizeof(int));
     }
 
     // Finalize
@@ -164,4 +154,44 @@ void get_initial_data(void *buffer, unsigned int *nbytes)
             ebsp_message("Received %d bytes message with tag %d", status, tag);
     }
     *nbytes = offset;
+}
+
+int extmem_test()
+{
+    int errors = 0;
+
+    // Allocate external (slow, but larger) memory
+    // Use ebsp_ext_malloc and ebsp_free 100 times per core to check if it works
+    void* ptrs[100];
+    for (int i = 0; i < 100; i++)
+        ptrs[i] = ebsp_ext_malloc(1);
+    // Now free all odd ones
+    for (int i = 0; i < 100; i += 2)
+        ebsp_free(ptrs[i]);
+    // Allocate them again
+    for (int i = 0; i < 100; i += 2)
+        ptrs[i] = ebsp_ext_malloc(1);
+
+    // Now we will rotate all the pointers between all cores to check
+    // if they are all unique. We have to rotate n-1 times
+    // Store the other core's pointers in otherptrs
+    void* otherptrs[100];
+    bsp_push_reg(&otherptrs, sizeof(otherptrs));
+    bsp_sync();
+    for (int core = p+1; core != p; core++)
+    {
+        if (core == n) core = 0; // wrap around
+        bsp_hpput(core, &ptrs, &otherptrs, sizeof(ptrs));
+        bsp_sync();
+        // Now check for equality
+        for (int j = 0; j < 100; j++)
+            if (ptrs[j] != otherptrs[j])
+                ++errors;
+    }
+
+    // Free the memory
+    for (int i = 0; i < 100; i++)
+        ebsp_free(ptrs[i]);
+
+    return 0;
 }

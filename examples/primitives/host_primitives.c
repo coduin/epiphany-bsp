@@ -102,7 +102,6 @@ void send_data()
 
 void retrieve_data()
 {
-    // Note: we save the results in the same buffer as the one used for sending
     int packets;
     int accum_bytes;
     int tagsize;
@@ -124,20 +123,23 @@ void retrieve_data()
             printf("bsp_get_tag failed");
             break;
         }
-        // Truncate everything that does not fit
-        if (status > sizeof(data))
+        int ntag = *(int*)tag;
+        if (ntag == 1)
         {
-            printf("Truncating message of %d bytes to %d bytes.\n", status, sizeof(data));
-            status = sizeof(data);
+            float value;
+            ebsp_move(&value, sizeof(float));
+            printf("Result 1: square sum is %f\n", value);
         }
-
-        // Get data
-        ebsp_move(&data, status);
-
-        printf("Received %d bytes with tag %d:\n", status, *(int*)tag);
-        int count = status / sizeof(float);
-        for (int j = 0; j < count; ++j)
-            printf("\t%f\n", data[j]);
+        else if (ntag == 2)
+        {
+            int value;
+            ebsp_move(&value, sizeof(int));
+            printf("Result 2: memory allocation errors: %d\n", value);
+        }
+        else
+        {
+            printf("Received %d bytes with tag %d:\n", status, ntag);
+        }
     }
     free(tag);
 }
