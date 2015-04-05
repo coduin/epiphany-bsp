@@ -23,7 +23,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include <e_bsp.h>
-#include "e-lib.h"
 
 int n, p;
 

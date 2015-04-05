@@ -17,8 +17,8 @@ LIBEXT = .a
 
 EXT_LIBS = -Le-lib
 
-INCLUDES = \
-		   -I./include\
+INCLUDES = -I/usr/arm-linux-gnueabihf/include \
+		   -I./include \
 		   -I${ESDK}/tools/host/include
 HOST_LIBS=-L${ESDK}/tools/host/lib
 

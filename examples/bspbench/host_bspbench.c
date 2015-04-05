@@ -3,6 +3,7 @@
 
 #include <host_bsp.h>
 #include <stdio.h>
+#include <stdlib.h>
  
 /*  This program measures p, r, g, and l of a BSP computer
     using bsp_put for communication.
@@ -31,26 +32,40 @@ int main(int argc, char **argv){
     ebsp_spmd();
     printf("ebsp_spmd finished.\n");
 
-    //Get p, r, g and l
-    int p;
-    float r,g,l,l0,g0;
-    co_read(0, (off_t)0x6000, &p, sizeof(int));
-    co_read(0, (off_t)0x6010, &r, sizeof(float));
-    co_read(0, (off_t)0x6020, &g, sizeof(float));
-    co_read(0, (off_t)0x6030, &l, sizeof(float));
-    co_read(0, (off_t)0x6040, &g0, sizeof(float));
-    co_read(0, (off_t)0x6050, &l0, sizeof(float));
+    //Get r, g and l
+    float r,g,l;
 
-    for (int j=0; j<=64; j++) {
-        float tmp;
-        co_read(0, (off_t)(0x4000+j*sizeof(float)), &tmp, sizeof(float));
-        //printf("h[%d]=%E\n",j,tmp);
-        printf("%d %f\n",j,tmp);
+    int packets, accum_bytes, status, tag;
+    ebsp_qsize(&packets, &accum_bytes);
+    for (int i = 0; i < packets; i++)
+    {
+        ebsp_get_tag(&status, &tag);
+        if (tag == 'r')
+            ebsp_move(&r, sizeof(int));
+        else if (tag == 'g')
+            ebsp_move(&g, sizeof(int));
+        else if (tag == 'l')
+            ebsp_move(&l, sizeof(int));
+        else if (tag == 'h')
+        {
+            float *results = (float*)malloc(status);
+            ebsp_move(results, status);
+            printf("h-relation timings:\n");
+            int count = status/sizeof(float);
+            for (int j = 0; j < count; j++)
+                printf("%d %f\n", j, results[j]);
+            free(results);
+        }
+        else
+        {
+            // pop from message queue
+            ebsp_move(0, 0);
+        }
     }
 
     printf("The bottom line for this BSP computer is:\n");
-    printf("p= %d, r= %.3lf Mflop/s, g= %E, l= %E, g0= %E, l0= %E\n",
-         p,r/MEGA,g,l, g0, l0);
+    printf("p= %d, r= %.3lf Mflop/s, g= %E, l= %E\n",
+         bsp_nprocs(),r/MEGA,g,l);
     bsp_end();
     
     return 0;

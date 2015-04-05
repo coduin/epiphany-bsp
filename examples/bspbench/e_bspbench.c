@@ -237,30 +237,15 @@ int main() { /*  bsp_bench */
         leastsquares(p, MAXH, t, &g, &l);
         ebsp_message("Range h=p to HMAX: g = %.1lf, l = %.1lf",g,l);
 
-        /* Write essential results! */
-        int* pOut = (void*)0x6000;
-        float* rOut = (void*)0x6010;
-        float* gOut = (void*)0x6020;
-        float* lOut = (void*)0x6030;
-        float* g0Out = (void*)0x6040;
-        float* l0Out = (void*)0x6050;
-        (*pOut) = p;
-        (*rOut) = r;
-        (*gOut) = g;
-        (*lOut) = l;
-        (*g0Out) = g0;
-        (*l0Out) = l0;
-        int j;
-        for(j=0; j<=MAXH; j++){
-            i=0x4000+j*sizeof(float);
-            float* tmp=(float*)i;
-            (*tmp)=t[j];
-        }
-        /*(*pOut) = p;//DEBUG
-        (*rOut) = r;
-        (*gOut) = t[5];
-        (*lOut) = t[6];*/
-        /* fflush(stdout); */
+        int tag;
+        tag = 'r';
+        ebsp_send_up(&tag, &r, sizeof(float));
+        tag = 'g';
+        ebsp_send_up(&tag, &g, sizeof(float));
+        tag = 'l';
+        ebsp_send_up(&tag, &l, sizeof(float));
+        tag = 'h';
+        ebsp_send_up(&tag, t, MAXH * sizeof(float));
     }
     /* No need tot pop register/free vectors in our implementation... */
     bsp_end();

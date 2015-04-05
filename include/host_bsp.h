@@ -35,8 +35,6 @@ see the files COPYING and COPYING.LESSER. If not, see
  *  size: Amount of data to write in bytes.
  *  flag: 1 on success, 0 on failure
  */
-// DEPRECATED: CO_WRITE
-#define co_write ebsp_write
 int ebsp_write(int pid, void* src, off_t dst, int size);
 
 /** This reads data from the co-processor to the host processor.
@@ -48,8 +46,6 @@ int ebsp_write(int pid, void* src, off_t dst, int size);
  *  size: Amount of data to read in bytes.
  *  flag: 1 on success, 0 on failure
  */
-// DEPRECATED: CO_READ
-#define co_read ebsp_read
 int ebsp_read(int pid, off_t src, void* dst, int size);
 
 /** Initializes the BSP system. This sets up all the BSP variables and loads

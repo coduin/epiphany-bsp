@@ -40,11 +40,14 @@ int main(int argc, char **argv)
 
     // read messages
     printf("Reading results...\n");
-    int pid = 0;
-    for(pid = 0; pid < bsp_nprocs(); pid++) {
-        char msg;
-        co_read(pid, (off_t)0x4000, &msg, 1);
-        printf("%i: %c\n", pid, msg);
+    int packets;
+    int accum_bytes;
+    ebsp_qsize(&packets, &accum_bytes);
+    for (int i = 0; i < packets; i++)
+    {
+        int value;
+        ebsp_move(&value, sizeof(int));
+        printf("%i: %d\n", i, value);
     }
 
     // finalize

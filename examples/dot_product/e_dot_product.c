@@ -28,19 +28,35 @@ int main()
 {
     bsp_begin();
 
-    int n = bsp_nprocs(); 
     int p = bsp_pid();
 
-    int base = 0x4000;
-    int chunk = (*(int*)(base));
-    int i = 0;
-    int sum = 0;
-    for(i = 0; i < chunk; ++i) {
-        sum += (*(int*)(base + 4 + 4*i)) * (*(int*)(base + 4 + 4*(chunk + i)));
+    int chunk = 0;
+    int *a = 0, *b = 0;
+
+    char buffer[2048];
+    int offset = 0;
+
+    int packets, accum_bytes, status, tag;
+    bsp_qsize(&packets, &accum_bytes);
+    for (int i = 0; i < packets; i++)
+    {
+        // We assume all packet sizes are multiples of 4
+        // If not, the cores will crash because of unaligned memory accesses
+        bsp_get_tag(&status, &tag);
+        bsp_move(&buffer + offset, sizeof(buffer)-offset);
+        offset += status;
+
+        if (tag == 1) chunk = *(int*)(&buffer + offset);
+        else if (tag == 2) a = (int*)(&buffer + offset);
+        else if (tag == 3) b = (int*)(&buffer + offset);
     }
 
-    int* loc = (int*)(base + 4 + 32*8);
-    (*loc) = sum;
+    int sum = 0;
+    for (int i = 0; i < chunk; ++i)
+        sum += a[i] * b[i];
+
+    tag = p;
+    ebsp_send_up(&tag, &sum, sizeof(int));
 
     bsp_end();
 

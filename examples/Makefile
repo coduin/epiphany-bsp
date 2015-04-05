@@ -21,6 +21,7 @@ LIBS = \
 	 -L../bin/lib
 
 HOST_LIBS = \
+	 -L /usr/arm-linux-gnueabihf/lib \
 	 -L${ESDK}/tools/host/lib
 
 E_LIBS = \
@@ -39,6 +40,11 @@ dirs:
 
 ########################################################
 
+bin/%.srec: bin/%.elf
+	e-objcopy --srec-forceS3 --output-target srec $< $@
+
+########################################################
+
 hello: bin/host_hello bin/e_hello.elf bin/e_hello.srec
 
 bin/host_hello: hello/host_hello.c
@@ -46,9 +52,6 @@ bin/host_hello: hello/host_hello.c
 	
 bin/e_hello.elf: hello/e_hello.c
 	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
-
-bin/e_hello.srec: bin/e_hello.elf
-	e-objcopy --srec-forceS3 --output-target srec $< $@
 
 ########################################################
 
@@ -60,9 +63,6 @@ bin/host_e_hello: e_hello/host_e_hello.c
 bin/e_e_hello.elf: e_hello/e_e_hello.c
 	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
 
-bin/e_e_hello.srec: bin/e_e_hello.elf
-	e-objcopy --srec-forceS3 --output-target srec $< $@
-
 ########################################################
 
 dot_product: bin/host_dot_product bin/e_dot_product.elf bin/e_dot_product.srec
@@ -72,9 +72,6 @@ bin/host_dot_product: dot_product/host_dot_product.c
 	
 bin/e_dot_product.elf: dot_product/e_dot_product.c
 	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
-
-bin/e_dot_product.srec: bin/e_dot_product.elf
-	e-objcopy --srec-forceS3 --output-target srec $< $@
 
 ########################################################
 
@@ -86,9 +83,6 @@ bin/host_lu_decomposition: lu_decomposition/host_lu_decomposition.c
 bin/e_lu_decomposition.elf: lu_decomposition/e_lu_decomposition.c
 	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
 
-bin/e_lu_decomposition.srec: bin/e_lu_decomposition.elf
-	e-objcopy --srec-forceS3 --output-target srec $< $@
-
 ########################################################
 
 memtest: bin/host_memtest bin/e_memtest.elf bin/e_memtest.srec
@@ -98,9 +92,6 @@ bin/host_memtest: memtest/host_memtest.c
 	
 bin/e_memtest.elf: memtest/e_memtest.c
 	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
-
-bin/e_memtest.srec: bin/e_memtest.elf
-	e-objcopy --srec-forceS3 --output-target srec $< $@
 
 ########################################################
 
@@ -112,9 +103,6 @@ bin/host_bspbench: bspbench/host_bspbench.c
 bin/e_bspbench.elf: bspbench/e_bspbench.c
 	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
 
-bin/e_bspbench.srec: bin/e_bspbench.elf
-	e-objcopy --srec-forceS3 --output-target srec $< $@
-
 ########################################################
 
 primitives: bin/host_primitives bin/e_primitives.elf bin/e_primitives.srec
@@ -124,10 +112,6 @@ bin/host_primitives: primitives/host_primitives.c
 	
 bin/e_primitives.elf: primitives/e_primitives.c
 	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
-
-bin/e_primitives.srec: bin/e_primitives.elf
-	e-objcopy --srec-forceS3 --output-target srec $< $@
-
 
 ########################################################
 

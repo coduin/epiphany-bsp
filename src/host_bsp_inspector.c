@@ -64,7 +64,7 @@ e_h_viewer_state i_state;
 
 void _e_h_read_memory(unsigned char* buf, int blocksize)
 {
-    co_read(i_state.core_shown, (off_t)0x0000, buf, blocksize);
+    ebsp_read(i_state.core_shown, (off_t)0x0000, buf, blocksize);
 }
 
 void _e_h_print_paged_memory(unsigned char* buf)
@@ -73,6 +73,7 @@ void _e_h_print_paged_memory(unsigned char* buf)
 
     int mrow, mcol;
     getmaxyx(stdscr, mrow, mcol);
+    (void)mcol; // prevents mcol unused warning
 
     move(2, 0);
     // need offset
@@ -106,6 +107,7 @@ void _e_h_print_status_bar()
 
     int mrow, mcol;
     getmaxyx(stdscr, mrow, mcol);
+    (void)mcol; // prevents mcol unused warning
     move(mrow - 1, 0);
     printw("\n");
 
@@ -120,6 +122,7 @@ int _e_h_max_offset()
 {
     int mrow, mcol;
     getmaxyx(stdscr, mrow, mcol);
+    (void)mcol; // prevents mcol unused warning
     return i_state.mem_max_offset - (mrow - 4);
 }
 

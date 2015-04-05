@@ -23,34 +23,27 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include <e_bsp.h>
-#include "e-lib.h"
 
 int main()
 {
     bsp_begin();
 
-    int n = bsp_nprocs(); 
     int p = bsp_pid();
 
-    /*e_barrier_t sync_bar[_NPROCS];
-    e_barrier_t* sync_bar_tgt[_NPROCS];
-    e_barrier_init(sync_bar, sync_bar_tgt);
-    e_barrier(sync_bar, sync_bar_tgt);
-    e_barrier_init(sync_bar, sync_bar_tgt);*/
-
+    char a, b, c;
+    a = 0;
+    b = 0;
+    c = 0;
+    bsp_push_reg(&a, sizeof(char));
+    bsp_sync();
+    bsp_push_reg(&b, sizeof(char));
     bsp_sync();
 
-    char* a = (void*)0x4000;
-    (*a) = 0;
-    char* b = (void*)0x4050;
-    bsp_push_reg(a, -1);
-    bsp_sync();
-    bsp_push_reg(b, -1);
-    bsp_sync();
-
-    if(p == 0) {
-        (*a) = 'y';
-        bsp_hpput(3, a, a, 0, 1);
+    if (p == 0)
+    {
+        c = 'y';
+        bsp_hpput(3, &c, &a, 0, sizeof(char));
+        bsp_hpput(3, &c, &b, 0, sizeof(char));
     }
 
     bsp_end();
