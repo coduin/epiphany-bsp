@@ -33,8 +33,9 @@ int main()
     int chunk = 0;
     int *a = 0, *b = 0;
 
-    char buffer[2048];
-    int offset = 0;
+    char buffer[0x2000];
+    void *ptr = (void*)&buffer;
+    int sizeleft = sizeof(buffer);
 
     int packets, accum_bytes, status, tag;
     bsp_qsize(&packets, &accum_bytes);
@@ -43,17 +44,31 @@ int main()
         // We assume all packet sizes are multiples of 4
         // If not, the cores will crash because of unaligned memory accesses
         bsp_get_tag(&status, &tag);
-        bsp_move(&buffer + offset, sizeof(buffer)-offset);
-        offset += status;
+        bsp_move(ptr, sizeleft);
 
-        if (tag == 1) chunk = *(int*)(&buffer + offset);
-        else if (tag == 2) a = (int*)(&buffer + offset);
-        else if (tag == 3) b = (int*)(&buffer + offset);
+        if (tag == 1) chunk = *(int*)ptr;
+        else if (tag == 2) a = (int*)ptr;
+        else if (tag == 3) b = (int*)ptr;
+
+        sizeleft -= status;
+        ptr += status;
     }
 
     int sum = 0;
-    for (int i = 0; i < chunk; ++i)
-        sum += a[i] * b[i];
+
+    if (a == 0 || b == 0)
+    {
+        ebsp_message("Did not receive data from host");
+    }
+    else
+    {
+        for (int i = 0; i < chunk; ++i)
+            sum += a[i] * b[i];
+    }
+
+    // A sync is required between getting messages
+    // from host and sending them back
+    bsp_sync();
 
     tag = p;
     ebsp_send_up(&tag, &sum, sizeof(int));

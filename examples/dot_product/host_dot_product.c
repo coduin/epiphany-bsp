@@ -59,7 +59,7 @@ int main(int argc, char **argv)
     }
     
     // enable memory inspector
-    ebsp_inspector_enable();
+    //ebsp_inspector_enable();
 
     // run dotproduct
     ebsp_spmd();
