@@ -23,6 +23,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #pragma once
+#include <stdint.h>
 
 //#define DEBUG
 
@@ -95,85 +96,40 @@ typedef struct {
     ebsp_message_header message[MAX_MESSAGES];
 } ebsp_message_queue;
 
-// ebsp_comm_buf is a struct for epiphany -> ARM communication
-// It is located in "external memory", meaning on the epiphany device
-// but not in one of the cores internal memory
-// The epiphany cores write a value here once
-// and the arm core polls these values
-//
-// Note that we do NOT want:
-//      struct{
-//         int syncstate;
-//         int msgflag;
-//         ...;
-//      } coreinfo;
-//
-//      struct{
-//         coreinfo cores[16];
-//      } ebsp_comm_buf;
-//
-// This is not efficient because by interlacing
-// the data for different cores (all syncstate flags are
-// in one memory chunk, all msgflags in the next) we can read
-// all syncstate flags in ONE e_read call instead of 16
+// ebsp_comm_buf is a struct for epiphany <-> ARM communication
+// It is located in external memory. For more info see
+// https://github.com/buurlage-wits/epiphany-bsp/wiki/Memory-on-the-parallella
 
 typedef struct
 {
     // Epiphany --> ARM communication
-    int                 syncstate[_NPROCS];
-    int*                syncstate_ptr; // So that ARM knows where syncstate is
-    volatile int        msgflag; // 0: no msg. 1+pid: msg
+    int8_t              syncstate[_NPROCS];
+    int8_t*             syncstate_ptr; // Location on epiphany core
+    volatile int8_t     msgflag; // 0: no msg. 1+pid: msg
     char                msgbuf[128]; // shared by all cores (mutexed)
 
     // ARM --> Epiphany
     float               remotetimer;
-    int                 nprocs;
-    int                 tagsize; // Only for initial and final messages
+    int32_t             nprocs;
+    int32_t             tagsize; // Only for initial and final messages
 
     // Epiphany <--> Epiphany
     void*               bsp_var_list[MAX_BSP_VARS][_NPROCS];
-    unsigned int        bsp_var_counter;
+    uint32_t            bsp_var_counter;
     ebsp_data_request   data_requests[_NPROCS][MAX_DATA_REQUESTS];
     ebsp_message_queue  message_queue[2];
     ebsp_payload_buffer data_payloads; // used for put/get/send
 } ebsp_comm_buf;
 
+// Right after comm_buf there is the memory used for mallocs
+// all the way till the end of external memory
+
 #pragma pack(pop)
 
-// The following info can be found in the linker scripts.
-//
-// The shared memory (as seen from the epiphany) is located at
-// [0x8e000000, 0x90000000[ = [0x8e000000, 0x8fffffff]
-// Total size 0x02000000 = 32MB
-//
-// If one uses the fast.ldf linker script the shared memory is split as:
-// [0x00000000, 0x01000000[ (16 MB)
-//     - libc code,data,stack
-// [0x01000000, 0x02000000[ (16 MB)
-//     - "shared_dram" 8MB used by e_shm_xxx functions
-//     -   "heap_dram" 8MB, or 512K heap per core
-//
-// One can store variables in these parts using
-// int myint SECTION("shared_dram");
-// int myint SECTION("heap_dram");
-//
-// To use the shared_dram properly one can use the e_shm_xxx
-// functions which properly allocate memory in "shared_dram"
-// However, testing shows that some libc functions (like printf with %f) can
-// overwrite memory in "shared_dram" so therefore we use "heap_dram" for
-// the communication buffer instead of the e_shm_xxx functions
-// 
-// On the ARM side, we use e_alloc which allows us to access all shared memory
-//
-// Andreas notes that the shared dram is slow compared to internal core memory:
-//     If you are reading (loading) directly out of global DDR,
-//     it takes hundreds of clock cycles to do every read,
-//     so it's going to be very slow. Every read in the program is blocking,
-//     and the read has to first go through
-//     the mesh-->off chip elink-->FPGA logic-->AXI bus on Zynq
-//     -->memory controller-->DRAM (and back).
-// http://forums.parallella.org/viewtopic.php?f=23&t=1660
+// For info on these addresses, see
+// https://github.com/buurlage-wits/epiphany-bsp/wiki/Memory-on-the-parallella
 #define SHARED_MEM     0x8e000000
+#define SHARED_MEM_END 0x90000000
 #define COMMBUF_OFFSET 0x01800000
 #define COMMBUF_EADDR  (SHARED_MEM + COMMBUF_OFFSET)
 

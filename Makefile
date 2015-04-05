@@ -23,13 +23,17 @@ INCLUDES = \
 HOST_LIBS=-L${ESDK}/tools/host/lib
 
 E_SRCS = \
-		 e_bsp.c
+		 e_bsp.c \
+		 e_bsp_drma.c \
+		 e_bsp_mp.c \
+		 e_bsp_memory.c
 
 HOST_SRCS = \
 		 host_bsp.c \
 		 host_bsp_inspector.c
 
 E_OBJS = $(E_SRCS:%.c=bin/e/%.o) 
+E_ASMS = $(E_SRCS:%.c=bin/e/%.s)
 HOST_OBJS = $(HOST_SRCS:%.c=bin/host/%.o) 
 
 ########################################################
@@ -44,11 +48,17 @@ bin/e/%.o: %.c
 	mkdir -p bin/e bin/lib
 	e-gcc -Os -fno-strict-aliasing -std=c99 -Wall -T ${ELDF} $(INCLUDES) -c $< -o $@ ${HOST_LIBS} -le-lib
 
+bin/e/%.s: %.c
+	mkdir -p bin/e
+	e-gcc -fverbose-asm -Os -fno-strict-aliasing -std=c99 -Wall -T ${ELDF} $(INCLUDES) -S $< -o $@ -le-lib
+
 all: host e
 
 host: bin/lib/$(HOST_LIBNAME)$(LIBEXT)
 
 e: bin/lib/$(E_LIBNAME)$(LIBEXT)
+
+assembly: $(E_ASMS)
 
 bin/lib/$(HOST_LIBNAME)$(LIBEXT): $(HOST_OBJS)
 	$(PLATFORM_PREFIX)ar rvs $@ $^ 
@@ -65,10 +75,6 @@ sizecheck: src/sizeof_check.cpp
 	@echo "Sizecheck using g++"
 	@echo "-----------------------"
 	$(PLATFORM_PREFIX)-g++ -Wall $(INCLUDES) -c $< -o bin/sizecheck
-
-assembly: src/e_bsp.c
-	mkdir -p bin/e
-	e-gcc -fverbose-asm -g -Os -fno-strict-aliasing -std=c99 -Wall -T ${ELDF} $(INCLUDES) -S $< -o bin/e/e_bsp.s -le-lib
 
 ########################################################
 
