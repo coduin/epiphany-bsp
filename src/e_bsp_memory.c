@@ -69,7 +69,8 @@ inline uint32_t chunk_division(uint32_t a)
 }
 
 // This value is actually known at compile time but becomes a long define
-// to write explicitly in the source. Making it inline adds ??TODO?? overhead
+// to write explicitly in the source. Making it inline will optimize
+// to a constant at compile time
 inline void* get_alloc_base()
 {
     return (void*)chunk_roundup(DYNMEM_START + total_bitmask_ints*4);
@@ -115,6 +116,8 @@ void* EXT_MEM_TEXT _malloc(uint32_t nbytes)
                     // restart right after this chunk
                     start_mask = i;
                     start_bit = j + 1;
+                    // wrap around if needed
+                    if (start_bit == 32){ ++start_mask; start_bit = 0; }
                     chunks_left = chunk_count; // reset
                 }
                 else
@@ -177,9 +180,12 @@ void EXT_MEM_TEXT _free(void* ptr)
 
 void EXT_MEM_TEXT _init_malloc_state()
 {
-    uint32_t *bitmasks = (uint32_t*)DYNMEM_START;
-    for (uint32_t i = 0; i < total_bitmask_ints; ++i)
-        bitmasks[i] = 0;
+    if (coredata.pid == 0)
+    {
+        uint32_t *bitmasks = (uint32_t*)DYNMEM_START;
+        for (uint32_t i = 0; i < total_bitmask_ints; ++i)
+            bitmasks[i] = 0;
+    }
 }
 
 void* EXT_MEM_TEXT ebsp_ext_malloc(unsigned int nbytes)
