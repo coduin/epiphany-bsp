@@ -93,7 +93,7 @@ void send_data()
     for (int p = 0; p < nprocs; p++)
     {
         tag = 100+p; // random tag
-        ebsp_senddown(p, &tag,
+        ebsp_send_down(p, &tag,
                 &data[p*chunk_size],
                 sizeof(float)*chunk_size);
     }

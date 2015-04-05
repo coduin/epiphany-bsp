@@ -111,17 +111,17 @@ void bsp_get_tag(int *status, void *tag);
 void bsp_move(void *payload, int buffer_size);
 int bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
 
-/* ebsp_sendup is used to send messages back to the host after the computation
+/* ebsp_send_up is used to send messages back to the host after the computation
  * is finished. It is used to transfer the results of a computation
  *
  * Usage restrictions:
- * - ebsp_sendup can only be used between the last bsp_sync and bsp_end
- * - ebsp_sendup can only be used when no bsp_send messages have been passed
+ * - ebsp_send_up can only be used between the last bsp_sync and bsp_end
+ * - ebsp_send_up can only be used when no bsp_send messages have been passed
  *   after the last sync
- * - after calling ebsp_sendup at least once, a call to any other
+ * - after calling ebsp_send_up at least once, a call to any other
  *   queue functions or to bsp_sync will lead to undefined results
  */
-void ebsp_sendup(const void *tag, const void *payload, int nbytes);
+void ebsp_send_up(const void *tag, const void *payload, int nbytes);
 
 /** bsp_abort aborts the program after outputting a message
  * This terminates all running epiphany-cores regardless of their status

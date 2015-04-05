@@ -97,7 +97,7 @@ int main()
     {
         // Send back the result
         int tag = 1;
-        ebsp_sendup(&tag, &sum, sizeof(float));
+        ebsp_send_up(&tag, &sum, sizeof(float));
     }
 
     // Finalize

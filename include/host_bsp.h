@@ -118,7 +118,7 @@ int bsp_nprocs();
 void ebsp_set_tagsize(int *tag_bytes);
 
 /* Send initial messages */
-void ebsp_senddown(int pid, const void *tag, const void *payload, int nbytes);
+void ebsp_send_down(int pid, const void *tag, const void *payload, int nbytes);
 
 /* The following functions are only for gathering result messages
  * at the end of a BSP program */

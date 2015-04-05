@@ -490,7 +490,7 @@ void* _e_to_arm_pointer(void* ptr)
             + (unsigned int)&state.comm_buf);
 }
 
-void ebsp_senddown(int pid, const void *tag, const void *payload, int nbytes)
+void ebsp_send_down(int pid, const void *tag, const void *payload, int nbytes)
 {
     ebsp_message_queue* q = &state.comm_buf.message_queue[0];
     unsigned int index = q->count;
@@ -501,12 +501,12 @@ void ebsp_senddown(int pid, const void *tag, const void *payload, int nbytes)
 
     if (index >= MAX_MESSAGES)
     {
-        fprintf(stderr, "ERROR: Maximal message count reached in ebsp_senddown.\n");
+        fprintf(stderr, "ERROR: Maximal message count reached in ebsp_send_down.\n");
         return;
     }
     if (payload_offset + total_nbytes > MAX_PAYLOAD_SIZE)
     {
-        fprintf(stderr, "ERROR: Maximal data payload sent in ebsp_senddown.\n");
+        fprintf(stderr, "ERROR: Maximal data payload sent in ebsp_send_down.\n");
         return;
     }
 

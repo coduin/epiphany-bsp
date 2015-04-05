@@ -166,7 +166,7 @@ int bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
     return m->nbytes;
 }
 
-void ebsp_sendup(const void *tag, const void *payload, int nbytes)
+void ebsp_send_up(const void *tag, const void *payload, int nbytes)
 {
     coredata.queue_index = 0;
     return bsp_send(-1, tag, payload, nbytes);
