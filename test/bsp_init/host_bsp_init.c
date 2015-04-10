@@ -28,24 +28,13 @@ see the files COPYING and COPYING.LESSER. If not, see
 int main(int argc, char **argv)
 {
     // initialize the BSP system
-    if(!bsp_init("bin/e_hello.srec", argc, argv)) {
+    if(!bsp_init("bin/e_bsp_init.srec", argc, argv)) {
         fprintf(stderr, "[HELLO] bsp_init() failed\n");
         return -1;
+    } else {
+        fprintf(stderr, "success"); // expect: (success)
     }
 
-    // show the number of processors available
-    printf("bsp_nprocs(): %i\n", bsp_nprocs());
-
-    // initialize the epiphany system, and load the e-program
-    if(!bsp_begin(bsp_nprocs())) {
-        fprintf(stderr, "[HELLO] bsp_begin() failed\n");
-        return -1;
-    }
-
-    // run the SPMD on the e-cores
-    ebsp_spmd();
-
-    // finalize
     bsp_end();
 
     return 0;

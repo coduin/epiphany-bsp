@@ -17,12 +17,13 @@ def run_unit_test(unit_test):
     try:
         output = subprocess.check_output(["bin/host_"+unit_test, "Hello World!"], stderr=subprocess.STDOUT, universal_newlines=True)
     except OSError:
-        print("OSError")
+        print("OSError")    #When running on non-epiphany system
     print("----"+unit_test)
     print("|||||||||||||||")
     print(output)
     print("|||||||||||||||")
     print("---------------")
+    return output
 
 def do_unit_test(unit_test):
     host_srctext = get_contents("./"+unit_test+"/host_"+unit_test+".c")
@@ -31,11 +32,12 @@ def do_unit_test(unit_test):
     e_srctext = get_contents("./"+unit_test+"/e_"+unit_test+".c")
     e_expected_outputs = re.findall(EXPECT_PATTERN, e_srctext)
 
+    expected_output = "\n".join(host_expected_outputs)+"\n".join(e_expected_outputs);
     actual_output = run_unit_test(unit_test)
 
     print(unit_test)
-    print(host_expected_outputs)
-    print(e_expected_outputs)
+    print(actual_output)
+    print(expected_output)
     
 
 maketext = get_contents("Makefile")

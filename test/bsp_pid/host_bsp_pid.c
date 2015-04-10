@@ -37,7 +37,7 @@ int main(int argc, char **argv)
     e_open(&dev, 0, 0, 1, 1);
     e_reset_group(&dev);
 
-    e_load_group("bin/e_e_hello.srec", &dev, 0, 0, 1, 1, E_FALSE);
+    e_load_group("bin/e_bsp_pid.srec", &dev, 0, 0, 1, 1, E_FALSE);
 
     int test = 12345;
     e_write(&dev, 0, 0, 0x7000, &test, sizeof(int));
