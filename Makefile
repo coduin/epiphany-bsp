@@ -29,8 +29,7 @@ E_SRCS = \
 		 e_bsp_memory.c
 
 HOST_SRCS = \
-		 host_bsp.c \
-		 host_bsp_inspector.c
+		 host_bsp.c
 
 E_OBJS = $(E_SRCS:%.c=bin/e/%.o) 
 E_ASMS = $(E_SRCS:%.c=bin/e/%.s)
@@ -42,7 +41,7 @@ vpath %.c src
 
 bin/host/%.o: %.c
 	mkdir -p bin/host bin/lib
-	$(PLATFORM_PREFIX)gcc -O3 -Wall -std=c99 $(INCLUDES) -c $< -o $@ ${HOST_LIBS} -le-hal -lncurses
+	$(PLATFORM_PREFIX)gcc -O3 -Wall -std=c99 $(INCLUDES) -c $< -o $@ ${HOST_LIBS} -le-hal
 	
 bin/e/%.o: %.c
 	mkdir -p bin/e bin/lib
