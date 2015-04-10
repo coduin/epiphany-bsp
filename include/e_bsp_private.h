@@ -47,7 +47,6 @@ typedef struct {
 
     // time_passed is epiphany cpu time (so not walltime) in seconds
     float           time_passed;
-    uint32_t        last_timer_value;
 
     // counter for ebsp_comm_buf::data_requests[pid]
     uint32_t        request_counter;

@@ -68,8 +68,8 @@ void EXT_MEM_TEXT bsp_begin()
 
     // Initialize epiphany timer
     coredata.time_passed = 0.0f;
+    e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);
     e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
-    coredata.last_timer_value = e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);
 }
 
 void bsp_end()
@@ -90,21 +90,21 @@ int bsp_pid()
     return coredata.pid;
 }
 
+unsigned int bsp_rawtime()
+{
+    //unsigned int rawtime = e_ctimer_get(E_CTIMER_0);
+    //e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
+    //return E_CTIMER_MAX - rawtime;
+    __asm__("mov r1, %low(#-1)");
+    __asm__("movt r1, %high(#-1)");
+    __asm__("movfs r0, ctimer0");
+    __asm__("movts ctimer0, r1");
+    __asm__("eor r0, r0, r1");
+}
+
 float EXT_MEM_TEXT bsp_time()
 {
-    // TODO: Add timer overhead the calculation
-    unsigned int cur_time = e_ctimer_get(E_CTIMER_0);
-    coredata.time_passed += (coredata.last_timer_value - cur_time) / CLOCKSPEED;
-    e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
-    // Tested: between setting E_CTIMER_MAX and 
-    // reading the timer, it decreased by 23 clockcycles
-    coredata.last_timer_value = e_ctimer_get(E_CTIMER_0);
-    //coredata.last_timer_value = cur_time;
-
-#ifdef DEBUG
-    if (cur_time == 0)
-        return -1.0f;
-#endif
+    coredata.time_passed += bsp_rawtime() / CLOCKSPEED;
     return coredata.time_passed;
 }
 

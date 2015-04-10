@@ -48,11 +48,24 @@ int bsp_nprocs();
 int bsp_pid();
 
 /** Time in seconds that has passed since bsp_begin() was called
- *
- *  t: A floating point value indicating the passed time in seconds.
+ * The epiphany-timer does not support time differences longer than
+ * UINT_MAX/(600000000) which is roughly 5 seconds.
+ * For longer time differences, use the less accurate bsp_remote_time.
+ * Do not use this in combination with bsp_rawtime, use only one of them.
  */
 float bsp_time();
 
+/* Returns the number of clockcycles that have passed since the previous call
+ * to bsp_rawtime. This has less overhead than bsp_time.
+ * Divide the amount of clockcycles by 600 000 000 to get the time in seconds.
+ * Do not use this in combination with bsp_time, use only one of them.
+ */
+unsigned int bsp_rawtime();
+
+/* Time in seconds since bsp_begin() was called.
+ * This time has much less accuracy (milliseconds at best)
+ * But works if time differences are more than 5 seconds
+ */
 float bsp_remote_time();
 
 /** Terminates a superstep, and starts all communication. The computation is 

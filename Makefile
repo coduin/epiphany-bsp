@@ -46,11 +46,11 @@ bin/host/%.o: %.c
 	
 bin/e/%.o: %.c
 	mkdir -p bin/e bin/lib
-	e-gcc -Os -fno-strict-aliasing -std=c99 -Wall -T ${ELDF} $(INCLUDES) -c $< -o $@ ${HOST_LIBS} -le-lib
+	e-gcc -Os -fno-strict-aliasing -ffast-math -std=c99 -Wall -T ${ELDF} $(INCLUDES) -c $< -o $@ ${HOST_LIBS} -le-lib
 
 bin/e/%.s: %.c
 	mkdir -p bin/e
-	e-gcc -fverbose-asm -Os -fno-strict-aliasing -std=c99 -Wall -T ${ELDF} $(INCLUDES) -S $< -o $@ -le-lib
+	e-gcc -fverbose-asm -Os -fno-strict-aliasing -ffast-math -std=c99 -Wall -T ${ELDF} $(INCLUDES) -S $< -o $@ -le-lib
 
 all: host e
 

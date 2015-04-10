@@ -97,9 +97,9 @@ int bsp_end();
 int bsp_nprocs();
 
 /* BSP Message Passing
+ *
  * These functions can be used to send messages to message queue
- * of the programs for initialization and retrieve messages to 
- * gather results.
+ * of the programs for initialization and retrieve messages to gather results.
  * The initialization messages will only remain in the queue until bsp_sync
  * has been called for the first time.
  * The default tag-size is zero.
@@ -110,7 +110,10 @@ int bsp_nprocs();
  * See e_bsp.h for more information
  */
 
-/* Set initial tagsize. Should be called at most once. */
+/* Set initial tagsize.
+ * Should be called at most once, before any messages are sent.
+ * Calling this when receiving messages results in undefined behaviour.
+ */
 void ebsp_set_tagsize(int *tag_bytes);
 
 /* Send initial messages */
@@ -118,9 +121,30 @@ void ebsp_send_down(int pid, const void *tag, const void *payload, int nbytes);
 
 /* The following functions are only for gathering result messages
  * at the end of a BSP program */
+
+/* Get the tag-size as set by the epiphany cores */
 int ebsp_get_tagsize();
+
+/* Get the amount of messages in the queue and their total size */
 void ebsp_qsize(int *packets, int *accum_bytes);
+
+/* Peek the next message.
+ * Upon return, status holds the amount of bytes of the next message payload,
+ * or -1 if there are no more messages.
+ * tag will hold the tag of the next message. The buffer pointed to by tag
+ * should be large enough (ebsp_get_tagsize).
+ */
 void ebsp_get_tag(int *status, void *tag);
+
+/* Get the next message and pop it from the queue.
+ * Upon return, payload will hold the contents of the message.
+ * The buffer will only be filled till at most buffer_size. Remaining
+ * data is truncated. Use ebsp_get_tag to get the size of the data payload.
+ */
 void ebsp_move(void *payload, int buffer_size);
+
+/* Get the pointer to the next message payload, and pop the message.
+ * This will be a pointer to external memory so it is slow.
+ */
 int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
 

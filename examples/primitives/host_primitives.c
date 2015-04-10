@@ -136,6 +136,18 @@ void retrieve_data()
             ebsp_move(&value, sizeof(int));
             printf("Result 2: memory allocation errors: %d\n", value);
         }
+        else if (ntag == 3)
+        {
+            float value;
+            ebsp_move(&value, sizeof(float));
+            printf("Result 3: total squaresum time of all cores: %e\n", value);
+        }
+        else if (ntag >= 100 && ntag <= 200)
+        {
+            float value;
+            ebsp_move(&value, sizeof(float));
+            printf("Result 4: memory allocation time for core %d: %e\n", ntag-100, value);
+        }
         else
         {
             printf("Received %d bytes with tag %d:\n", status, ntag);
