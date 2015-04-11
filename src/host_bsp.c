@@ -30,13 +30,13 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <e-loader.h>
 #include "common.h"
 
+#define __USE_XOPEN2K
+#include <unistd.h> // readlink, for getting the path to the executable
 #define __USE_POSIX199309 1
 #include <time.h>
 extern int clock_nanosleep (clockid_t __clock_id, int __flags,
 			    const struct timespec *__req,
 			    struct timespec *__rem);
-
-#define MAX_PROGRAM_NAME_SIZE 64
 
 // Global BSP state
 typedef struct
@@ -44,8 +44,11 @@ typedef struct
     // The number of processors available
     int nprocs;
 
+    // The directory of the program and e-program
+    // including a trailing slash
+    char e_directory[1024];
     // The name of the e-program
-    char e_name[MAX_PROGRAM_NAME_SIZE];
+    char e_fullpath[1024];
 
     // Number of rows or columns in use
     int rows;
@@ -81,6 +84,7 @@ int bsp_initialized = 0;;
 void _host_sync();
 void _microsleep(int microseconds); //1000 gives 1 millisecond
 void _get_p_coords(int pid, int* row, int* col);
+void init_application_path();
 
 int ebsp_write(int pid, void* src, off_t dst, int size)
 {
@@ -137,6 +141,19 @@ int bsp_init(const char* _e_name,
         return 0;
     }
 
+    // Get the path to the application and append the epiphany executable name
+    init_application_path();
+    strcpy(state.e_fullpath, state.e_directory);
+    strcat(state.e_fullpath, _e_name);
+
+    // Check if the file exists
+    if (access(state.e_fullpath, R_OK) == -1)
+    {
+        fprintf(stderr, "ERROR: Could not find epiphany executable: %s\n",
+                state.e_fullpath);
+        return 0;
+    }
+
     // Initialize the Epiphany system for the working with the host application
     if(e_init(NULL) != E_OK) {
         fprintf(stderr, "ERROR: Could not initialize HAL data structures.\n");
@@ -157,10 +174,6 @@ int bsp_init(const char* _e_name,
 
     // Obtain the number of processors from the platform information
     state.nprocs = state.platform.rows * state.platform.cols;
-
-    // Copy the name to the state
-    memcpy(state.e_name, _e_name, MAX_PROGRAM_NAME_SIZE);
-    state.e_name[MAX_PROGRAM_NAME_SIZE-1] = 0;
 
     bsp_initialized = 1;
 
@@ -206,8 +219,8 @@ int bsp_begin(int nprocs)
     }
 
     // Load the e-binary
-    printf("(BSP) INFO: Loading: %s\n", state.e_name);
-    if(e_load_group(state.e_name,
+    printf("(BSP) INFO: Loading: %s\n", state.e_fullpath);
+    if(e_load_group(state.e_fullpath,
                 &state.dev,
                 0, 0,
                 state.rows, state.cols, 
@@ -612,7 +625,7 @@ void _microsleep(int microseconds)
     request.tv_sec = (int)(microseconds / 1000000);
     request.tv_nsec = (microseconds - 1000000 * request.tv_sec) * 1000;
     if (clock_nanosleep(CLOCK_MONOTONIC, 0, &request, &remain) != 0)
-        fprintf(stderr, "ERROR: clock_nanosleep was interrupted.");
+        fprintf(stderr, "ERROR: clock_nanosleep was interrupted.\n");
 }
 
 void _get_p_coords(int pid, int* row, int* col)
@@ -621,3 +634,23 @@ void _get_p_coords(int pid, int* row, int* col)
     (*col) = pid % state.cols;
 }
 
+// Get the directory that the application is running in
+// and store it in state.e_directory
+// It will include a trailing slash
+void init_application_path()
+{
+    char path[1024];
+    if (readlink("/proc/self/exe", path, 1024) > 0) {
+        char * slash = strrchr(path, '/');
+        if (slash)
+        {
+            int count = slash-path + 1;
+            memcpy(state.e_directory, path, count);
+            state.e_directory[count+1] = 0;
+        }
+    } else {
+        fprintf(stderr, "ERROR: Could not find process directory.\n");
+        memcpy(state.e_directory, "./", 3); // including terminating 0
+    }
+    return;
+}

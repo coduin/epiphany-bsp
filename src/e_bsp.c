@@ -90,21 +90,9 @@ int bsp_pid()
     return coredata.pid;
 }
 
-unsigned int bsp_rawtime()
-{
-    //unsigned int rawtime = e_ctimer_get(E_CTIMER_0);
-    //e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
-    //return E_CTIMER_MAX - rawtime;
-    __asm__("mov r1, %low(#-1)");
-    __asm__("movt r1, %high(#-1)");
-    __asm__("movfs r0, ctimer0");
-    __asm__("movts ctimer0, r1");
-    __asm__("eor r0, r0, r1");
-}
-
 float EXT_MEM_TEXT bsp_time()
 {
-    coredata.time_passed += bsp_rawtime() / CLOCKSPEED;
+    coredata.time_passed += bsp_raw_time() / CLOCKSPEED;
     return coredata.time_passed;
 }
 

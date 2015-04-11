@@ -29,7 +29,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 int main(int argc, char **argv)
 {
-    bsp_init("bin/e_dot_product.srec", argc, argv);
+    bsp_init("e_dot_product.srec", argc, argv);
     bsp_begin(bsp_nprocs());
 
     // allocate two random vectors of length 512

@@ -28,7 +28,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 int main(int argc, char **argv)
 {
     // initialize the BSP system
-    if(!bsp_init("bin/e_hello.srec", argc, argv)) {
+    if(!bsp_init("e_hello.srec", argc, argv)) {
         fprintf(stderr, "[HELLO] bsp_init() failed\n");
         return -1;
     }

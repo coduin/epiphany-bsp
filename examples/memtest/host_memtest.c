@@ -28,7 +28,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 int main(int argc, char **argv)
 {
     // initialize the BSP system
-    if(!bsp_init("bin/e_memtest.srec", argc, argv))
+    if(!bsp_init("e_memtest.srec", argc, argv))
         printf("init failed\n");
 
     // initialize the epiphany system, and load the e-program

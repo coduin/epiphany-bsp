@@ -51,16 +51,16 @@ int bsp_pid();
  * The epiphany-timer does not support time differences longer than
  * UINT_MAX/(600000000) which is roughly 5 seconds.
  * For longer time differences, use the less accurate bsp_remote_time.
- * Do not use this in combination with bsp_rawtime, use only one of them.
+ * Do not use this in combination with bsp_raw_time, use only one of them.
  */
 float bsp_time();
 
 /* Returns the number of clockcycles that have passed since the previous call
- * to bsp_rawtime. This has less overhead than bsp_time.
+ * to bsp_raw_time. This has less overhead than bsp_time.
  * Divide the amount of clockcycles by 600 000 000 to get the time in seconds.
  * Do not use this in combination with bsp_time, use only one of them.
  */
-unsigned int bsp_rawtime();
+unsigned int bsp_raw_time();
 
 /* Time in seconds since bsp_begin() was called.
  * This time has much less accuracy (milliseconds at best)

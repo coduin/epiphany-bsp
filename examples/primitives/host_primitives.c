@@ -39,7 +39,7 @@ void retrieve_data();
 int main(int argc, char **argv)
 {
     // Initialize the BSP system
-    if (!bsp_init("bin/e_primitives.srec", argc, argv))
+    if (!bsp_init("e_primitives.srec", argc, argv))
     {
         fprintf(stderr, "ERROR: bsp_init() failed\n");
         return -1;

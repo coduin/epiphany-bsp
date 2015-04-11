@@ -14,7 +14,7 @@
 int P; /* number of processors requested */
 
 int main(int argc, char **argv){
-    if(!bsp_init("bin/e_bspbench.srec", argc, argv)) {
+    if(!bsp_init("e_bspbench.srec", argc, argv)) {
         fprintf(stderr, "[BSPBENCH] bsp_init() failed\n");
         return -1;
     }

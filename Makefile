@@ -1,6 +1,4 @@
 ESDK=${EPIPHANY_HOME}
-ELDF=${ESDK}/bsps/current/fast.ldf
-ELDF=ebsp_fast.ldf
 
 # ARCH will be either x86_64, x86, or armv7l (parallella)
 ARCH=$(shell uname -m)
@@ -15,69 +13,88 @@ HOST_LIBNAME = libhost-bsp
 E_LIBNAME	= libe-bsp
 LIBEXT = .a
 
-EXT_LIBS = -Le-lib
+E_SRCS = \
+		e_bsp.c \
+		e_bsp_drma.c \
+		e_bsp_mp.c \
+		e_bsp_memory.c
+
+E_ASM_SRCS = \
+		e_bsp_raw_time.s
+
+HOST_SRCS = \
+		host_bsp.c \
+		host_bsp_inspector.c
 
 INCLUDES = -I/usr/arm-linux-gnueabihf/include \
 		   -I./include \
 		   -I${ESDK}/tools/host/include
-HOST_LIBS=-L${ESDK}/tools/host/lib
 
-E_SRCS = \
-		 e_bsp.c \
-		 e_bsp_drma.c \
-		 e_bsp_mp.c \
-		 e_bsp_memory.c
+HOST_LIBS= -L${ESDK}/tools/host/lib \
+		   -le-hal \
+		   -lncurses
 
-HOST_SRCS = \
-		 host_bsp.c \
-		 host_bsp_inspector.c
+E_FLAGS = -Os -fno-strict-aliasing -ffast-math -std=c99 -Wall
 
-E_OBJS = $(E_SRCS:%.c=bin/e/%.o) 
-E_ASMS = $(E_SRCS:%.c=bin/e/%.s)
+E_OBJS = $(E_SRCS:%.c=bin/e/%.o) $(E_ASM_SRCS:%.s=bin/e/%.o)
 HOST_OBJS = $(HOST_SRCS:%.c=bin/host/%.o) 
+E_ASMS = $(E_SRCS:%.c=bin/e/%.s)
 
 ########################################################
 
 vpath %.c src
+vpath %.s src
 
 bin/host/%.o: %.c
-	mkdir -p bin/host bin/lib
-	$(PLATFORM_PREFIX)gcc -O3 -Wall -std=c99 $(INCLUDES) -c $< -o $@ ${HOST_LIBS} -le-hal -lncurses
+	@echo "Compiling and assembling $<"
+	@$(PLATFORM_PREFIX)gcc -O3 -Wall -std=c99 $(INCLUDES) -c $< -o $@ ${HOST_LIBS}
 	
+# C code to object file
 bin/e/%.o: %.c
-	mkdir -p bin/e bin/lib
-	e-gcc -Os -fno-strict-aliasing -ffast-math -std=c99 -Wall -T ${ELDF} $(INCLUDES) -c $< -o $@ ${HOST_LIBS} -le-lib
+	@echo "Compiling and assembling $<"
+	@e-gcc $(E_FLAGS) $(INCLUDES) -c $< -o $@ -le-lib
 
+# Assembly to object file
+bin/e/%.o: %.s
+	@echo "Assembling $<"
+	@e-gcc $(E_FLAGS) -c $< -o $@ -le-lib
+
+# C code to assembly
 bin/e/%.s: %.c
-	mkdir -p bin/e
-	e-gcc -fverbose-asm -Os -fno-strict-aliasing -ffast-math -std=c99 -Wall -T ${ELDF} $(INCLUDES) -S $< -o $@ -le-lib
+	@echo "Compiling $<"
+	@e-gcc $(E_FLAGS) $(INCLUDES) -fverbose-asm -S $< -o $@
 
 all: host e
 
-host: bin/lib/$(HOST_LIBNAME)$(LIBEXT)
+host: host_dirs bin/lib/$(HOST_LIBNAME)$(LIBEXT)
 
-e: bin/lib/$(E_LIBNAME)$(LIBEXT)
+e: e_dirs bin/lib/$(E_LIBNAME)$(LIBEXT)
 
 assembly: $(E_ASMS)
 
+host_dirs:
+	@mkdir -p bin/host bin/lib
+
+e_dirs:
+	@mkdir -p bin/e bin/lib
+
 bin/lib/$(HOST_LIBNAME)$(LIBEXT): $(HOST_OBJS)
-	$(PLATFORM_PREFIX)ar rvs $@ $^ 
+	@$(PLATFORM_PREFIX)ar rs $@ $^ 
 
 bin/lib/$(E_LIBNAME)$(LIBEXT): $(E_OBJS)
-	e-ar rvs $@ $^ 
+	@e-ar rs $@ $^ 
 
 sizecheck: src/sizeof_check.cpp
 	@echo "-----------------------"
 	@echo "Sizecheck using e-g++"
 	@echo "-----------------------"
-	e-g++ -Wall $(INCLUDES) -c $< -o bin/sizecheck
+	e-g++ -Wall $(INCLUDES) -c $< -o /dev/null
 	@echo "-----------------------"
 	@echo "Sizecheck using g++"
 	@echo "-----------------------"
-	$(PLATFORM_PREFIX)-g++ -Wall $(INCLUDES) -c $< -o bin/sizecheck
+	$(PLATFORM_PREFIX)g++ -Wall $(INCLUDES) -c $< -o /dev/null
 
 ########################################################
 
 clean:
-	rm bin/lib/*.a
-	rm bin/*/*.o
+	rm -r bin
