@@ -22,12 +22,8 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
-//unsigned int bsp_raw_time()
-//{
-//    unsigned int raw_time = e_ctimer_get(E_CTIMER_0);
-//    e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
-//    return E_CTIMER_MAX - raw_time;
-//}
+// Resets timer and returns old value, in clockcycles starting from 0
+// unsigned int bsp_raw_time()
 
 .file    "e_bsp_raw_time.s";
 
@@ -37,17 +33,28 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 .balign 4;
 _bsp_raw_time:
-    // Set r1 to MAX_UINT = -1
-    mov r1, %low(#-1);
-    movt r1, %high(#-1);
-    // Read the timer into r0
-    // Write MAX_UINT to the timer
-    movfs r0, ctimer0;
-    movts ctimer0, r1;
-    // r0 = MAX_UINT - r0
-    // Implemented by an xor
-    eor r0, r0, r1;
-    // Return
-    rts;
+
+    // Set some constants that are needed
+
+    mov   r1, %low(#-1);            // UINT_MAX
+    movt  r1, %high(#-1);           // UINT_MAX
+    mov   r2, %low(0xffffff0f);     // mask for the config register
+    movt  r2, %high(0xffffff0f);    // mask for the config register
+    mov   r3, 0x0010;               // config bit that specifies timer counting cpu ticks
+
+    // Get the current timer value and reset it to max
+
+    movfs r0, ctimer0;              // r0 = timer
+    movts ctimer0, r1;              // timer = UINT_MAX; note that this stops the timer
+    eor   r0, r0, r1;               // r0 = UINT_MAX - r0; implemented by an xor
+    
+    // Start the timer again, because setting it to max stops it
+
+    movfs r16, config;              // get current config
+    and   r16, r16, r2;             // turn off the old timer bits
+    orr   r16, r16, r3;             // turn on the timer bit
+    movts config, r16;              // set the config
+
+    rts;                            // return r0
 
 .size    _bsp_raw_time, .-_bsp_raw_time;
