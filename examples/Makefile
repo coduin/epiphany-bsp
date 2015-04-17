@@ -46,7 +46,6 @@ bin/%.elf: %.c
 	@e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
 
 bin/%.srec: bin/%.elf
-	@echo "OBJCOPY $<"
 	@e-objcopy --srec-forceS3 --output-target srec $< $@
 
 ########################################################

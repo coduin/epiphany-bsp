@@ -39,7 +39,7 @@ typedef enum
     KS_NUM_MOD
 } KEY_STATE;
 
-typedef struct 
+typedef struct
 {
     // maximum value for memory and cores
     int mem_max;
@@ -47,7 +47,7 @@ typedef struct
     int core_max;
 
     // set to 1 if required to repull data from eCore
-    int data_dirty; 
+    int data_dirty;
 
     // current viewing position and information
     int mem_offset;
@@ -73,17 +73,18 @@ void _e_h_print_paged_memory(unsigned char* buf)
 
     int mrow, mcol;
     getmaxyx(stdscr, mrow, mcol);
-    (void)mcol; // prevents mcol unused warning
+    (void)mcol;  // prevents mcol unused warning
 
     move(2, 0);
     // need offset
     for (int j = 0; j < mrow - 4; ++j) {
         char loc[10];
-        sprintf(loc, "0x%04x   ",  (i_state.mem_offset + j) * width);
+        snprintf(loc, sizeof(loc), "0x%04x   ",
+                (i_state.mem_offset + j) * width);
         printw(loc);
         for (int i = 0; i < width; ++i) {
             char val[6];
-            sprintf(val, "%02x ", 
+            snprintf(val, sizeof(loc), "%02x ",
                     buf[(i_state.mem_offset + j) * width + i]);
             printw(val);
         }
@@ -107,12 +108,12 @@ void _e_h_print_status_bar()
 
     int mrow, mcol;
     getmaxyx(stdscr, mrow, mcol);
-    (void)mcol; // prevents mcol unused warning
+    (void)mcol;  // prevents mcol unused warning
     move(mrow - 1, 0);
     printw("\n");
 
     char status[80];
-    sprintf(status, "viewing core: %i, number of syncs: %i",
+    snprintf(status, sizeof(status), "viewing core: %i, number of syncs: %i",
             i_state.core_shown,
             i_state.nsyncs);
     printw(status);
@@ -122,7 +123,7 @@ int _e_h_max_offset()
 {
     int mrow, mcol;
     getmaxyx(stdscr, mrow, mcol);
-    (void)mcol; // prevents mcol unused warning
+    (void)mcol;  // prevents mcol unused warning
     return i_state.mem_max_offset - (mrow - 4);
 }
 
@@ -156,21 +157,20 @@ int _e_h_handle_input()
 
         case 'j':
 
-            if(i_state.num_mod > 0) {
+            if (i_state.num_mod > 0) {
                 i_state.mem_offset += i_state.num_mod;
                 i_state.num_mod = 0;
-            } 
-            else {
+            } else {
                 i_state.mem_offset++;
             }
 
-            if(i_state.mem_offset > maxoff)
+            if (i_state.mem_offset > maxoff)
                 i_state.mem_offset = maxoff;
 
             break;
 
         case 'l':
-            if(i_state.core_shown < i_state.core_max) {
+            if (i_state.core_shown < i_state.core_max) {
                 i_state.core_shown++;
                 i_state.data_dirty = 1;
             }
@@ -184,21 +184,21 @@ int _e_h_handle_input()
             break;
 
         case 'k':
-            if(i_state.num_mod > 0) {
+            if (i_state.num_mod > 0) {
                 i_state.mem_offset -= i_state.num_mod;
-                if(i_state.mem_offset < 0)
+                if (i_state.mem_offset < 0)
                     i_state.mem_offset = 0;
                 i_state.num_mod = 0;
-            }
-            else if (i_state.mem_offset > 0)
+            } else if (i_state.mem_offset > 0) {
                 i_state.mem_offset--;
+            }
             break;
 
         case 'g':
-            if(i_state.num_mod > 0) {
+            if (i_state.num_mod > 0) {
                 int hex = 0;
                 int cur_pow = 1;
-                while(i_state.num_mod > 0) {
+                while (i_state.num_mod > 0) {
                     hex += (i_state.num_mod % 10) * cur_pow;
                     i_state.num_mod /= 10;
                     cur_pow *= 16;
@@ -208,7 +208,7 @@ int _e_h_handle_input()
                     i_state.mem_offset = maxoff;
                 }
             } else {
-                if(i_state.key_state == KS_G_PRESSED) {
+                if (i_state.key_state == KS_G_PRESSED) {
                     i_state.mem_offset = 0;
                     i_state.key_state = KS_DEFAULT;
                 } else {
@@ -265,7 +265,7 @@ void ebsp_inspector_finalize() {
 
     // free memory buffer
     free(i_state.buf);
- 
+
     // close the curses window
     endwin();
 }
@@ -276,7 +276,7 @@ void ebsp_inspector_finish()
 
     // free memory buffer
     free(i_state.buf);
- 
+
     // close the curses window
     endwin();
 
@@ -286,10 +286,12 @@ void ebsp_inspector_finish()
 
 void ebsp_inspector_enable()
 {
-    // FIXME terminate with signals properly
+    // TODO(JW)
+    // terminate with signals properly
     signal(SIGINT, ebsp_inspector_finish);
 
-    // TODO redirect stdout
+    // TODO(JW)
+    // redirect stdout
     // ... (freopen, dup)
 
     memset(&i_state, 0, sizeof(e_h_viewer_state));

@@ -72,6 +72,9 @@ e: e_dirs bin/lib/$(E_LIBNAME)$(LIBEXT)
 
 assembly: $(E_ASMS)
 
+lint:
+	@scripts/cpplint.py --filter=-whitespace/braces,-readability/casting,-build/include --extensions=h,c $(E_SRCS:%.c=src/%.c) $(HOST_SRCS:%c=src/%c)
+
 host_dirs:
 	@mkdir -p bin/host bin/lib
 

@@ -25,7 +25,8 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include "e_bsp_private.h"
 #include <string.h>
 
-const char err_send_overflow[] EXT_MEM_RO = "BSP ERROR: too many bsp_send requests per sync";
+const char err_send_overflow[] EXT_MEM_RO =
+    "BSP ERROR: too many bsp_send requests per sync";
 
 int ebsp_get_tagsize()
 {
@@ -53,13 +54,10 @@ void bsp_send(int pid, const void *tag, const void *payload, int nbytes)
     payload_offset = comm_buf->data_payloads.buffer_size;
 
     if ((payload_offset + total_nbytes > MAX_PAYLOAD_SIZE)
-            || (index >= MAX_MESSAGES))
-    {
+            || (index >= MAX_MESSAGES)) {
         index = -1;
         payload_offset = -1;
-    }
-    else
-    {
+    } else {
         q->count++;
         comm_buf->data_payloads.buffer_size += total_nbytes;
     }
@@ -91,8 +89,7 @@ ebsp_message_header* _next_queue_message()
     int qsize = q->count;
 
     // currently searching at message_index
-    for (; coredata.message_index < qsize; coredata.message_index++)
-    {
+    for (; coredata.message_index < qsize; coredata.message_index++) {
         if (q->message[coredata.message_index].pid != coredata.pid)
             continue;
         return &q->message[coredata.message_index];
@@ -115,8 +112,7 @@ void bsp_qsize(int *packets, int *accum_bytes)
     int qsize = q->count;
 
     // currently searching at message_index
-    for (; mindex < qsize; mindex++)
-    {
+    for (; mindex < qsize; mindex++) {
         if (q->message[mindex].pid != coredata.pid)
             continue;
         *packets += 1;
@@ -128,8 +124,7 @@ void bsp_qsize(int *packets, int *accum_bytes)
 void bsp_get_tag(int *status, void *tag)
 {
     ebsp_message_header* m = _next_queue_message();
-    if (m == 0)
-    {
+    if (m == 0) {
         *status = -1;
         return;
     }
@@ -141,13 +136,10 @@ void bsp_move(void *payload, int buffer_size)
 {
     ebsp_message_header* m = _next_queue_message();
     _pop_queue_message();
-    if (m == 0)
-    {
-        // This part is not defined by the BSP standard
+    if (m == 0)  // This part is not defined by the BSP standard
         return;
-    }
 
-    if (buffer_size == 0) // Specified by BSP standard
+    if (buffer_size == 0)  // Specified by BSP standard
         return;
 
     if (m->nbytes < buffer_size)
@@ -160,7 +152,10 @@ int bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
 {
     ebsp_message_header* m = _next_queue_message();
     _pop_queue_message();
-    if (m == 0) return -1;
+
+    if (m == 0)
+        return -1;
+
     *tag_ptr_buf = m->tag;
     *payload_ptr_buf = m->payload;
     return m->nbytes;

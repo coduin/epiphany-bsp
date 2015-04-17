@@ -120,8 +120,10 @@ void bsp_sync()
             if ((nbytes & DATA_PUT_BIT) == put)
                 memcpy(reqs[i].dst, reqs[i].src, nbytes & ~DATA_PUT_BIT);
         }
-        if (put == 0) put = DATA_PUT_BIT;
-        else break;
+        if (put == 0)
+            put = DATA_PUT_BIT;
+        else
+            break;
     }
     coredata.request_counter = 0;
 
@@ -146,17 +148,19 @@ void bsp_sync()
     coredata.message_index = 0;
 
     e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
+}
 
-    // Synchronize with host
-    //_write_syncstate(STATE_SYNC);
-    //while (coredata.syncstate != STATE_CONTINUE) {}
-    //_write_syncstate(STATE_RUN);
+void ebsp_host_sync()
+{
+    _write_syncstate(STATE_SYNC);
+    while (coredata.syncstate != STATE_CONTINUE) {}
+    _write_syncstate(STATE_RUN);
 }
 
 void _write_syncstate(int8_t state)
 {
-    coredata.syncstate = state; // local variable
-    comm_buf->syncstate[coredata.pid] = state; // being polled by ARM
+    coredata.syncstate = state;  // local variable
+    comm_buf->syncstate[coredata.pid] = state;  // being polled by ARM
 }
 
 void EXT_MEM_TEXT bsp_abort(const char * format, ...)
@@ -178,7 +182,7 @@ void EXT_MEM_TEXT bsp_abort(const char * format, ...)
     memcpy(&comm_buf->msgbuf[0], &buf[0], sizeof(buf));
     comm_buf->msgflag = coredata.pid+1;
     // Wait for it to be printed
-    while(comm_buf->msgflag != 0){}
+    while (comm_buf->msgflag != 0){}
     // Unlock mutex
     e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
 
@@ -206,7 +210,7 @@ void EXT_MEM_TEXT ebsp_message(const char* format, ... )
     memcpy(&comm_buf->msgbuf[0], &buf[0], sizeof(buf));
     comm_buf->msgflag = coredata.pid+1;
     // Wait for it to be printed
-    while(comm_buf->msgflag != 0){}
+    while (comm_buf->msgflag != 0){}
     // Unlock mutex
     e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
 }

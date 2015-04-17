@@ -31,12 +31,9 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include "common.h"
 
 #define __USE_XOPEN2K
-#include <unistd.h> // readlink, for getting the path to the executable
+#include <unistd.h>  // readlink, for getting the path to the executable
 #define __USE_POSIX199309 1
 #include <time.h>
-extern int clock_nanosleep (clockid_t __clock_id, int __flags,
-			    const struct timespec *__req,
-			    struct timespec *__rem);
 
 // Global BSP state
 typedef struct
@@ -82,7 +79,7 @@ bsp_state_t state;
 int bsp_initialized = 0;;
 
 void _host_sync();
-void _microsleep(int microseconds); //1000 gives 1 millisecond
+void _microsleep(int microseconds);  // 1000 gives 1 millisecond
 void _get_p_coords(int pid, int* row, int* col);
 void init_application_path();
 
@@ -91,10 +88,11 @@ int ebsp_write(int pid, void* src, off_t dst, int size)
     int prow, pcol;
     _get_p_coords(pid, &prow, &pcol);
     if (e_write(&state.dev,
-            prow, pcol,
-            dst, src, size) != size)
+                prow, pcol,
+                dst, src, size) != size)
     {
-        fprintf(stderr, "ERROR: e_write(dev,%d,%d,%p,%p,%d) failed in ebsp_write.\n",
+        fprintf(stderr,
+                "ERROR: e_write(dev,%d,%d,%p,%p,%d) failed in ebsp_write.\n",
                 prow, pcol, (void*)dst, (void*)src, size);
         return 0;
     }
@@ -106,10 +104,11 @@ int ebsp_read(int pid, off_t src, void* dst, int size)
     int prow, pcol;
     _get_p_coords(pid, &prow, &pcol);
     if (e_read(&state.dev,
-           prow, pcol,
-           src, dst, size) != size)
+                prow, pcol,
+                src, dst, size) != size)
     {
-        fprintf(stderr, "ERROR: e_read(dev,%d,%d,%p,%p,%d) failed in ebsp_read.\n",
+        fprintf(stderr,
+                "ERROR: e_read(dev,%d,%d,%p,%p,%d) failed in ebsp_read.\n",
                 prow, pcol, (void*)src, (void*)dst, size);
         return 0;
     }
@@ -143,8 +142,8 @@ int bsp_init(const char* _e_name,
 
     // Get the path to the application and append the epiphany executable name
     init_application_path();
-    strcpy(state.e_fullpath, state.e_directory);
-    strcat(state.e_fullpath, _e_name);
+    snprintf(state.e_fullpath, sizeof(state.e_fullpath), "%s%s",
+            state.e_directory, _e_name);
 
     // Check if the file exists
     if (access(state.e_fullpath, R_OK) == -1)
@@ -155,19 +154,19 @@ int bsp_init(const char* _e_name,
     }
 
     // Initialize the Epiphany system for the working with the host application
-    if(e_init(NULL) != E_OK) {
+    if (e_init(NULL) != E_OK) {
         fprintf(stderr, "ERROR: Could not initialize HAL data structures.\n");
         return 0;
     }
 
     // Reset the Epiphany system
-    if(e_reset_system() != E_OK) {
+    if (e_reset_system() != E_OK) {
         fprintf(stderr, "ERROR: Could not reset the Epiphany system.\n");
         return 0;
     }
 
     // Get information on the platform
-    if(e_get_platform_info(&state.platform) != E_OK) {
+    if (e_get_platform_info(&state.platform) != E_OK) {
         fprintf(stderr, "ERROR: Could not obtain platform information.\n");
         return 0;
     }
@@ -182,7 +181,7 @@ int bsp_init(const char* _e_name,
 
 int bsp_begin(int nprocs)
 {
-    //TODO
+    // TODO(*)
     // When one of the functions fails half-way in bsp_begin
     // Then the functions that DID succeed should be undone again
     // So at e_load_group failure it cleanup the e_open result
@@ -192,7 +191,7 @@ int bsp_begin(int nprocs)
         return 0;
     }
 
-    //TODO: non-rectangle
+    // TODO(*) non-rectangle
     state.rows = (nprocs / state.platform.rows);
     state.cols = nprocs / (nprocs / state.platform.rows);
 
@@ -204,35 +203,32 @@ int bsp_begin(int nprocs)
     state.num_vars_registered = 0;
 
     // Open the workgroup
-    if(e_open(&state.dev,
+    if (e_open(&state.dev,
                 0, 0,
                 state.rows,
-                state.cols) != E_OK)
-    {
+                state.cols) != E_OK) {
         fprintf(stderr, "ERROR: Could not open workgroup.\n");
         return 0;
     }
 
-    if(e_reset_group(&state.dev) != E_OK) {
+    if (e_reset_group(&state.dev) != E_OK) {
         fprintf(stderr, "ERROR: Could not reset workgroup.\n");
         return 0;
     }
 
     // Load the e-binary
     printf("(BSP) INFO: Loading: %s\n", state.e_fullpath);
-    if(e_load_group(state.e_fullpath,
+    if (e_load_group(state.e_fullpath,
                 &state.dev,
                 0, 0,
-                state.rows, state.cols, 
-                E_FALSE) != E_OK)
-    {
+                state.rows, state.cols,
+                E_FALSE) != E_OK) {
         fprintf(stderr, "ERROR: Could not load program in workgroup.\n");
         return 0;
     }
 
     // Allocate communication buffer
-    if (e_alloc(&state.emem, COMMBUF_OFFSET, sizeof(ebsp_comm_buf)) != E_OK)
-    {
+    if (e_alloc(&state.emem, COMMBUF_OFFSET, sizeof(ebsp_comm_buf)) != E_OK) {
         fprintf(stderr, "ERROR: e_alloc failed in bspbegin.\n");
         return 0;
     }
@@ -268,7 +264,7 @@ void _update_remote_timer()
 }
 
 int ebsp_spmd()
-{   
+{
     // Write communication buffer containing nprocs,
     // messages and tagsize
     state.comm_buf.nprocs = state.nprocs_used;
@@ -283,7 +279,7 @@ int ebsp_spmd()
     // Starting time
     clock_gettime(CLOCK_MONOTONIC, &state.ts_start);
     _update_remote_timer();
-  
+
     // Start the program
     // Only in DEBUG mode:
     // The program will block on bsp_begin in state STATE_EREADY
@@ -302,13 +298,13 @@ int ebsp_spmd()
     int cores_initialized;
     while (1)
     {
-        _microsleep(1000); // 1 millisecond
+        _microsleep(1000);  // 1 millisecond
 
         // Read the communication buffer
         if (e_read(&state.emem, 0, 0, 0, &state.comm_buf, read_size)
-                != read_size)
-        {
-            fprintf(stderr, "ERROR: e_read ebsp_comm_buf failed in ebsp_spmd.\n");
+                != read_size) {
+            fprintf(stderr,
+                    "ERROR: e_read ebsp_comm_buf failed in ebsp_spmd.\n");
             return 0;
         }
 
@@ -347,14 +343,14 @@ int ebsp_spmd()
     for (;;)
     {
         _update_remote_timer();
-        _microsleep(1); //1000 is 1 millisecond
+        _microsleep(1);  // 1000 is 1 millisecond
 
         // Read the first part of the communication buffer
         // that contains sync states: read all up till coredata (not inclusive)
         if (e_read(&state.emem, 0, 0, 0, &state.comm_buf, read_size)
-                != read_size)
-        {
-            fprintf(stderr, "ERROR: e_read ebsp_comm_buf failed in ebsp_spmd.\n");
+                != read_size) {
+            fprintf(stderr,
+                    "ERROR: e_read ebsp_comm_buf failed in ebsp_spmd.\n");
             return 0;
         }
 
@@ -366,17 +362,37 @@ int ebsp_spmd()
         abort_counter    = 0;
         for (int i = 0; i < state.nprocs; i++) {
             switch (state.comm_buf.syncstate[i]){
-                case STATE_INIT:     break;
-                case STATE_RUN:      run_counter++; break;
-                case STATE_SYNC:     sync_counter++; break;
-                case STATE_FINISH:   finish_counter++; break;
-                case STATE_CONTINUE: continue_counter++; break;
-                case STATE_ABORT:    abort_counter++; break;
-                default: extmem_corrupted++;
-                         if( extmem_corrupted <= 32) //to avoid output overflow
-                             fprintf(stderr, "ERROR: External memory corrupted. syncstate[%d] = %d.\n",
-                                     i, state.comm_buf.syncstate[i]);
-                         break;
+                case STATE_INIT:
+                    break;
+
+                case STATE_RUN:
+                    run_counter++;
+                    break;
+
+                case STATE_SYNC:
+                    sync_counter++;
+                    break;
+
+                case STATE_FINISH:
+                    finish_counter++;
+                    break;
+
+                case STATE_CONTINUE:
+                    continue_counter++;
+                    break;
+
+                case STATE_ABORT:
+                    abort_counter++;
+                    break;
+
+                default:
+                    extmem_corrupted++;
+                    if (extmem_corrupted <= 32)  // to avoid overflow
+                        fprintf(stderr,
+                                "ERROR: External memory corrupted."
+                                " syncstate[%d] = %d.\n",
+                                i, state.comm_buf.syncstate[i]);
+                    break;
             }
         }
 
@@ -384,7 +400,7 @@ int ebsp_spmd()
         if (state.comm_buf.msgflag)
         {
             printf("$%02d: %s\n",
-                    state.comm_buf.msgflag - 1, //flag = pid+1
+                    state.comm_buf.msgflag - 1,  // flag = pid+1
                     state.comm_buf.msgbuf);
             // Reset flag to let epiphany cores continue
             state.comm_buf.msgflag = 0;
@@ -410,9 +426,9 @@ int ebsp_spmd()
             // This part of the sync (host side)
             // usually does not crash so only one
             // line of debug output is needed here
-            printf("(BSP) DEBUG: Sync %d after %f seconds\n", total_syncs, time_elapsed);
+            printf("(BSP) DEBUG: Sync %d after %f seconds\n",
+                    total_syncs, time_elapsed);
 #endif
-            
             // if call back, call and wait
             if (state.sync_callback)
                 state.sync_callback();
@@ -439,7 +455,8 @@ int ebsp_spmd()
     if (e_read(&state.emem, 0, 0, 0, &state.comm_buf, sizeof(ebsp_comm_buf))
             != sizeof(ebsp_comm_buf))
     {
-        fprintf(stderr, "ERROR: e_read full ebsp_comm_buf failed in ebsp_spmd.\n");
+        fprintf(stderr,
+                "ERROR: e_read full ebsp_comm_buf failed in ebsp_spmd.\n");
         return 0;
     }
 
@@ -454,7 +471,8 @@ int ebsp_spmd()
 int bsp_end()
 {
     if (!bsp_initialized) {
-        fprintf(stderr, "ERROR: bsp_end called when bsp was not initialized.\n");
+        fprintf(stderr,
+                "ERROR: bsp_end called when bsp was not initialized.\n");
         return 0;
     }
 
@@ -512,14 +530,14 @@ void ebsp_send_down(int pid, const void *tag, const void *payload, int nbytes)
     void *tag_ptr;
     void *payload_ptr;
 
-    if (index >= MAX_MESSAGES)
-    {
-        fprintf(stderr, "ERROR: Maximal message count reached in ebsp_send_down.\n");
+    if (index >= MAX_MESSAGES) {
+        fprintf(stderr,
+                "ERROR: Maximal message count reached in ebsp_send_down.\n");
         return;
     }
-    if (payload_offset + total_nbytes > MAX_PAYLOAD_SIZE)
-    {
-        fprintf(stderr, "ERROR: Maximal data payload sent in ebsp_send_down.\n");
+    if (payload_offset + total_nbytes > MAX_PAYLOAD_SIZE) {
+        fprintf(stderr,
+                "ERROR: Maximal data payload sent in ebsp_send_down.\n");
         return;
     }
 
@@ -596,7 +614,7 @@ void ebsp_move(void *payload, int buffer_size)
         return;
     }
 
-    if (buffer_size == 0) // Specified by BSP standard
+    if (buffer_size == 0)  // Specified by BSP standard
         return;
 
     if (m->nbytes < buffer_size)
@@ -650,7 +668,7 @@ void init_application_path()
         }
     } else {
         fprintf(stderr, "ERROR: Could not find process directory.\n");
-        memcpy(state.e_directory, "./", 3); // including terminating 0
+        memcpy(state.e_directory, "./", 3);  // including terminating 0
     }
     return;
 }
