@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3
+## 0.2
 - Updated bsp_init to use the path relative to the host binary instead of current directory
 - Rewrote both Makefiles to be cleaner
 - Added bsp_raw_time, now implemented in assembly
@@ -22,8 +22,6 @@
 - All cores now use the same space to store data payloads (mutexed)
 - All bsp_push_reg logic now happens on the epiphany side
 - Added benchmark comparing bsp_put to bsp_hpput
-
-## 0.2
 - All shared structures now have maximal packing because the two compilers use non-compatible alignments
 - All cores now use the same memory for `bsp_put` data payload allowing a lot larger payloads
 - Moved `bsp_var_list` from on-core memory to external memory

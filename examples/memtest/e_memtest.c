@@ -30,10 +30,9 @@ int main()
 
     int p = bsp_pid();
 
-    char a, b, c;
-    a = 0;
-    b = 0;
-    c = 0;
+    char a = 0;
+    char b = 0;
+    char c = 0;
     bsp_push_reg(&a, sizeof(char));
     bsp_sync();
     bsp_push_reg(&b, sizeof(char));

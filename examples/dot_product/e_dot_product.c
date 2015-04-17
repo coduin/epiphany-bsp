@@ -46,9 +46,12 @@ int main()
         bsp_get_tag(&status, &tag);
         bsp_move(ptr, sizeleft);
 
-        if (tag == 1) chunk = *(int*)ptr;
-        else if (tag == 2) a = (int*)ptr;
-        else if (tag == 3) b = (int*)ptr;
+        if (tag == 1)
+            chunk = *(int*)ptr;
+        else if (tag == 2)
+            a = (int*)ptr;
+        else if (tag == 3)
+            b = (int*)ptr;
 
         sizeleft -= status;
         ptr += status;

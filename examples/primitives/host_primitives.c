@@ -87,12 +87,12 @@ void send_data()
 
     // Send the data
     // We divide it in nprocs parts
-    int chunk_size = (data_count + nprocs - 1)/nprocs;
+    int chunk_size = (data_count + nprocs - 1) / nprocs;
 
     ebsp_set_tagsize(&tagsize);
     for (int p = 0; p < nprocs; p++)
     {
-        tag = 100+p; // random tag
+        tag = 100 + p; // random tag
         ebsp_send_down(p, &tag,
                 &data[p*chunk_size],
                 sizeof(float)*chunk_size);
@@ -146,7 +146,7 @@ void retrieve_data()
         {
             float value;
             ebsp_move(&value, sizeof(float));
-            printf("Result 4: memory allocation time for core %d: %e\n", ntag-100, value);
+            printf("Result 4: memory allocation time for core %d: %e\n", ntag - 100, value);
         }
         else
         {

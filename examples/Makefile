@@ -38,15 +38,15 @@ all: hello e_hello primitives dot_product memtest bspbench lu_decomposition
 ########################################################
 
 bin/%: %.c
-	@echo "Compiling and assembling $<"
+	@echo "CC $<"
 	@$(PLATFORM_PREFIX)gcc $(CFLAGS) $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
 	
 bin/%.elf: %.c
-	@echo "Compiling and assembling $<"
+	@echo "CC $<"
 	@e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
 
 bin/%.srec: bin/%.elf
-	@echo "Converting to srec: $<"
+	@echo "OBJCOPY $<"
 	@e-objcopy --srec-forceS3 --output-target srec $< $@
 
 ########################################################

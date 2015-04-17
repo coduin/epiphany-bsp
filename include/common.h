@@ -65,6 +65,7 @@ typedef struct {
     // so a memcpy can be used directly
     const void* src;
     void*       dst;
+
     // The highest bit of nbytes is used to indicate whether this is a
     // put or a get request. 0 means get, 1 means put
     int         nbytes;

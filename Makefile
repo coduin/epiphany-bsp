@@ -46,22 +46,22 @@ vpath %.c src
 vpath %.s src
 
 bin/host/%.o: %.c
-	@echo "Compiling and assembling $<"
+	@echo "CC $<"
 	@$(PLATFORM_PREFIX)gcc -O3 -Wall -std=c99 $(INCLUDES) -c $< -o $@ ${HOST_LIBS}
 	
 # C code to object file
 bin/e/%.o: %.c
-	@echo "Compiling and assembling $<"
+	@echo "CC $<"
 	@e-gcc $(E_FLAGS) $(INCLUDES) -c $< -o $@ -le-lib
 
 # Assembly to object file
 bin/e/%.o: %.s
-	@echo "Assembling $<"
+	@echo "CC $<"
 	@e-gcc $(E_FLAGS) -c $< -o $@ -le-lib
 
 # C code to assembly
 bin/e/%.s: %.c
-	@echo "Compiling $<"
+	@echo "CC $<"
 	@e-gcc $(E_FLAGS) $(INCLUDES) -fverbose-asm -S $< -o $@
 
 all: host e

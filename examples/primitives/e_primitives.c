@@ -183,7 +183,7 @@ void get_initial_data(void *buffer, unsigned int *nbytes)
         bsp_move((void*)((int)buffer + offset), status);
         offset += status;
 
-        if (p==0)
+        if (p == 0)
             ebsp_message("Received %d bytes message with tag %d", status, tag);
     }
     *nbytes = offset;
@@ -193,7 +193,7 @@ int extmem_test()
 {
     int errors = 0;
 
-    if (p==0)
+    if (p == 0)
         ebsp_message("Memory test: allocating 100 memory objects per core");
 
     // Allocate external (slow, but larger) memory
@@ -216,7 +216,7 @@ int extmem_test()
     void* otherptrs[100];
     bsp_push_reg(&otherptrs, sizeof(otherptrs));
     bsp_sync();
-    for (int core = p+1; ; core++)
+    for (int core = p + 1; ; core++)
     {
         if (core == n) core = 0; // wrap around
         if (core == p) break;
@@ -228,7 +228,7 @@ int extmem_test()
                 ++errors;
     }
 
-    if (p==0)
+    if (p == 0)
         ebsp_message("Memory test complete (%d)", errors);
 
     // Free the memory
