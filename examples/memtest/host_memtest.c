@@ -28,11 +28,11 @@ see the files COPYING and COPYING.LESSER. If not, see
 int main(int argc, char **argv)
 {
     // initialize the BSP system
-    if(!bsp_init("bin/e_memtest.srec", argc, argv))
+    if (!bsp_init("e_memtest.srec", argc, argv))
         printf("init failed\n");
 
     // initialize the epiphany system, and load the e-program
-    if(!bsp_begin(bsp_nprocs()))
+    if (!bsp_begin(bsp_nprocs()))
         printf("begin failed\n");
 
     // run the SPMD on the e-cores
@@ -40,11 +40,14 @@ int main(int argc, char **argv)
 
     // read messages
     printf("Reading results...\n");
-    int pid = 0;
-    for(pid = 0; pid < bsp_nprocs(); pid++) {
-        char msg;
-        co_read(pid, (off_t)0x4000, &msg, 1);
-        printf("%i: %c\n", pid, msg);
+    int packets;
+    int accum_bytes;
+    ebsp_qsize(&packets, &accum_bytes);
+    for (int i = 0; i < packets; i++)
+    {
+        int value;
+        ebsp_move(&value, sizeof(int));
+        printf("%i: %d\n", i, value);
     }
 
     // finalize

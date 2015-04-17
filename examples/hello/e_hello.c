@@ -23,7 +23,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include <e_bsp.h>
-#include "e-lib.h"
 
 int main()
 {
@@ -32,14 +31,7 @@ int main()
     int n = bsp_nprocs(); 
     int p = bsp_pid();
 
-    const char* hmsg = "Hello world! BSP";
-
-    char* a = (void*)0x6000;
-    (*a) = hmsg[p];
-    int* po = (int*)0x6004;
-    (*po) = p;
-
-    ebsp_message("Debug message from core %d. Writing '%c' to %p", p, *a, a);
+    ebsp_message("Hello world from core %d/%d", p, n);
 
     bsp_end();
 

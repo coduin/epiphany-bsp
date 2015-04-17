@@ -28,7 +28,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 int main(int argc, char **argv)
 {
     // initialize the BSP system
-    if(!bsp_init("bin/e_hello.srec", argc, argv)) {
+    if(!bsp_init("e_hello.srec", argc, argv)) {
         fprintf(stderr, "[HELLO] bsp_init() failed\n");
         return -1;
     }
@@ -44,16 +44,6 @@ int main(int argc, char **argv)
 
     // run the SPMD on the e-cores
     ebsp_spmd();
-
-    // read messages
-    int pid = 0;
-    for(pid = 0; pid < bsp_nprocs(); pid++) {
-        char msg;
-        int p;
-        co_read(pid, (off_t)0x6000, &msg, sizeof(char));
-        co_read(pid, (off_t)0x6004, &p, sizeof(int));
-        printf("%i: %c\n", p, msg);
-    }
 
     // finalize
     bsp_end();

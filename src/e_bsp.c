@@ -22,53 +22,61 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
-#include "e_bsp.h"
-#include <e-lib.h>
+#include "e_bsp_private.h"
+#include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include <string.h>
 
-// All bsp variables for this core
 ebsp_core_data coredata;
-ebsp_comm_buf* comm_buf = (ebsp_comm_buf*)COMMBUF_EADDR;
 
-void _write_syncstate(int state);
+void _write_syncstate(int8_t state);
 
-void bsp_begin()
+void EXT_MEM_TEXT bsp_begin()
 {
-    int i;
     int row = e_group_config.core_row;
     int col = e_group_config.core_col;
     int cols = e_group_config.group_cols;
 
     // Initialize local data
     coredata.pid = col + cols * row;
-    coredata.msgflag = 0;
-    for(i = 0; i < MAX_N_REGISTER * coredata.nprocs; i++)
-        coredata.registermap[i] = 0;
+    coredata.nprocs = comm_buf->nprocs;
+    coredata.request_counter = 0;
+    coredata.var_pushed = 0;
+    coredata.tagsize = comm_buf->tagsize;
+    coredata.tagsize_next = coredata.tagsize;
+    coredata.queue_index = 0;
+    coredata.message_index = 0;
 
-    // Send &coredata to ARM so that ARM can fill it with values
-    comm_buf->coredata[coredata.pid] = &coredata;
-    // Wait untill ARM received coredata so we can start
-    // Accomplish this with a bsp_sync but using a different flag
-    _write_syncstate(STATE_INIT);
+    // Initialize the barrier and mutexes
+    e_barrier_init(coredata.sync_barrier, coredata.sync_barrier_tgt);
+    e_mutex_init(0, 0, &coredata.payload_mutex, MUTEXATTR_NULL);
+    e_mutex_init(0, 0, &coredata.ebsp_message_mutex, MUTEXATTR_NULL);
+    e_mutex_init(0, 0, &coredata.malloc_mutex, MUTEXATTR_NULL);
+
+    _init_malloc_state();
+
+    // Send &syncstate to ARM
+    if (coredata.pid == 0)
+        comm_buf->syncstate_ptr = (int8_t*)&coredata.syncstate;
+
+#ifdef DEBUG
+    // Wait for ARM before starting
+    _write_syncstate(STATE_EREADY);
     while (coredata.syncstate != STATE_CONTINUE) {}
+#endif
     _write_syncstate(STATE_RUN);
-
-    // Now the ARM has entered nprocs
 
     // Initialize epiphany timer
     coredata.time_passed = 0.0f;
-    e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
     e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);
-    coredata.last_timer_value = e_ctimer_get(E_CTIMER_0);
+    e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
 }
 
 void bsp_end()
 {
-    bsp_sync();
     _write_syncstate(STATE_FINISH);
-    // TODO: halt execution
+    // Finish execution
+    __asm__("trap 3");
 }
 
 int bsp_nprocs()
@@ -82,18 +90,9 @@ int bsp_pid()
     return coredata.pid;
 }
 
-float bsp_time()
+float EXT_MEM_TEXT bsp_time()
 {
-    unsigned int cur_time = e_ctimer_get(E_CTIMER_0);
-    coredata.time_passed += (coredata.last_timer_value - cur_time) / CLOCKSPEED;
-    e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
-    // Tested: between setting E_CTIMER_MAX and 
-    // reading the timer, it decreased by 23 clockcycles
-    coredata.last_timer_value = e_ctimer_get(E_CTIMER_0);
-#ifdef DEBUG
-    if (cur_time == 0)
-        return -1.0;
-#endif
+    coredata.time_passed += bsp_raw_time() / CLOCKSPEED;
     return coredata.time_passed;
 }
 
@@ -105,77 +104,113 @@ float bsp_remote_time()
 // Sync
 void bsp_sync()
 {
+    // Handle all bsp_get requests before bsp_put request. They are stored in
+    // the same list and recognized by the highest bit of nbytes
+
+    // Instead of copying the code twice, we put it in a loop
+    // so that the code is shorter (this is tested)
+    ebsp_data_request* reqs = &comm_buf->data_requests[coredata.pid][0];
+    for (int put = 0;;)
+    {
+        e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
+        for (int i = 0; i < coredata.request_counter; ++i)
+        {
+            int nbytes = reqs[i].nbytes;
+            // Check if this is a get or a put
+            if ((nbytes & DATA_PUT_BIT) == put)
+                memcpy(reqs[i].dst, reqs[i].src, nbytes & ~DATA_PUT_BIT);
+        }
+        if (put == 0)
+            put = DATA_PUT_BIT;
+        else
+            break;
+    }
+    coredata.request_counter = 0;
+
+    // This can be done at any point during the sync
+    // (as long as it is after the first barrier and before the last one
+    // so all cores are syncing) and only one core needs to set this, but
+    // letting all cores set it produces smaller code (binary size)
+    comm_buf->data_payloads.buffer_size = 0;
+    comm_buf->message_queue[coredata.queue_index].count = 0;
+    // Switch queue between 0 and 1
+    // xor seems to produce the shortest assembly
+    coredata.queue_index ^= 1;
+
+    if (coredata.var_pushed)
+    {
+        coredata.var_pushed = 0;
+        if (coredata.pid == 0)
+            comm_buf->bsp_var_counter++;
+    }
+
+    coredata.tagsize = coredata.tagsize_next;
+    coredata.message_index = 0;
+
+    e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
+}
+
+void ebsp_host_sync()
+{
     _write_syncstate(STATE_SYNC);
     while (coredata.syncstate != STATE_CONTINUE) {}
     _write_syncstate(STATE_RUN);
 }
 
-void _write_syncstate(int state)
+void _write_syncstate(int8_t state)
 {
-    coredata.syncstate = state; // local variable
-    comm_buf->syncstate[coredata.pid] = state; // being polled by ARM
+    coredata.syncstate = state;  // local variable
+    comm_buf->syncstate[coredata.pid] = state;  // being polled by ARM
 }
 
-// Memory
-void bsp_push_reg(const void* variable, const int nbytes)
+void EXT_MEM_TEXT bsp_abort(const char * format, ...)
 {
-    comm_buf->pushregloc[coredata.pid] = (void*)variable;
-}
+    // Because of the way these arguments work we can not
+    // simply call ebsp_message here
+    // so this function contains a copy of ebsp_message
 
-int row_from_pid(int pid)
-{
-    return pid / e_group_config.group_cols;
-}
-
-int col_from_pid(int pid)
-{
-    return pid % e_group_config.group_cols;
-}
-
-void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
-{
-    int slotID;
-    void* adj_dst;
-    for (slotID=0; ; slotID++) {
-#ifdef DEBUG
-        if (slotID >= MAX_N_REGISTER)
-        {
-            ebsp_message("ERROR: bsp_hpput(%d, %p, %p, %d, %d) could not find dst", pid, src, dst, offset, nbytes);
-            return;
-        }
-#endif
-        // Find the slot for our local _pid
-        if (coredata.registermap[coredata.nprocs * slotID + coredata.pid] == dst)
-        {
-            // Then get the entry of remote pid
-            adj_dst = coredata.registermap[coredata.nprocs * slotID + pid];
-            break;
-        }
-    }
-    adj_dst = (void*)((int)adj_dst + offset);
-    e_write(&e_group_config, src,
-            row_from_pid(pid),
-            col_from_pid(pid),
-            adj_dst, nbytes);
-}
-
-void ebsp_message(const char* format, ... )
-{
     // Write the message to a buffer
-    ebsp_message_buf b;
+    char buf[128];
     va_list args;
     va_start(args, format);
-    vsnprintf(&b.msg[0], sizeof(b.msg), format, args);
+    vsnprintf(&buf[0], sizeof(buf), format, args);
     va_end(args);
 
-    // Check if ARM core has written the previous message
-    // so that we can overwrite the previous buffer
-    while (coredata.msgflag != 0) {}
-    coredata.msgflag = 1;
+    // Lock mutex
+    e_mutex_lock(0, 0, &coredata.ebsp_message_mutex);
+    // Write the message
+    memcpy(&comm_buf->msgbuf[0], &buf[0], sizeof(buf));
+    comm_buf->msgflag = coredata.pid+1;
+    // Wait for it to be printed
+    while (comm_buf->msgflag != 0){}
+    // Unlock mutex
+    e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
 
-    // Write the message to the external memory
-    memcpy(&comm_buf->message[coredata.pid], &b, sizeof(ebsp_message_buf));
-    // Write the flag indicating that the message is complete
-    comm_buf->msgflag[coredata.pid] = 1;
+    // Abort all cores and notify host
+    _write_syncstate(STATE_ABORT);
+    // Experimental Epiphany feature that sends
+    // and abort signal to all cores
+    __asm__("MBKPT");
+    // Halt this core
+    __asm__("trap 3");
 }
 
+void EXT_MEM_TEXT ebsp_message(const char* format, ... )
+{
+    // Write the message to a buffer
+    char buf[128];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(&buf[0], sizeof(buf), format, args);
+    va_end(args);
+
+    // Lock mutex
+    e_mutex_lock(0, 0, &coredata.ebsp_message_mutex);
+    // Write the message
+    memcpy(&comm_buf->msgbuf[0], &buf[0], sizeof(buf));
+    comm_buf->msgflag = coredata.pid+1;
+    // Wait for it to be printed
+    while (comm_buf->msgflag != 0){}
+    // Unlock mutex
+    e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
+}

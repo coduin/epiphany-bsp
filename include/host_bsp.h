@@ -23,41 +23,7 @@ see the files COPYING and COPYING.LESSER. If not, see
  */
 
 #pragma once
-
 #include <e-hal.h>
-#include <e-loader.h>
-#include "common.h"
-
-typedef struct _bsp_state_t
-{
-    // The number of processors available
-    int nprocs;
-
-    // The name of the e-program
-    char* e_name;
-
-    // Number of rows or columns in use
-    int rows;
-    int cols;
-
-    // Number of processors in use
-    int nprocs_used;
-
-    // External memory that holsd ebsp_comm_buf
-    e_mem_t emem;
-    // Local copy of ebsp_comm_buf to copy from and
-    // copy into.
-    ebsp_comm_buf comm_buf;
-
-    void (*sync_callback)(void);
-    void (*end_callback)(void);
-
-    int num_vars_registered;
-
-    // Epiphany specific variables
-    e_platform_t platform;
-    e_epiphany_t dev;
-} bsp_state_t;
 
 /** This writes data from the host processor to the co-processor.
  *  This can be useful for distributing initial data, or when dividing work
@@ -69,8 +35,6 @@ typedef struct _bsp_state_t
  *  size: Amount of data to write in bytes.
  *  flag: 1 on success, 0 on failure
  */
-// DEPRECATED: CO_WRITE
-#define co_write ebsp_write
 int ebsp_write(int pid, void* src, off_t dst, int size);
 
 /** This reads data from the co-processor to the host processor.
@@ -82,8 +46,6 @@ int ebsp_write(int pid, void* src, off_t dst, int size);
  *  size: Amount of data to read in bytes.
  *  flag: 1 on success, 0 on failure
  */
-// DEPRECATED: CO_READ
-#define co_read ebsp_read
 int ebsp_read(int pid, off_t src, void* dst, int size);
 
 /** Initializes the BSP system. This sets up all the BSP variables and loads
@@ -95,10 +57,7 @@ int ebsp_read(int pid, off_t src, void* dst, int size);
  *  flag: An integer indicating whether the function finished
  *                succesfully, in which case it is 1, or 0 otherwise.
  */
-int bsp_init(const char* e_name,
-		int argc,
-		char **argv);
-
+int bsp_init(const char* e_name, int argc, char **argv);
 
 /** Set the callback for syncing
  */
@@ -134,4 +93,55 @@ int bsp_end();
  */
 int bsp_nprocs();
 
-// TODO: Consider function ebsp_push_result()
+/* BSP Message Passing
+ *
+ * These functions can be used to send messages to message queue
+ * of the programs for initialization and retrieve messages to gather results.
+ * The initialization messages will only remain in the queue until bsp_sync
+ * has been called for the first time.
+ * The default tag-size is zero.
+ *
+ * Sending messages must be done after bsp_init
+ * Retrieving messages must be done before bsp_end
+ *
+ * See e_bsp.h for more information
+ */
+
+/* Set initial tagsize.
+ * Should be called at most once, before any messages are sent.
+ * Calling this when receiving messages results in undefined behaviour.
+ */
+void ebsp_set_tagsize(int *tag_bytes);
+
+/* Send initial messages */
+void ebsp_send_down(int pid, const void *tag, const void *payload, int nbytes);
+
+/* The following functions are only for gathering result messages
+ * at the end of a BSP program */
+
+/* Get the tag-size as set by the epiphany cores */
+int ebsp_get_tagsize();
+
+/* Get the amount of messages in the queue and their total size */
+void ebsp_qsize(int *packets, int *accum_bytes);
+
+/* Peek the next message.
+ * Upon return, status holds the amount of bytes of the next message payload,
+ * or -1 if there are no more messages.
+ * tag will hold the tag of the next message. The buffer pointed to by tag
+ * should be large enough (ebsp_get_tagsize).
+ */
+void ebsp_get_tag(int *status, void *tag);
+
+/* Get the next message and pop it from the queue.
+ * Upon return, payload will hold the contents of the message.
+ * The buffer will only be filled till at most buffer_size. Remaining
+ * data is truncated. Use ebsp_get_tag to get the size of the data payload.
+ */
+void ebsp_move(void *payload, int buffer_size);
+
+/* Get the pointer to the next message payload, and pop the message.
+ * This will be a pointer to external memory so it is slow.
+ */
+int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
+
