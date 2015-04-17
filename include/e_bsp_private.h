@@ -54,7 +54,7 @@ typedef struct {
     // message_index is an index into an epiphany<->epiphany queue and
     // when it reached the end, it is an index into the arm->epiphany queue
     uint32_t        tagsize;
-    uint32_t        tagsize_next; // next superstep
+    uint32_t        tagsize_next;  // next superstep
     uint32_t        queue_index;
     uint32_t        message_index;
 
@@ -79,7 +79,7 @@ extern ebsp_core_data coredata;
 
 // The define is faster; it saves a pointer lookup
 #define comm_buf ((ebsp_comm_buf*)COMMBUF_EADDR)
-//ebsp_comm_buf * const comm_buf = (ebsp_comm_buf*)COMMBUF_EADDR;
+// ebsp_comm_buf * const comm_buf = (ebsp_comm_buf*)COMMBUF_EADDR;
 
 void _init_malloc_state();
 

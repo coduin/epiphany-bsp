@@ -138,27 +138,29 @@ void ebsp_send_up(const void *tag, const void *payload, int nbytes);
 
 /** bsp_abort aborts the program after outputting a message
  * This terminates all running epiphany-cores regardless of their status
+ * The attributes in this definition make sure that the compiler checks the
+ * arguments for errors
  */
 void _EXFUN(bsp_abort, (const char *, ...)
-        _ATTRIBUTE ((__format__ (__printf__, 1, 2))));
+        _ATTRIBUTE((__format__(__printf__, 1, 2))));
 
-    /*
-     * Allocate external memory.
-     * Keep in mind that this memory is slow so should not be used
-     * for floating point computations
-     */
-    void* ebsp_ext_malloc(unsigned int nbytes);
+/*
+ * Allocate external memory.
+ * Keep in mind that this memory is slow so should not be used
+ * for floating point computations
+ */
+void* ebsp_ext_malloc(unsigned int nbytes);
 
-    /*
-     * Free allocated external memory.
-     */
-    void ebsp_free(void* ptr);
+/*
+ * Free allocated external memory.
+ */
+void ebsp_free(void* ptr);
 
-    /** ebsp_message outputs a debug message by sending it to shared memory
-     * So that the host processor can output it to the terminal
-     * The attributes in this definition make sure that the compiler checks the
-     * arguments for errors
-     */
+/** ebsp_message outputs a debug message by sending it to shared memory
+ * So that the host processor can output it to the terminal
+ * The attributes in this definition make sure that the compiler checks the
+ * arguments for errors
+ */
 void _EXFUN(ebsp_message, (const char *, ...)
-        _ATTRIBUTE ((__format__ (__printf__, 1, 2))));
+    _ATTRIBUTE((__format__(__printf__, 1, 2))));
 

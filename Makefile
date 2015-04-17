@@ -22,6 +22,16 @@ E_SRCS = \
 E_ASM_SRCS = \
 		e_bsp_raw_time.s
 
+E_HEADERS = \
+			include/common.h \
+			include/e_bsp.h \
+			include/e_bsp_private.h
+
+HOST_HEADERS = \
+			   include/common.h \
+			   include/host_bsp.h \
+			   include/host_bsp_inspector.h
+
 HOST_SRCS = \
 		host_bsp.c \
 		host_bsp_inspector.c
@@ -45,22 +55,22 @@ E_ASMS = $(E_SRCS:%.c=bin/e/%.s)
 vpath %.c src
 vpath %.s src
 
-bin/host/%.o: %.c
+bin/host/%.o: %.c $(HOST_HEADERS)
 	@echo "CC $<"
 	@$(PLATFORM_PREFIX)gcc -O3 -Wall -std=c99 $(INCLUDES) -c $< -o $@ ${HOST_LIBS}
 	
 # C code to object file
-bin/e/%.o: %.c
+bin/e/%.o: %.c $(E_HEADERS)
 	@echo "CC $<"
 	@e-gcc $(E_FLAGS) $(INCLUDES) -c $< -o $@ -le-lib
 
 # Assembly to object file
-bin/e/%.o: %.s
+bin/e/%.o: %.s $(E_HEADERS)
 	@echo "CC $<"
 	@e-gcc $(E_FLAGS) -c $< -o $@ -le-lib
 
 # C code to assembly
-bin/e/%.s: %.c
+bin/e/%.s: %.c $(E_HEADERS)
 	@echo "CC $<"
 	@e-gcc $(E_FLAGS) $(INCLUDES) -fverbose-asm -S $< -o $@
 
@@ -73,7 +83,7 @@ e: e_dirs bin/lib/$(E_LIBNAME)$(LIBEXT)
 assembly: $(E_ASMS)
 
 lint:
-	@scripts/cpplint.py --filter=-whitespace/braces,-readability/casting,-build/include --extensions=h,c $(E_SRCS:%.c=src/%.c) $(HOST_SRCS:%c=src/%c)
+	@scripts/cpplint.py --filter=-whitespace/braces,-readability/casting,-build/include,-build/header_guard --extensions=h,c $(E_SRCS:%.c=src/%.c) $(HOST_SRCS:%c=src/%c) $(E_HEADERS) $(HOST_HEADERS)
 
 host_dirs:
 	@mkdir -p bin/host bin/lib

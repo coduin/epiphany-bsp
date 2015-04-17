@@ -57,10 +57,7 @@ int ebsp_read(int pid, off_t src, void* dst, int size);
  *  flag: An integer indicating whether the function finished
  *                succesfully, in which case it is 1, or 0 otherwise.
  */
-int bsp_init(const char* e_name,
-		int argc,
-		char **argv);
-
+int bsp_init(const char* e_name, int argc, char **argv);
 
 /** Set the callback for syncing
  */
