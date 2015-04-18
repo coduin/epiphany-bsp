@@ -75,6 +75,11 @@ void bsp_push_reg(const void* variable, const int nbytes)
     coredata.var_pushed = 1;
 }
 
+void bsp_pop_reg(const void* variable)
+{
+    return;
+}
+
 void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes)
 {
     // Check if we can store the request

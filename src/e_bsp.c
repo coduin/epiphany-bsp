@@ -68,8 +68,7 @@ void EXT_MEM_TEXT bsp_begin()
 
     // Initialize epiphany timer
     coredata.time_passed = 0.0f;
-    e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);
-    e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
+    bsp_raw_time();
 }
 
 void bsp_end()
