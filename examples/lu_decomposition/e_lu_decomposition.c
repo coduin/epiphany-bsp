@@ -65,9 +65,18 @@ int main()
     int n = bsp_nprocs(); 
     int p = bsp_pid();
 
-    M = (*(int*)LOC_M);
-    N = (*(int*)LOC_N);
-    dim = (*(int*)LOC_DIM);
+    M = (*(int*)_LOC_M);
+    N = (*(int*)_LOC_N);
+    dim = (*(int*)_LOC_DIM);
+
+    // cache data locations
+    int* LOC_RS = (int*)_LOC_RS;
+    float* LOC_ARK = (float*)_LOC_ARK;
+    int* LOC_R = (int*)_LOC_R;
+    int* LOC_PI = (int*)_LOC_PI;
+    int* LOC_PI_IN = (int*)_LOC_PI_IN;
+    float* LOC_ROW_IN = (float*)_LOC_ROW_IN;
+    float* LOC_COL_IN = (float*)_LOC_COL_IN;
 
     s = p / M;
     t = p % M;

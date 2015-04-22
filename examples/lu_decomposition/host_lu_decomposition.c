@@ -137,9 +137,9 @@ int main(int argc, char **argv)
     // Write M, N and dim to every processor such that they can figure out 
     // the (s,t) pair, and gtl / ltg functions
     for (int i = 0; i < bsp_nprocs(); ++i) {
-        ebsp_write(i, &M, (off_t)LOC_M, sizeof(int));
-        ebsp_write(i, &N, (off_t)LOC_N, sizeof(int));
-        ebsp_write(i, &dim, (off_t)LOC_DIM, sizeof(int));
+        ebsp_write(i, &M, (off_t)_LOC_M, sizeof(int));
+        ebsp_write(i, &N, (off_t)_LOC_N, sizeof(int));
+        ebsp_write(i, &dim, (off_t)_LOC_DIM, sizeof(int));
     }
 
     int prow = 0;
@@ -150,7 +150,7 @@ int main(int argc, char **argv)
             gtl(i, j, &loc, &prow, &pcol);
             ebsp_write(proc_id(prow, pcol),
                     &A[dim*i + j],
-                    LOC_MATRIX + sizeof(float) * loc,
+                    _LOC_MATRIX + sizeof(float) * loc,
                     sizeof(float));
         }
     }
@@ -162,9 +162,9 @@ int main(int argc, char **argv)
     printf("e.g. (s,t) = (3,3): \n");
 
     int _M, _N, _dim;
-    ebsp_read(proc_id(s, t), (off_t)LOC_M, &_M, sizeof(int));
-    ebsp_read(proc_id(s, t), (off_t)LOC_N, &_N, sizeof(int));
-    ebsp_read(proc_id(s, t), (off_t)LOC_DIM, &_dim, sizeof(int));
+    ebsp_read(proc_id(s, t), (off_t)_LOC_M, &_M, sizeof(int));
+    ebsp_read(proc_id(s, t), (off_t)_LOC_N, &_N, sizeof(int));
+    ebsp_read(proc_id(s, t), (off_t)_LOC_DIM, &_dim, sizeof(int));
 
     printf("M, N, dim: %i, %i, %i\n", _M, _N, _dim);
 
@@ -173,12 +173,12 @@ int main(int argc, char **argv)
             ltg(&i, &j, l, s, t);
             float val;
             ebsp_read(proc_id(s, t),
-                    LOC_MATRIX + sizeof(float) * l,
+                    _LOC_MATRIX + sizeof(float) * l,
                     &val,
                     sizeof(float));
             printf("%i \t (%i, %i) \t %f \t 0x%x\n",
                     l, i, j, val,
-                    LOC_MATRIX + sizeof(float) * l);
+                    _LOC_MATRIX + sizeof(float) * l);
     }
 #endif
 
@@ -208,7 +208,7 @@ int main(int argc, char **argv)
                 int i, j;
                 ltg(&i, &j, l, s, t);
                 ebsp_read(proc_id(s, t),
-                        LOC_MATRIX + sizeof(float) * l,
+                        _LOC_MATRIX + sizeof(float) * l,
                         &Y[dim*i + j], sizeof(float));
             }
         }
@@ -226,7 +226,7 @@ int main(int argc, char **argv)
     printf("PI: \n");
     for(int i = 0; i < dim; ++i) {
         ebsp_read(proc_id(i % N, 0),
-                LOC_PI + sizeof(int) * (i / N),
+                _LOC_PI + sizeof(int) * (i / N),
                 &pi[i], sizeof(int));
         printf("%i\n", pi[i]);
     }
