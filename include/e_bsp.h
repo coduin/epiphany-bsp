@@ -32,8 +32,7 @@ see the files COPYING and COPYING.LESSER. If not, see
  * Every message contains a fixed-length (can change per superstep)
  * tag and a variable-length payload.
  * Default tag-size is zero unless the host has sent messages
- * and used ebsp_set_tagsize
- *
+ * and used ebsp_set_tagsize *
  * The order of receiving messages is not guaranteed
  *
  * Before the first sync, the queue contains messages from the ARM host
@@ -42,9 +41,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 
 #pragma once
-
-#include "common.h"
-#include "_ansi.h"
 
 /**
  * Start the BSP program.
@@ -330,8 +326,8 @@ void ebsp_send_up(const void *tag, const void *payload, int nbytes);
  * The attributes in this definition make sure that the compiler checks the
  * arguments for errors
  */
-void _EXFUN(bsp_abort, (const char * format, ...)
-        _ATTRIBUTE((__format__(__printf__, 1, 2))));
+void bsp_abort(const char * format, ...)
+        __attribute__((__format__(__printf__, 1, 2)));
 
 /**
  * Allocate external memory.
@@ -357,6 +353,6 @@ void ebsp_free(void* ptr);
  * The attributes in this definition make sure that the compiler checks the
  * arguments for errors.
  */
-void _EXFUN(ebsp_message, (const char * format, ...)
-    _ATTRIBUTE((__format__(__printf__, 1, 2))));
+void ebsp_message(const char * format, ...)
+    __attribute__((__format__(__printf__, 1, 2)));
 

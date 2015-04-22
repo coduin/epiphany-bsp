@@ -24,6 +24,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #pragma once
 #include "e_bsp.h"
+#include "common.h"
 #include <e-lib.h>
 #include <stdint.h>
 
