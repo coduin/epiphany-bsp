@@ -1,0 +1,76 @@
+/** \mainpage
+ *
+ * \section sec_intro Introduction
+ *
+ * The [Bulk Synchronous Parallel (BSP)](http://en.wikipedia.org/wiki/Bulk_synchronous_parallel)
+ * computing model is a model for designing parallel algorithms. It provides
+ * a description of how parallel computation should be 
+ * carried out. Programs written with this model consist of
+ * a number of supersteps, which in turn consist of local 
+ * computations and non-blocking communication. A (barrier)
+ * synchronisation at the end of such a step is used to guarantee
+ * occurance of all communications within a step.
+ *
+ * This library (EBSP) provides an implementation of the model on top of the Epiphany SDK (ESDK). 
+ * This allows the BSP computing model to be used with the Epiphany
+ * architecture developed by [Adapteva](http://www.adapteva.com).
+ * In particular this library has been implemented and tested on the 
+ * [Parallella](http://www.parallella.org) board. Our goal is to
+ * allow current BSP programs to be run on the Epiphany architecture
+ * with minimal modifications. We believe the BSP model is a good starting point
+ * for anyone new to parallel algorithms, and our goal for this library is to provide an easy way
+ * to implement parallel programs on the Epiphany architecture, without having to resort directly
+ * to the Epiphany SDK.
+ *
+ * test e_bsp.h test
+ *
+ * \section sec_res Resources
+ *
+ * * [BSP Model](https://github.com/buurlage-wits/epiphany-bsp/wiki/BSP-Model)
+ * * [Getting Started With EBSP](https://github.com/buurlage-wits/epiphany-bsp/wiki/Getting-Started)
+ * * [Minimal Example](https://github.com/buurlage-wits/epiphany-bsp/wiki/Minimal-Example)
+ * * API Reference e_bsp.h
+ *
+ * \section sec_example Minimal example
+ *
+ * Code for the host
+ * \code
+ * #include <host_bsp.h>
+ * #include <stdio.h>
+ * 
+ * int main(int argc, char **argv)
+ * {
+ *     // initialize the BSP system
+ *     bsp_init("e_hello.srec", argc, argv);
+ *     // show the number of processors available
+ *     printf("bsp_nprocs(): %i\n", bsp_nprocs());
+ *     // initialize the epiphany system, and load the e-program
+ *     bsp_begin(bsp_nprocs());
+ *     // run the SPMD on the e-cores
+ *     ebsp_spmd();
+ *     // finalize
+ *     bsp_end();
+ *     return 0;
+ * }
+ * \endcode
+ *
+ * Code for the client
+ * \code
+ * #include <e_bsp.h>
+ * 
+ * int main()
+ * {
+ *     bsp_begin();
+ * 
+ *     int n = bsp_nprocs(); 
+ *     int p = bsp_pid();
+ * 
+ *     ebsp_message("Hello world from core %d/%d", p, n);
+ * 
+ *     bsp_end();
+ * 
+ *     return 0;
+ * }
+ * \endcode
+ *
+ */
