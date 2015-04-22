@@ -42,14 +42,14 @@ int M = -1;
 int dim = 20;
 
 // "local to global" index
-int ltg(int* i, int* j, int l, int s, int t)
+void ltg(int* i, int* j, int l, int s, int t)
 {
     (*i) = s + (l / (dim / N)) * N;
     (*j) = t + (l % (dim / M)) * M;
 }
 
 // "global to local" index
-int gtl(int i, int j, int* l, int* s, int* t)
+void gtl(int i, int j, int* l, int* s, int* t)
 {
     (*s) = i % N;
     (*t) = j % M;

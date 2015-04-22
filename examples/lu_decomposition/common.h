@@ -28,9 +28,9 @@ see the files COPYING and COPYING.LESSER. If not, see
 #define _LOC_MATRIX 0x480c
 
 #define _LOC_RS 0x5800
-#define _LOC_ARK (LOC_RS + sizeof(int) * M)
-#define _LOC_R (LOC_ARK + sizeof(float) * M)
-#define _LOC_PI (LOC_R + sizeof(int))
-#define _LOC_PI_IN (LOC_PI + sizeof(int) * entries_per_col)
-#define _LOC_ROW_IN (LOC_PI_IN + sizeof(int) * 2)
-#define _LOC_COL_IN (LOC_ROW_IN + sizeof(float) * dim)
+#define _LOC_ARK (_LOC_RS + sizeof(int) * M)
+#define _LOC_R (_LOC_ARK + sizeof(float) * M)
+#define _LOC_PI (_LOC_R + sizeof(int))
+#define _LOC_PI_IN (_LOC_PI + sizeof(int) * entries_per_col)
+#define _LOC_ROW_IN (_LOC_PI_IN + sizeof(int) * 2)
+#define _LOC_COL_IN (_LOC_ROW_IN + sizeof(float) * dim)

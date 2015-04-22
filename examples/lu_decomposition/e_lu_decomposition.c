@@ -41,7 +41,7 @@ int proc_id(int s, int t)
 }
 
 // "local to global" index
-int ltg(int* i, int* j, int l)
+void ltg(int* i, int* j, int l)
 {
     (*i) = s + (l % (dim / N)) * N;
     (*j) = t + (l % (dim / M)) * M;
@@ -55,14 +55,13 @@ int gtl(int i, int j)
 }
 
 float* a(int i, int j) {
-    return (float*)LOC_MATRIX + gtl(i, j);
+    return (float*)_LOC_MATRIX + gtl(i, j);
 }
 
 int main()
 {
     bsp_begin();
 
-    int n = bsp_nprocs(); 
     int p = bsp_pid();
 
     M = (*(int*)_LOC_M);
@@ -176,8 +175,6 @@ int main()
         // STAGE 2: Index and row swaps
         // ----------------------------
         int r = *((int*)LOC_R);
-
-        ebsp_message("(r, k), (%i, %i)", r, k);
 
         if (k % N == s && t == 0) {
             bsp_hpput(proc_id(r % N, 0),
