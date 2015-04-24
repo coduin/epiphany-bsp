@@ -20,128 +20,257 @@ You should have received a copy of the GNU General Public License
 and the GNU Lesser General Public License along with this program,
 see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
+*/
+
+/**
+ * @file host_bsp.h
+ * @brief All BSP core functions for the ARM host processor.
+ *
+ * This file contains all BSP core functions for the ARM host processor.
+ *
+ * ## BSP Message Passing
+ *
+ * See e_bsp.h for more information about BSP message passing.
+ * The following information is specific for sending messages between the
+ * host and Epiphany processor.
+ *
+ * The functions listed below can be used to send messages to message queue
+ * of the programs for initialization and retrieve messages to gather results.
+ *
+ * The initialization messages will only remain in the queue until bsp_sync()
+ * has been called for the first time by the Epiphany program.
+ *
+ * The default tagsize is zero.
+ *
+ * Sending messages must be done after bsp_init()
+ * Retrieving messages must be done before bsp_end()
+ *
+ * - ebsp_set_tagsize()
+ * - ebsp_send_down()
+ * - ebsp_get_tagsize()
+ * - ebsp_qsize()
+ * - ebsp_get_tag()
+ * - ebsp_move()
+ * - ebsp_hpmove()
  */
 
 #pragma once
 #include <e-hal.h>
 
-/** This writes data from the host processor to the co-processor.
- *  This can be useful for distributing initial data, or when dividing work
- *  betewen the host and the Epiphany.
+/** 
+ * Write data to the Epiphany processor.
+ * @param pid The pid of the target processor
+ * @param src A pointer to the source data
+ * @param dst The destination address (as seen by the Epiphany core)
+ * @param size The amount of bytes to be copied
+ * @return 1 on success, 0 on failure
  *
- *  pid: The processor ID in the BSP system.
- *  src: A pointer to the source of the data to write.
- *  dst: The destination on the chip processor. (e.g. 0x2000)
- *  size: Amount of data to write in bytes.
- *  flag: 1 on success, 0 on failure
+ * This is an alternative to the BSP Message Passing system.
  */
 int ebsp_write(int pid, void* src, off_t dst, int size);
 
-/** This reads data from the co-processor to the host processor.
- *  This can be useful for distributing initial data, or when dividing work
+/**
+ * Read data from the Epiphany processor.
+ * @param pid The pid of the source processor
+ * @param src The source address (as seen by the Epiphany core)
+ * @param dst A pointer to a buffer receiving the data
+ * @param size The amount of bytes to be copied
+ * @return 1 on success, 0 on failure
  *
- *  pid: The processor ID in the BSP system.
- *  src: The source of the data on the co-processor (e.g. 0x2000)
- *  dst: A destination pointer on the host processor.
- *  size: Amount of data to read in bytes.
- *  flag: 1 on success, 0 on failure
+ * This is an alternative to the BSP Message Passing system.
  */
 int ebsp_read(int pid, off_t src, void* dst, int size);
 
-/** Initializes the BSP system. This sets up all the BSP variables and loads
- *  the epiphany BSP program.
+/**
+ * Initializes the BSP system.
+ * @param e_name A string with the srec binary name of the Epiphany program
+ * @param argc The number of input arguments
+ * @param argv An array of strings with the input arguments
+ * @return 1 on success, 0 on failure
  *
- *  e_name: A string containing the name of the eBSP program.
- *  argc: An integer containing the number of input arguments
- *  argv: An array of strings containg the input flags.
- *  flag: An integer indicating whether the function finished
- *                succesfully, in which case it is 1, or 0 otherwise.
+ * Sets up all the BSP variables and loads the epiphany BSP program.
+ *
+ * The string `e_name` must be of the form `myprogram.srec`. This function
+ * will search for the file in the same directory as the host program,
+ * and not in the current working directory.
+ *
+ * Usage example:
+ * \code{.c}
+ * int main(int argc, char** argv)
+ * {
+ *     bsp_init("e_program.srec", argc, argv);
+ *     ...
+ *     return 0;
+ * }
+ * \endcode
+ *
+ * @remarks The `argc` and `argv` parameters are ignored in the current
+ * implementation.
  */
 int bsp_init(const char* e_name, int argc, char **argv);
 
-/** Set the callback for syncing
+/**
+ * Set the callback for syncing.
+ * @param cb A function pointer to the callback function
+ * 
+ * Synchronization callbacks are currently not implemented.
+ * In a future release there will be an option to call ebsp_host_sync
+ * in the Epiphany program. This will synchronize with the host processor and 
+ * trigger this callback.
  */
 void ebsp_set_sync_callback(void (*cb)());
 
-/** Set the callback for finalizing
+/**
+ * Set the callback for finalizing.
+ * @param cb A function pointer to the callback function
+ *
+ * This callback is called when ebsp_spmd() finishes. It is primarily used
+ * by the ebsp memory inspector.
  */
 void ebsp_set_end_callback(void (*cb)());
 
-/** Starts the SPMD program on the Epiphany cores.
- *  flag: An integer indicating whether the function finished
- *                succesfully, in which case it is 1, or 0 otherwise.
+/**
+ * Runs the Epiphany program on the Epiphany cores.
+ * @return 1 on success, 0 on failure
+ *
+ * This function will block untill the BSP program is finished.
  */
 int ebsp_spmd();
 
-/** Starts the BSP program.
+/**
+ * Loads the BSP program onto the Epiphany cores.
+ * @param nprocs The number of processors to run on
+ * @return 1 on success, 0 on failure
  *
- *  nprocs: An integer indicating the number of processors to run on.
- *  flag: An integer indicating whether the function finished
- *                succesfully, in which case it is 1, or 0 otherwise.
+ * Usage example:
+ * \code{.c}
+ * int main(int argc, char** argv)
+ * {
+ *     bsp_init("e_program.srec", argc, argv);
+ *     bsp_begin(bsp_nprocs());
+ *     ...
+ *     return 0;
+ * }
+ * \endcode
+ *
+ * @remarks The current implementation only allows `nprocs` to be a multiple
+ * of 4 on the 16-core Parallella. Other values of `nprocs` are rounded down.
  */
 int bsp_begin(int nprocs);
 
-/** Finalizes and cleans up the BSP program.
- *  flag: An integer indicating whether the function finished
- *                succesfully, in which case it is 1, or 0 otherwise.
+/**
+ * Finalizes and cleans up the BSP program.
+ * @return 1 on success, 0 on failure
+ *
+ * Usage example:
+ * \code{.c}
+ * int main(int argc, char** argv)
+ * {
+ *     bsp_init("e_program.srec", argc, argv);
+ *     bsp_begin(bsp_nprocs());
+ *     ebsp_spmd();
+ *     bsp_end();
+ *     return 0;
+ * }
+ * \endcode
+ *
+ * @remarks This function is different from the bsp_end function in e_bsp.h
  */
 int bsp_end();
 
-/** Returns the number of available processors.
- *
- *  nprocs: An integer indicating the number of available processors.
+/**
+ * Returns the number of available processors (Epiphany cores).
+ * @return The number of available processors
+ * 
+ * This function may be called after bsp_init().
  */
 int bsp_nprocs();
 
-/* BSP Message Passing
+/**
+ * Set initial tagsize for message passing.
+ * @param tag_bytes A pointer to an integer containing the new tagsize,
+ * receiving the old tagsize on return.
  *
- * These functions can be used to send messages to message queue
- * of the programs for initialization and retrieve messages to gather results.
- * The initialization messages will only remain in the queue until bsp_sync
- * has been called for the first time.
- * The default tag-size is zero.
- *
- * Sending messages must be done after bsp_init
- * Retrieving messages must be done before bsp_end
- *
- * See e_bsp.h for more information
- */
-
-/* Set initial tagsize.
- * Should be called at most once, before any messages are sent.
+ * The default tagsize is zero.
+ * This function should be called at most once, before any messages are sent.
  * Calling this when receiving messages results in undefined behaviour.
+ *
+ * It is not possible to send messages with different tag sizes. Doing so
+ * will result in undefined behaviour.
  */
 void ebsp_set_tagsize(int *tag_bytes);
 
-/* Send initial messages */
+/**
+ * Send a message to the Epiphany cores.
+ * @param pid The pid of the target processor
+ * @param tag A pointer to the message tag
+ * @param payload A pointer to the data payload
+ * @param nbytes The size of the payload in bytes
+ *
+ * This is the preferred way to send initial data (for computation) to the
+ * Epiphany cores.
+ *
+ * The size of the buffer pointed to by tag has to be `tagsize`, and must be
+ * the same for every message being sent.
+ */
 void ebsp_send_down(int pid, const void *tag, const void *payload, int nbytes);
 
-/* The following functions are only for gathering result messages
- * at the end of a BSP program */
-
-/* Get the tag-size as set by the epiphany cores */
+/**
+ * Get the tagsize as set by the Epiphany program.
+ * @return The tagsize in bytes
+ *
+ * Use only for gathering result messages at the end of a BSP program.
+ *
+ * When ebsp_spmd() returns, the Epiphany program can have set a different
+ * tagsize which can be obtained using this function.
+ */
 int ebsp_get_tagsize();
 
-/* Get the amount of messages in the queue and their total size */
+/**
+ * Get the amount of messages in the queue and their total size in bytes.
+ * @param packets A pointer to an integer receiving the number of messages
+ * @param accum_bytes The total size of the data payloads of the messages,
+ * in bytes.
+ *
+ * Use only for gathering result messages at the end of a BSP program.
+ */
 void ebsp_qsize(int *packets, int *accum_bytes);
 
-/* Peek the next message.
- * Upon return, status holds the amount of bytes of the next message payload,
- * or -1 if there are no more messages.
- * tag will hold the tag of the next message. The buffer pointed to by tag
- * should be large enough (ebsp_get_tagsize).
+/**
+ * Peek the next message.
+ * @param status A pointer to an integer receiving the amount of bytes of the
+ * next message payload, or -1 if there are no more messages.
+ * @param tag A pointer to a buffer receiving the tag of the next message.
+ * This buffer should be large enough (ebsp_get_tagsize()).
+ *
+ * Use only for gathering result messages at the end of a BSP program.
  */
 void ebsp_get_tag(int *status, void *tag);
 
-/* Get the next message and pop it from the queue.
- * Upon return, payload will hold the contents of the message.
- * The buffer will only be filled till at most buffer_size. Remaining
- * data is truncated. Use ebsp_get_tag to get the size of the data payload.
+/**
+ * Get the next message from the message queue and pop the message.
+ * @param payload A pointer to a buffer receiving the data payload
+ * @param buffer_size The size of the buffer
+ *
+ * This will copy the payload and pop the message from the queue.
+ * The size of the payload can be obtained by calling bsp_get_tag().
+ * If `buffer_size` is smaller than the data payload then the data is
+ * truncated.
+ *
+ * Use only for gathering result messages at the end of a BSP program.
  */
 void ebsp_move(void *payload, int buffer_size);
 
-/* Get the pointer to the next message payload, and pop the message.
- * This will be a pointer to external memory so it is slow.
+/**
+ * Get the next message, with tag, from the queue and pop the message.
+ * @param tag_ptr_buf A pointer to a pointer receiving the location of the tag
+ * @param payload_ptr_buf A pointer to a pointer receiving the location of the
+ * data pyaload
+ * @return The number of bytes of the payload data
+ *
+ * This is the faster alternative of ebsp_move(), as this function does
+ * not copy the data but returns the pointers to it.
+ *
+ * Use only for gathering result messages at the end of a BSP program.
  */
 int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
-

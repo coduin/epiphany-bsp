@@ -29,20 +29,17 @@ E_HEADERS = \
 
 HOST_HEADERS = \
 			   include/common.h \
-			   include/host_bsp.h \
-			   include/host_bsp_inspector.h
+			   include/host_bsp.h
 
 HOST_SRCS = \
-		host_bsp.c \
-		host_bsp_inspector.c
+		host_bsp.c
 
 INCLUDES = -I/usr/arm-linux-gnueabihf/include \
 		   -I./include \
 		   -I${ESDK}/tools/host/include
 
 HOST_LIBS= -L${ESDK}/tools/host/lib \
-		   -le-hal \
-		   -lncurses
+		   -le-hal
 
 E_FLAGS = -Os -fno-strict-aliasing -ffast-math -std=c99 -Wall
 
@@ -84,6 +81,9 @@ assembly: $(E_ASMS)
 
 lint:
 	@scripts/cpplint.py --filter=-whitespace/braces,-readability/casting,-build/include,-build/header_guard --extensions=h,c $(E_SRCS:%.c=src/%.c) $(HOST_SRCS:%c=src/%c) $(E_HEADERS) $(HOST_HEADERS)
+
+doxygen: $(E_HEADERS) $(HOST_HEADERS)
+	@cd doc; doxygen Doxyfile
 
 host_dirs:
 	@mkdir -p bin/host bin/lib

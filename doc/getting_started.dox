@@ -1,0 +1,122 @@
+/**
+\page getting_started Getting Started
+
+__Note__: These notes are specifically for a 16-core Epiphany Parallella development board, instructions for other devices will become available as they are released and supported.
+
+Before installing the EBSP library make sure you have set up the latest version of the Epiphany SDK, and that common developer tools (in particular gcc and make) are installed. On this page we assume that the toolchain revolves around make, but everything on this page should easily be adapted for building with e.g. and Eclipse based toolchain.
+
+To work on a new EBSP project, first download the latest release from the [release page](https://github.com/coduin/epiphany-bsp/releases) on GitHub. The archive will contain a folder `lib/bsp` which can be copied to the root of your EBSP project. An EBSP program requires at least two source files. A program is split in a program that runs on the host (in the case of the Parallella16 the ARM processor) and a program that runs on the Epiphany-cores (usually referred to with names such as _guest_, _ecore_, _core_ or _down_). A typical project structure would then look like this:
+
+    .../project
+    ├── bin
+    ├── ext
+    │   └── bsp
+    │       ├── include
+    │       │   ├── e_bsp.h
+    │       │   └── host_bsp.h
+    │       └── lib
+    │           ├── e_bsp.a
+    │           └── host_bsp.a
+    ├── Makefile
+    └─── src
+        ├── ecore_code.c
+        └── host_code.c
+
+A complete example of a minimal EBSP project can be found in the [example project](https://github.com/coduin/ebsp-empty-project) repository. The suggested method of starting a EBSP project is by cloning this repository.
+
+For some more simple code examples for the host and ecore code we refer to [the examples in the main GitHub repository](http://www.github.com/buurlage-wits/epiphany-bsp/tree/master/examples).
+
+
+## The structure of an EBSP program
+
+The part of the program that runs on the host is responsible for:
+
+1. Initializing the BSP system 
+2. Sending data to the Epiphany cores (which we call downwards communication)
+3. Running the programs on the Epiphany cores
+4. Obtaining the results from the Epiphany cores
+
+We will discuss these tasks in turn. To initialize and start the BSP system we do something similar to the following:
+\code{.c}
+// host_code.c
+#include <host_bsp.h>
+
+int main()
+{
+    bsp_init();
+    int n = bsp_nprocs();
+    bsp_begin(n);
+    ...
+\endcode
+The first call in an EBSP program should always be `bsp_init()`. On the second line we obtain the available number of processors, and start the BSP program on all available cores.
+
+To send data down to a core we will use message passing. Alternatively you can use the functions `ebsp_write()` and `ebsp_read()`. For example:
+\code{.c}
+// host_code.c
+
+    ...
+    int tagsize = sizeof(int);
+    ebsp_set_tagsize(&tagsize);
+
+    int tag = 1;
+    for (int pid = 0; pid < n; ++pid) {
+        int message = pid * pid;
+        ebsp_send_down(pid, &tag, &message, sizeof(int));
+    }
+    ...
+\endcode
+Will send down the square of the processor ID (`pid`) to the corresponding core. Finally we run the program on the cores:
+\code{.c}
+// host_code.c
+
+    ...
+    ebsp_spmd();
+\endcode
+Next we will look at the code on the Epiphany core. A core is responsible for running a some algorithm in single program multiple data (SPMD) style. A minimal task looks like the following:
+\code{.c}
+// ecore_code.c
+#include <e_bsp.h>
+
+int main()
+{
+    bsp_begin();
+
+    int p = bsp_pid();
+
+    int message = 0;
+    bsp_move(&message, sizeof(int));
+
+    ebsp_message("Square of PID: ", message);
+
+    bsp_sync();
+
+    int result = message * message;
+    int tag = p;
+    ebsp_send_up(&tag, &result, sizeof(int);
+
+    bsp_end();
+
+    return 0;
+}
+\endcode
+This code will print the square of each processor ID. Then it will take the square of this number, and send it upwards to the host program. The final section of our example host code looks like this:
+\code{.c}
+// host_code.c
+
+    ...
+    int status, tag;
+    for (int i = 0; i < packets; ++i) {
+        int result = -1;
+        ebsp_get_tag(&status, &tag);
+        ebsp_move(&result, sizeof(int));
+        printf("%i: %i\n", tag, result);
+    }
+
+    bsp_end();
+
+    return 0;
+}
+    
+\endcode
+Which will print `pid: pid^4` for each available core. See the main documentation in `e_bsp.h` and `host_bsp.h` for more details on the available functions.
+*/
