@@ -1,5 +1,5 @@
 /*
-File: host_e_hello.c
+File: host_bsp_pid.c
 
 This file is part of the Epiphany BSP library.
 
@@ -27,7 +27,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 int main(int argc, char **argv)
 {
-    bsp_init("bin/e_bsp_pid.srec", argc, argv);
+    bsp_init("e_bsp_pid.srec", argc, argv);
 
     int tagsize = sizeof(int);
     ebsp_set_tagsize(&tagsize);

@@ -26,7 +26,28 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 int main()
 {
-    int* wrt = (void*)0x7000;
-    (*wrt) = bsp_pid();
+    bsp_begin();
+    for(int i=0; i<bsp_nprocs(); i++) {
+        if(i == bsp_pid())
+            ebsp_message("%d", bsp_pid());
+            // expect: ($00: 0)
+            // expect: ($01: 1)
+            // expect: ($02: 2)
+            // expect: ($03: 3)
+            // expect: ($04: 4)
+            // expect: ($05: 5)
+            // expect: ($06: 6)
+            // expect: ($07: 7)
+            // expect: ($08: 8)
+            // expect: ($09: 9)
+            // expect: ($10: 10)
+            // expect: ($11: 11)
+            // expect: ($12: 12)
+            // expect: ($13: 13)
+            // expect: ($14: 14)
+            // expect: ($15: 15)
+        bsp_sync();
+    }
+    bsp_end();
     return 0;
 }
