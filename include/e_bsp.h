@@ -161,8 +161,8 @@ void bsp_push_reg(const void* variable, const int nbytes);
  * @param variable A pointer to the variable, which must have been
  *  previously registered with bsp_push_reg
  *
- * The operation takes effect after the next call to bsp_sync
- * In the current implementation, this function does nothing.
+ * The operation takes effect after the next call to bsp_sync().
+ * @remarks In the current implementation, this function does nothing.
  */
 void bsp_pop_reg(const void* variable);
 

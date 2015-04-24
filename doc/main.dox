@@ -44,10 +44,10 @@ int main(int argc, char **argv)
     // show the number of processors available
     printf("bsp_nprocs(): %i\n", bsp_nprocs());
 
-    // initialize the epiphany system, and load the e-program
+    // initialize the epiphany system, and load Epiphany binary
     bsp_begin(bsp_nprocs());
 
-    // run the SPMD on the e-cores
+    // run the program on the Epiphany cores
     ebsp_spmd();
 
     // finalize
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
 }
 \endcode
 
-Code for the client
+Code for the Epiphany cores
 \code
 #include <e_bsp.h>
 
