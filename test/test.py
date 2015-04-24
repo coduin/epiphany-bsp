@@ -3,7 +3,7 @@ import re
 import subprocess
 import os
 
-EXPECT_PATTERN = re.compile(r'// expect: (.*)')
+EXPECT_PATTERN = re.compile(r'// expect: \((.*)\)')
 
 #Assuming that Makefile contains list of all unit-tests
 
