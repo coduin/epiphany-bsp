@@ -104,6 +104,9 @@ This code will print the square of each processor ID. Then it will take the squa
 // host_code.c
 
     ...
+    int packets, accum_bytes;
+    ebsp_qsize(&packets, &accum_bytes);
+
     int status, tag;
     for (int i = 0; i < packets; ++i) {
         int result = -1;
