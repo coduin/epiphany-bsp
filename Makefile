@@ -29,20 +29,17 @@ E_HEADERS = \
 
 HOST_HEADERS = \
 			   include/common.h \
-			   include/host_bsp.h \
-			   include/host_bsp_inspector.h
+			   include/host_bsp.h
 
 HOST_SRCS = \
-		host_bsp.c \
-		host_bsp_inspector.c
+		host_bsp.c
 
 INCLUDES = -I/usr/arm-linux-gnueabihf/include \
 		   -I./include \
 		   -I${ESDK}/tools/host/include
 
 HOST_LIBS= -L${ESDK}/tools/host/lib \
-		   -le-hal \
-		   -lncurses
+		   -le-hal
 
 E_FLAGS = -Os -fno-strict-aliasing -ffast-math -std=c99 -Wall
 

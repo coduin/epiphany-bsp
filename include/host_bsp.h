@@ -95,7 +95,7 @@ int ebsp_read(int pid, off_t src, void* dst, int size);
  * and not in the current working directory.
  *
  * Usage example:
- * \code
+ * \code{.c}
  * int main(int argc, char** argv)
  * {
  *     bsp_init("e_program.srec", argc, argv);
@@ -143,7 +143,7 @@ int ebsp_spmd();
  * @return 1 on success, 0 on failure
  *
  * Usage example:
- * \code
+ * \code{.c}
  * int main(int argc, char** argv)
  * {
  *     bsp_init("e_program.srec", argc, argv);
@@ -163,7 +163,7 @@ int bsp_begin(int nprocs);
  * @return 1 on success, 0 on failure
  *
  * Usage example:
- * \code
+ * \code{.c}
  * int main(int argc, char** argv)
  * {
  *     bsp_init("e_program.srec", argc, argv);
@@ -274,4 +274,3 @@ void ebsp_move(void *payload, int buffer_size);
  * Use only for gathering result messages at the end of a BSP program.
  */
 int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
-
