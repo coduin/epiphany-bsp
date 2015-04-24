@@ -48,8 +48,9 @@ int main(int argc, char **argv)
     int buf;
     e_read(&dev, 0, 0, 0x7000, &buf, sizeof(int));
 
-    printf("Obtained %i put in %i\n", buf, test);
+    printf("Obtained %i put in %i\n", buf, test); // expect: (Obtained 12346 put in 12345)
 
     e_finalize();
 
+    printf("Done"); // expect: (Done)
 }

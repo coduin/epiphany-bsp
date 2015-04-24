@@ -1,5 +1,5 @@
 /*
-File: e_e_hello.c
+File: e_bsp_pid.c
 
 This file is part of the Epiphany BSP library.
 
@@ -28,6 +28,5 @@ int main()
 {
     int* wrt = (void*)0x7000;
     (*wrt) = 12346;
-    // expect: (Kaasbroodjes enzo)
     return 0;
 }

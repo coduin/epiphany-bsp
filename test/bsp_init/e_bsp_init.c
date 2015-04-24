@@ -1,6 +1,4 @@
 /*
-File: e_hello.c
-
 This file is part of the Epiphany BSP library.
 
 Copyright (C) 2014 Buurlage Wits

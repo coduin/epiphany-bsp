@@ -7,6 +7,7 @@ import shlex
 EXPECT_PATTERN = re.compile(r'// expect: \((.*)\)')
 
 #Assuming that Makefile contains list of all unit-tests
+os.system("make")
 
 def get_contents(location):
     f = open(location)
@@ -41,7 +42,7 @@ def do_unit_test(unit_test):
         print('WARNING: Unit test "' + unit_test + '" failed')
         subprocess.call(['bash','-c','diff <(echo ' + clean_str(actual_output) + 
                     ') <(echo ' + clean_str(expected_output) + ')'])
-    
+        print("")
     return succes
 
 maketext = get_contents("Makefile")
@@ -56,13 +57,10 @@ for unit_test in unit_tests:
     else:
         n_fail += 1
 
-print("")
-print("Unit tests summary")
-print("------------------")
 if n_fail == 0:
-    print("SUCCES")
     print("All "+str(n_succes)+" tests where a succes!")
+    print("Unit tests SUCCES")
 else:
-    print("FAILURE")
     print(str(n_fail)+" tests failed, "+str(n_succes)+" tests succeeded")
+    print("Unit tests FAILURE")
 
