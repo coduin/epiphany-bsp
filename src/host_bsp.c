@@ -195,9 +195,11 @@ int bsp_begin(int nprocs)
     state.rows = (nprocs / state.platform.rows);
     state.cols = nprocs / (nprocs / state.platform.rows);
 
+#ifdef DEBUG
     printf("(BSP) INFO: Making a workgroup of size %i x %i\n",
             state.rows,
             state.cols);
+#endif
 
     state.nprocs_used = nprocs;
     state.num_vars_registered = 0;
@@ -217,7 +219,9 @@ int bsp_begin(int nprocs)
     }
 
     // Load the e-binary
+#ifdef DEBUG
     printf("(BSP) INFO: Loading: %s\n", state.e_fullpath);
+#endif
     if (e_load_group(state.e_fullpath,
                 &state.dev,
                 0, 0,
@@ -460,7 +464,9 @@ int ebsp_spmd()
         return 0;
     }
 
+#ifdef DEBUG
     printf("(BSP) INFO: Program finished\n");
+#endif
 
     if (state.end_callback)
         state.end_callback();
