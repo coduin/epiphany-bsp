@@ -1,5 +1,5 @@
 /*
-File: common.h
+File: host_hello.c
 
 This file is part of the Epiphany BSP library.
 
@@ -27,25 +27,16 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 int main(int argc, char **argv)
 {
-    // initialize the BSP system
-    if(!bsp_init("e_hello.srec", argc, argv)) {
-        fprintf(stderr, "[HELLO] bsp_init() failed\n");
-        return -1;
-    }
+    // Initialize the BSP system
+    bsp_init("e_hello.srec", argc, argv);
 
-    // show the number of processors available
-    printf("bsp_nprocs(): %i\n", bsp_nprocs());
+    // Initialize the Epiphany system and load the binary
+    bsp_begin(bsp_nprocs());
 
-    // initialize the epiphany system, and load the e-program
-    if(!bsp_begin(bsp_nprocs())) {
-        fprintf(stderr, "[HELLO] bsp_begin() failed\n");
-        return -1;
-    }
-
-    // run the SPMD on the e-cores
+    // Run the program on the Epiphany cores
     ebsp_spmd();
 
-    // finalize
+    // Finalize
     bsp_end();
 
     return 0;

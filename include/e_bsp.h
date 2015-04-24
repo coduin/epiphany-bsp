@@ -134,7 +134,7 @@ void bsp_sync();
  * the functions bsp_put(), bsp_hpput(), bsp_get(), bsp_hpget().
  *
  * Usage example:
- * \code
+ * \code{.c}
  * int a, b, c, p;
  * int x[16];
  *

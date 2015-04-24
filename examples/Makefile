@@ -27,7 +27,7 @@ HOST_LIBS = \
 E_LIBS = \
 	 -L${ESDK}/tools/host/lib
 
-HOST_LIB_NAMES = -lhost-bsp -le-hal -le-loader -lncurses
+HOST_LIB_NAMES = -lhost-bsp -le-hal -le-loader
 
 E_LIB_NAMES = -le-bsp -le-lib
 
