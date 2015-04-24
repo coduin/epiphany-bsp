@@ -33,7 +33,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: bsp_pid bsp_init bsp_memtest
+all: bsp_time bsp_nprocs bsp_pid bsp_init bsp_memtest
 
 dirs:
 	mkdir -p bin
@@ -42,6 +42,28 @@ dirs:
 
 bin/%.srec: bin/%.elf
 	e-objcopy --srec-forceS3 --output-target srec $< $@
+
+#########################################
+
+bsp_time: bin/host_bsp_time bin/e_bsp_time.elf bin/e_bsp_time.srec
+
+bin/host_bsp_time: bsp_time/host_bsp_time.c
+	$(PLATFORM_PREFIX)gcc $(CFLAGS) $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
+	
+bin/e_bsp_time.elf: bsp_time/e_bsp_time.c
+	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
+
+
+#########################################
+
+bsp_nprocs: bin/host_bsp_nprocs bin/e_bsp_nprocs.elf bin/e_bsp_nprocs.srec
+
+bin/host_bsp_nprocs: bsp_nprocs/host_bsp_nprocs.c
+	$(PLATFORM_PREFIX)gcc $(CFLAGS) $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
+	
+bin/e_bsp_nprocs.elf: bsp_nprocs/e_bsp_nprocs.c
+	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
+
 
 ########################################################
 

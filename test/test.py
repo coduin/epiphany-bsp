@@ -19,7 +19,7 @@ def run_unit_test(unit_test):
     try:
         output = subprocess.check_output(["bin/host_"+unit_test, "Hello World!"], stderr=subprocess.STDOUT, universal_newlines=True, timeout=3)
     except OSError:
-        print("OSError")    #When running on non-epiphany system
+        print("OSError")    #When running on non-epiphany systems
     except subprocess.TimeoutExpired:
         return "TIMEOUT"
     return output
