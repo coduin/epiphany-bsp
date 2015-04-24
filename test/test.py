@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/python3
 import re
 import subprocess
 import os
@@ -19,11 +19,6 @@ def run_unit_test(unit_test):
         output = subprocess.check_output(["bin/host_"+unit_test, "Hello World!"], stderr=subprocess.STDOUT, universal_newlines=True)
     except OSError:
         print("OSError")    #When running on non-epiphany system
-    print("----"+unit_test)
-    print("|||||||||||||||")
-    print(output)
-    print("|||||||||||||||")
-    print("---------------")
     return output
 
 def do_unit_test(unit_test):
@@ -36,9 +31,9 @@ def do_unit_test(unit_test):
     expected_output = "\n".join(host_expected_outputs)+"\n".join(e_expected_outputs);
     actual_output = run_unit_test(unit_test)
 
-    print(unit_test)
-    print(actual_output)
-    print(expected_output)
+    print("TESTING:" + unit_test)
+    print("GOT : " + actual_output)
+    print("WANT: " + expected_output)
     
 
 maketext = get_contents("Makefile")
