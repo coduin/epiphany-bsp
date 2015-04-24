@@ -42,13 +42,15 @@ float *vecallocd(int n) {
         pd = (float *) address;
         address += (n*SZDBL); 
         if (address >= ((int)&HEAP + sizeof(HEAP))) {
-            ebsp_message("ERROR: vecallocd(%4d) -> %p. Alloc used [%p, %p[ Stack used [%p, 0x8000[", n, pd, &HEAP, address, &pd);
+            ebsp_message("ERROR: vecallocd(%4d) -> %p. Alloc used [%p, %p[ Stack used [%p, 0x8000[",
+                    n, pd, &HEAP, (void*)address, &pd);
             return NULL; /* OUT OF MEMORY */
         }
     } 
 
     if (bsp_pid() == 0)
-        ebsp_message("vecallocd(%4d) -> %p. Alloc used [%p, %p[ Stack used [%p, 0x8000[", n, pd, &HEAP, (int)&HEAP + sizeof(HEAP), &pd);
+        ebsp_message("vecallocd(%4d) -> %p. Alloc used [%p, %p[ Stack used [%p, 0x8000[",
+                n, pd, &HEAP, (void*)((int)&HEAP + sizeof(HEAP)), &pd);
     
     return pd; 
 } /* end vecallocd */ 
@@ -138,14 +140,14 @@ int main() { /*  bsp_bench */
         }
 
         /* Measure time of 2*NITERS DAXPY operations of length n */
-        time0 = bsp_remote_time();
+        time0 = ebsp_host_time();
         for (iter=0; iter<NITERSN; iter++) {
             for (i=0; i<n; i++)
                 y[i] += alpha*x[i];
             for (i=0; i<n; i++)        
                 z[i] -= beta*x[i];
         }
-        time1 = bsp_remote_time();
+        time1 = ebsp_host_time();
         time = time1-time0; 
         bsp_hpput(0,&time,Time,s*SZDBL,SZDBL);
         bsp_sync();
@@ -193,13 +195,13 @@ int main() { /*  bsp_bench */
         /* Measure time of NITERS h-relations */
         int total_iters = (int)(NITERSH/(h+1));
         bsp_sync(); 
-        time0 = bsp_remote_time(); 
+        time0 = ebsp_host_time(); 
         for (iter=0; iter<total_iters; iter++) {
             for (i=0; i<h; i++)
                 bsp_hpput(destproc[i], &src[i], dest, destindex[i]*SZDBL, SZDBL);
             bsp_sync(); 
         }
-        time1 = bsp_remote_time();
+        time1 = ebsp_host_time();
         time = time1 - time0;
  
         /* Compute time of one h-relation */
@@ -212,13 +214,13 @@ int main() { /*  bsp_bench */
         unbufferedTime = time;
         /* Measure time of NITERS h-relations using buffered put */
         bsp_sync(); 
-        time0 = bsp_remote_time(); 
+        time0 = ebsp_host_time(); 
         for (iter=0; iter<total_iters; iter++) {
             for (i=0; i<h; i++)
                 bsp_put(destproc[i], &src[i], dest, destindex[i]*SZDBL, SZDBL);
             bsp_sync(); 
         }
-        time1 = bsp_remote_time();
+        time1 = ebsp_host_time();
         time = time1 - time0;
  
         /* Compute time of one h-relation */

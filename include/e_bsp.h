@@ -75,15 +75,15 @@ int bsp_pid();
  * The epiphany-timer does not support time differences longer than
  * `UINT_MAX/(600000000)` which is roughly 5 seconds.
  *
- * For longer time differences, use the less accurate bsp_remote_time().
+ * For longer time differences, use the less accurate ebsp_host_time().
  *
- * Do not use this in combination with bsp_raw_time(), use only one of them.
+ * Do not use this in combination with ebsp_raw_time(), use only one of them.
  */
 float bsp_time();
 
 /**
  * Get the number of clockcycles that have passed since the previous call
- * to bsp_raw_time().
+ * to ebsp_raw_time().
  * @return An unsigned integer with the amount of clockcycles
  *
  * This function has less overhead than bsp_time.
@@ -92,7 +92,7 @@ float bsp_time();
  *
  * Do not use this in combination with bsp_time(), use only one of them.
  */
-unsigned int bsp_raw_time();
+unsigned int ebsp_raw_time();
 
 /**
  * Get the (inaccurate) time in seconds since bsp_begin() was called.
@@ -102,7 +102,7 @@ unsigned int bsp_raw_time();
  * but works if time differences are more than 5 seconds in which case
  * the accurate timer does not work.
  */
-float bsp_remote_time();
+float ebsp_host_time();
 
 /**
  * Terminates a superstep, and starts all communication.
