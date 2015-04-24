@@ -73,9 +73,9 @@ bin/e/%.s: %.c $(E_HEADERS)
 
 all: host e
 
-host: host_dirs bin/lib/$(HOST_LIBNAME)$(LIBEXT)
+host: host_dirs lib/$(HOST_LIBNAME)$(LIBEXT)
 
-e: e_dirs bin/lib/$(E_LIBNAME)$(LIBEXT)
+e: e_dirs lib/$(E_LIBNAME)$(LIBEXT)
 
 assembly: $(E_ASMS)
 
@@ -89,15 +89,15 @@ doxygen: $(E_HEADERS) $(HOST_HEADERS)
 	@cd doc; doxygen Doxyfile
 
 host_dirs:
-	@mkdir -p bin/host bin/lib
+	@mkdir -p bin/host lib
 
 e_dirs:
-	@mkdir -p bin/e bin/lib
+	@mkdir -p bin/e lib
 
-bin/lib/$(HOST_LIBNAME)$(LIBEXT): $(HOST_OBJS)
+lib/$(HOST_LIBNAME)$(LIBEXT): $(HOST_OBJS)
 	@$(PLATFORM_PREFIX)ar rs $@ $^ 
 
-bin/lib/$(E_LIBNAME)$(LIBEXT): $(E_OBJS)
+lib/$(E_LIBNAME)$(LIBEXT): $(E_OBJS)
 	@e-ar rs $@ $^ 
 
 sizecheck: src/sizeof_check.cpp
@@ -113,4 +113,5 @@ sizecheck: src/sizeof_check.cpp
 ########################################################
 
 clean:
+	rm -r lib
 	rm -r bin

@@ -18,7 +18,7 @@ INCLUDES = \
 		   -I${ESDK}/tools/host/include
 
 LIBS = \
-	 -L../bin/lib
+	 -L../lib
 
 HOST_LIBS = \
 	 -L /usr/arm-linux-gnueabihf/lib \
