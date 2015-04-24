@@ -39,9 +39,12 @@ int main()
 {
     float data_buffer[1000];
     float squaresums[16];
+    float timings[16];
     float sum;
+    float totaltime;
     unsigned int nbytes = sizeof(data_buffer);
     unsigned int data_count;
+    float time0, time1, timefix;
 
     // Initialize
     bsp_begin();
@@ -53,40 +56,71 @@ int main()
     // Note that this must happen before the first call to bsp_sync
     get_initial_data(&data_buffer, &nbytes);
 
-    // Register a variable
+    // Register two variables
     bsp_push_reg(&squaresums, sizeof(squaresums));
+    bsp_sync();
+    bsp_push_reg(&time0, sizeof(float));
     bsp_sync();
 
     // Do computations on data
+    // and measure the time
+
+    // First compute the delay between two consecutive calls to bsp_time
+    time0 = bsp_time();
+    time1 = bsp_time();
+    timefix = time1 - time0;
+
+    // Now do the computation
     data_count = nbytes / sizeof(float);
     sum = 0.0f;
+    time0 = bsp_time();
     for (int i = 0; i < data_count; i++)
         sum += data_buffer[i] * data_buffer[i];
+    time1 = bsp_time();
+    time0 = time1 - time0 - timefix;
 
-    // Send result to processor 0
-    bsp_hpput(0, &sum, &squaresums, p*sizeof(float), sizeof(float));
+    // Send result of the sum to processor 0
+    // into the correct slot of the array
+    bsp_put(0, &sum, &squaresums, p*sizeof(float), sizeof(float));
+
+    // The result of the timings will be transferred
+    // through bsp_get instead of bsp_put
+    // (only for illustrating how bsp_put and bsp_get work)
+    if (p == 0)
+        for (int i = 0; i < n; i++)
+            bsp_get(i, &time0, 0, &timings[i], sizeof(float));
     bsp_sync();
 
     // Compute final result on processor 0
     if (p == 0)
     {
         sum = 0.0f;
-        for (int i = 0; i < 16; i++)
+        for (int i = 0; i < n; i++)
             sum += squaresums[i];
+        totaltime = 0.0f;
+        for (int i = 0; i < n; i++)
+            totaltime += timings[i];
     }
 
     // Allocate external memory
+    time0 = bsp_time();
     int memresult = extmem_test();
+    time1 = bsp_time();
+    time0 = time1 - time0 - timefix;
 
     // Everything is done. The only thing left now is sending results
+    int tag = 100+p;
+    ebsp_send_up(&tag, &time0, sizeof(float));
     if (p == 0)
     {
         // Send back the result of the sum
-        int tag = 1;
+        tag = 1;
         ebsp_send_up(&tag, &sum, sizeof(float));
         // Send back the result of the memory test
         tag = 2;
         ebsp_send_up(&tag, &memresult, sizeof(int));
+        tag = 3;
+        ebsp_send_up(&tag, &totaltime, sizeof(float));
     }
 
     // Finalize
@@ -149,7 +183,7 @@ void get_initial_data(void *buffer, unsigned int *nbytes)
         bsp_move((void*)((int)buffer + offset), status);
         offset += status;
 
-        if (p==0)
+        if (p == 0)
             ebsp_message("Received %d bytes message with tag %d", status, tag);
     }
     *nbytes = offset;
@@ -159,7 +193,7 @@ int extmem_test()
 {
     int errors = 0;
 
-    if (p==0)
+    if (p == 0)
         ebsp_message("Memory test: allocating 100 memory objects per core");
 
     // Allocate external (slow, but larger) memory
@@ -182,7 +216,7 @@ int extmem_test()
     void* otherptrs[100];
     bsp_push_reg(&otherptrs, sizeof(otherptrs));
     bsp_sync();
-    for (int core = p+1; ; core++)
+    for (int core = p + 1; ; core++)
     {
         if (core == n) core = 0; // wrap around
         if (core == p) break;
@@ -194,7 +228,7 @@ int extmem_test()
                 ++errors;
     }
 
-    if (p==0)
+    if (p == 0)
         ebsp_message("Memory test complete (%d)", errors);
 
     // Free the memory

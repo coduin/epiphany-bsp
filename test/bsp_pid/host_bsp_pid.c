@@ -23,34 +23,31 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include <stdio.h>
-#include <e-hal.h>
-#include <e-loader.h>
+#include <host_bsp.h>
 
 int main(int argc, char **argv)
 {
-    e_platform_t platform;
-    e_epiphany_t dev;
+    bsp_init("bin/e_bsp_pid.srec", argc, argv);
 
-    e_init(NULL);
-    e_reset_system();
-    e_get_platform_info(&platform);
-    e_open(&dev, 0, 0, 1, 1);
-    e_reset_group(&dev);
+    int tagsize = sizeof(int);
+    ebsp_set_tagsize(&tagsize);
 
-    e_load_group("bin/e_bsp_pid.srec", &dev, 0, 0, 1, 1, E_FALSE);
+    bsp_begin(bsp_nprocs());
+    ebsp_spmd();
+    bsp_end();
 
-    int test = 12345;
-    e_write(&dev, 0, 0, 0x7000, &test, sizeof(int));
+    int packets, accum_bytes;
+    ebsp_qsize(&packets, &accum_bytes);
 
-    e_start_group(&dev);
-
-    usleep(100000);
-    int buf;
-    e_read(&dev, 0, 0, 0x7000, &buf, sizeof(int));
-
-    printf("Obtained %i put in %i\n", buf, test); // expect: (Obtained 12346 put in 12345)
-
-    e_finalize();
+    int tag;
+    int status;
+    int result;
+    for (int i = 0; i < packets; i++)
+    {
+        ebsp_get_tag(&status, &tag);
+        ebsp_move(&result, sizeof(int));
+        printf("%i: %i", tag, result);
+    }
 
     printf("Done"); // expect: (Done)
 }

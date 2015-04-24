@@ -94,19 +94,14 @@ void* EXT_MEM_TEXT _malloc(uint32_t nbytes)
         {
             // All 32 bits (chunks) of this mask are available
             // so we can handle them all at once
-            if (chunks_left <= 32)
-            {
+            if (chunks_left <= 32) {
                 chunks_left = 0;
                 break;
-            }
-            else
-            {
+            } else {
                 chunks_left -= 32;
                 continue;
             }
-        }
-        else
-        {
+        } else {
             // Mask is not empty. We will need to parse all individual bits
             for (uint32_t j = 0; j < 32; ++j)
             {
@@ -118,10 +113,8 @@ void* EXT_MEM_TEXT _malloc(uint32_t nbytes)
                     start_bit = j + 1;
                     // wrap around if needed
                     if (start_bit == 32){ ++start_mask; start_bit = 0; }
-                    chunks_left = chunk_count; // reset
-                }
-                else
-                {
+                    chunks_left = chunk_count;  // reset
+                } else {
                     chunks_left--;
                     if (chunks_left == 0)
                         break;
@@ -147,7 +140,7 @@ void* EXT_MEM_TEXT _malloc(uint32_t nbytes)
         bitmasks[i] = mask;
         bit = 1;
     }
-    
+
     // Bits have been filled. Now put a memory_object at the allocated space
     void* ptr = get_alloc_base() + CHUNK_SIZE*(start_mask*32+start_bit);
     ((memory_object*)ptr)->chunk_count = chunk_count;
@@ -167,7 +160,7 @@ void EXT_MEM_TEXT _free(void* ptr)
     for (; chunk_count != 0; ++chunk_mask)
     {
         uint32_t mask = bitmasks[chunk_mask];
-        for(; bit < 32 && chunk_count != 0; ++bit)
+        for (; bit < 32 && chunk_count != 0; ++bit)
         {
             mask &= ~(1U << bit);
             chunk_count--;

@@ -68,8 +68,7 @@ void EXT_MEM_TEXT bsp_begin()
 
     // Initialize epiphany timer
     coredata.time_passed = 0.0f;
-    e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
-    coredata.last_timer_value = e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);
+    bsp_raw_time();
 }
 
 void bsp_end()
@@ -92,19 +91,7 @@ int bsp_pid()
 
 float EXT_MEM_TEXT bsp_time()
 {
-    // TODO: Add timer overhead the calculation
-    unsigned int cur_time = e_ctimer_get(E_CTIMER_0);
-    coredata.time_passed += (coredata.last_timer_value - cur_time) / CLOCKSPEED;
-    e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
-    // Tested: between setting E_CTIMER_MAX and 
-    // reading the timer, it decreased by 23 clockcycles
-    coredata.last_timer_value = e_ctimer_get(E_CTIMER_0);
-    //coredata.last_timer_value = cur_time;
-
-#ifdef DEBUG
-    if (cur_time == 0)
-        return -1.0f;
-#endif
+    coredata.time_passed += bsp_raw_time() / CLOCKSPEED;
     return coredata.time_passed;
 }
 
@@ -132,8 +119,10 @@ void bsp_sync()
             if ((nbytes & DATA_PUT_BIT) == put)
                 memcpy(reqs[i].dst, reqs[i].src, nbytes & ~DATA_PUT_BIT);
         }
-        if (put == 0) put = DATA_PUT_BIT;
-        else break;
+        if (put == 0)
+            put = DATA_PUT_BIT;
+        else
+            break;
     }
     coredata.request_counter = 0;
 
@@ -158,17 +147,19 @@ void bsp_sync()
     coredata.message_index = 0;
 
     e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
+}
 
-    // Synchronize with host
-    //_write_syncstate(STATE_SYNC);
-    //while (coredata.syncstate != STATE_CONTINUE) {}
-    //_write_syncstate(STATE_RUN);
+void ebsp_host_sync()
+{
+    _write_syncstate(STATE_SYNC);
+    while (coredata.syncstate != STATE_CONTINUE) {}
+    _write_syncstate(STATE_RUN);
 }
 
 void _write_syncstate(int8_t state)
 {
-    coredata.syncstate = state; // local variable
-    comm_buf->syncstate[coredata.pid] = state; // being polled by ARM
+    coredata.syncstate = state;  // local variable
+    comm_buf->syncstate[coredata.pid] = state;  // being polled by ARM
 }
 
 void EXT_MEM_TEXT bsp_abort(const char * format, ...)
@@ -190,7 +181,7 @@ void EXT_MEM_TEXT bsp_abort(const char * format, ...)
     memcpy(&comm_buf->msgbuf[0], &buf[0], sizeof(buf));
     comm_buf->msgflag = coredata.pid+1;
     // Wait for it to be printed
-    while(comm_buf->msgflag != 0){}
+    while (comm_buf->msgflag != 0){}
     // Unlock mutex
     e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
 
@@ -218,7 +209,7 @@ void EXT_MEM_TEXT ebsp_message(const char* format, ... )
     memcpy(&comm_buf->msgbuf[0], &buf[0], sizeof(buf));
     comm_buf->msgflag = coredata.pid+1;
     // Wait for it to be printed
-    while(comm_buf->msgflag != 0){}
+    while (comm_buf->msgflag != 0){}
     // Unlock mutex
     e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
 }

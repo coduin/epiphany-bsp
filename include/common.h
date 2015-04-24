@@ -25,7 +25,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #pragma once
 #include <stdint.h>
 
-//#define DEBUG
+// #define DEBUG
 
 #define _NPROCS 16
 
@@ -56,7 +56,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 // to 8-byte and the ARM compiler will align to 4-byte.
 // Since all contents of the structs are 4-byte, we can
 // safely use 4-byte packing without losing speed
-#pragma pack(push,4)
+#pragma pack(push, 4)
 
 // Every bsp_put or bsp_get call results in an ebsp_data_request
 // Additionally, bsp_put calls write to the ebsp_payload_buffer
@@ -65,6 +65,7 @@ typedef struct {
     // so a memcpy can be used directly
     const void* src;
     void*       dst;
+
     // The highest bit of nbytes is used to indicate whether this is a
     // put or a get request. 0 means get, 1 means put
     int         nbytes;
@@ -77,7 +78,7 @@ typedef struct {
 // while other cores send nothing. Since all cores access the same
 // buffer there is a payload_mutex to ensure correctness
 typedef struct {
-    unsigned int    buffer_size; // buffer used so far
+    unsigned int    buffer_size;  // buffer used so far
     char            buf[MAX_PAYLOAD_SIZE];
 } ebsp_payload_buffer;
 
@@ -86,13 +87,13 @@ typedef struct {
 // of a single queue per core. This might change soon
 typedef struct {
     int     pid;
-    void*   tag; // saved in same buffer as payload
+    void*   tag;  // saved in same buffer as payload
     void*   payload;
-    int     nbytes; // payload bytes
+    int     nbytes;  // payload bytes
 } ebsp_message_header;
 
 typedef struct {
-    unsigned int        count; // total messages so far
+    unsigned int        count;  // total messages so far
     ebsp_message_header message[MAX_MESSAGES];
 } ebsp_message_queue;
 
@@ -104,21 +105,21 @@ typedef struct
 {
     // Epiphany --> ARM communication
     int8_t              syncstate[_NPROCS];
-    int8_t*             syncstate_ptr; // Location on epiphany core
-    volatile int8_t     msgflag; // 0: no msg. 1+pid: msg
-    char                msgbuf[128]; // shared by all cores (mutexed)
+    int8_t*             syncstate_ptr;  // Location on epiphany core
+    volatile int8_t     msgflag;  // 0: no msg. 1+pid: msg
+    char                msgbuf[128];  // shared by all cores (mutexed)
 
     // ARM --> Epiphany
     float               remotetimer;
     int32_t             nprocs;
-    int32_t             tagsize; // Only for initial and final messages
+    int32_t             tagsize;  // Only for initial and final messages
 
     // Epiphany <--> Epiphany
     void*               bsp_var_list[MAX_BSP_VARS][_NPROCS];
     uint32_t            bsp_var_counter;
     ebsp_data_request   data_requests[_NPROCS][MAX_DATA_REQUESTS];
     ebsp_message_queue  message_queue[2];
-    ebsp_payload_buffer data_payloads; // used for put/get/send
+    ebsp_payload_buffer data_payloads;  // used for put/get/send
 } ebsp_comm_buf;
 
 // Right after comm_buf there is the memory used for mallocs

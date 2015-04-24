@@ -22,11 +22,11 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
-#include <e-lib.h>
+#include <e_bsp.h>
 
 int main()
 {
     int* wrt = (void*)0x7000;
-    (*wrt) = 12346;
+    (*wrt) = bsp_pid();
     return 0;
 }

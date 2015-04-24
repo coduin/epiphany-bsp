@@ -33,7 +33,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: bsp_pid bsp_init
+all: bsp_pid bsp_init bsp_memtest
 
 dirs:
 	mkdir -p bin
@@ -61,6 +61,16 @@ bin/host_bsp_init: bsp_init/host_bsp_init.c
 	$(PLATFORM_PREFIX)gcc $(CFLAGS) $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
 	
 bin/e_bsp_init.elf: bsp_init/e_bsp_init.c
+	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
+
+########################################################
+
+bsp_memtest: bin/host_bsp_memtest bin/e_bsp_memtest.elf bin/e_bsp_memtest.srec
+
+bin/host_bsp_memtest: bsp_memtest/host_bsp_memtest.c
+	$(PLATFORM_PREFIX)gcc $(CFLAGS) $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
+	
+bin/e_bsp_memtest.elf: bsp_memtest/e_bsp_memtest.c
 	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
 
 ########################################################

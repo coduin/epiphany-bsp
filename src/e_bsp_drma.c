@@ -25,12 +25,25 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include "e_bsp_private.h"
 #include <string.h>
 
-const char err_pushreg_multiple[] EXT_MEM_RO = "BSP ERROR: multiple bsp_push_reg calls within one sync";
-const char err_pushreg_overflow[] EXT_MEM_RO = "BSP ERROR: Trying to push more than MAX_BSP_VARS vars";
-const char err_var_not_found[]    EXT_MEM_RO = "BSP ERROR: could not find bsp var %p";
-const char err_get_overflow[]     EXT_MEM_RO = "BSP ERROR: too many bsp_get requests per sync";
-const char err_put_overflow[]     EXT_MEM_RO = "BSP ERROR: too many bsp_put requests per sync";
-const char err_put_overflow2[]    EXT_MEM_RO = "BSP ERROR: too large bsp_put payload per sync";
+
+const char err_pushreg_multiple[] EXT_MEM_RO =
+    "BSP ERROR: multiple bsp_push_reg calls within one sync";
+
+const char err_pushreg_overflow[] EXT_MEM_RO =
+    "BSP ERROR: Trying to push more than MAX_BSP_VARS vars";
+
+const char err_var_not_found[]    EXT_MEM_RO =
+    "BSP ERROR: could not find bsp var %p";
+
+const char err_get_overflow[]     EXT_MEM_RO =
+    "BSP ERROR: too many bsp_get requests per sync";
+
+const char err_put_overflow[]     EXT_MEM_RO =
+    "BSP ERROR: too many bsp_put requests per sync";
+
+const char err_put_overflow2[]    EXT_MEM_RO =
+    "BSP ERROR: too large bsp_put payload per sync";
+
 
 // This incoroporates the bsp_var_list as well as
 // the epiphany global address system
@@ -60,6 +73,11 @@ void bsp_push_reg(const void* variable, const int nbytes)
         (void*)variable;
 
     coredata.var_pushed = 1;
+}
+
+void bsp_pop_reg(const void* variable)
+{
+    return;
 }
 
 void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes)
@@ -97,13 +115,16 @@ void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes)
     // We are now ready to save the request and payload
     void* payload_ptr = &comm_buf->data_payloads.buf[payload_offset];
 
-    // TODO: Measure if e_dma_copy is faster here for both request and payload
+    // TODO(Tom)
+    // Measure if e_dma_copy is faster here for both request and payload
 
     // Save request
-    ebsp_data_request* req = &comm_buf->data_requests[coredata.pid][coredata.request_counter++];
+    uint32_t req_count = coredata.request_counter;
+    ebsp_data_request* req = &comm_buf->data_requests[coredata.pid][req_count];
     req->src = payload_ptr;
     req->dst = dst_remote;
     req->nbytes = nbytes | DATA_PUT_BIT;
+    coredata.request_counter = req_count + 1;
 
     // Save payload
     memcpy(payload_ptr, src, nbytes);
@@ -123,11 +144,12 @@ void bsp_get(int pid, const void *src, int offset, void *dst, int nbytes)
     const void* src_remote = _get_remote_addr(pid, src, offset);
     if (!src_remote) return;
 
-    ebsp_data_request* req = &comm_buf->data_requests[coredata.pid][coredata.request_counter];
+    uint32_t req_count = coredata.request_counter;
+    ebsp_data_request* req = &comm_buf->data_requests[coredata.pid][req_count];
     req->src = src_remote;
     req->dst = dst;
     req->nbytes = nbytes;
-    coredata.request_counter++;
+    coredata.request_counter = req_count + 1;
 }
 
 void bsp_hpget(int pid, const void *src, int offset, void *dst, int nbytes)

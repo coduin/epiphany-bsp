@@ -1,0 +1,4 @@
+bin/
+doxygen/*
+!doxygen/Doxyfile
+!doxygen/main.dox
