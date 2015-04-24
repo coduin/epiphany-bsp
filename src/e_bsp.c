@@ -68,7 +68,7 @@ void EXT_MEM_TEXT bsp_begin()
 
     // Initialize epiphany timer
     coredata.time_passed = 0.0f;
-    bsp_raw_time();
+    ebsp_raw_time();
 }
 
 void bsp_end()
@@ -83,7 +83,6 @@ int bsp_nprocs()
     return coredata.nprocs;
 }
 
-
 int bsp_pid()
 {
     return coredata.pid;
@@ -91,11 +90,11 @@ int bsp_pid()
 
 float EXT_MEM_TEXT bsp_time()
 {
-    coredata.time_passed += bsp_raw_time() / CLOCKSPEED;
+    coredata.time_passed += ebsp_raw_time() / CLOCKSPEED;
     return coredata.time_passed;
 }
 
-float bsp_remote_time()
+float ebsp_host_time()
 {
     return comm_buf->remotetimer;
 }

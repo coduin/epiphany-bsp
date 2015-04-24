@@ -6,4 +6,4 @@ implementation of the model on top of the Epiphany SDK (ESDK).  This allows the 
 to be used with the Epiphany architecture developed by [Adapteva](http://www.adapteva.com).
 In particular this library has been implemented and tested on the  [Parallella](http://www.parallella.org) board.
 
-[See the wiki](http://www.github.com/buurlage-wits/epiphany-bsp/wiki) to learn more.
+[See the documentation](http://www.codu.in/ebsp/docs) to learn more.
