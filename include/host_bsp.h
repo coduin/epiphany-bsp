@@ -83,72 +83,105 @@ int ebsp_read(int pid, off_t src, void* dst, int size);
 
 /**
  * Initializes the BSP system.
+ * @param e_name A string with the name of the Epiphany program
+ * @param argc The number of input arguments
+ * @param argv An array of strings with the input arguments
  * @return 1 on success, 0 on failure
  *
- * This sets up all the BSP variables and loads the epiphany BSP program.
- *
- *  e_name: A string containing the name of the eBSP program.
- *  argc: An integer containing the number of input arguments
- *  argv: An array of strings containg the input flags.
+ * Sets up all the BSP variables and loads the epiphany BSP program.
  */
 int bsp_init(const char* e_name, int argc, char **argv);
 
-/** Set the callback for syncing
+/**
+ * Set the callback for syncing.
+ * @param cb A function pointer to the callback function
+ * 
+ * Synchronization callbacks are currently not implemented.
+ * In a future release there will be an option to call ebsp_host_sync
+ * in the Epiphany program. This will synchronize with the host processor and 
+ * trigger this callback.
  */
 void ebsp_set_sync_callback(void (*cb)());
 
-/** Set the callback for finalizing
+/**
+ * Set the callback for finalizing.
+ * @param cb A function pointer to the callback function
+ *
+ * This callback is called when ebsp_spmd() finishes. It is primarily used
+ * by the ebsp memory inspector.
  */
 void ebsp_set_end_callback(void (*cb)());
 
-/** Starts the SPMD program on the Epiphany cores.
- *  flag: An integer indicating whether the function finished
- *                succesfully, in which case it is 1, or 0 otherwise.
+/**
+ * Runs the Epiphany program on the Epiphany cores.
+ * @return 1 on success, 0 on failure
  */
 int ebsp_spmd();
 
-/** Starts the BSP program.
- *
- *  nprocs: An integer indicating the number of processors to run on.
- *  flag: An integer indicating whether the function finished
- *                succesfully, in which case it is 1, or 0 otherwise.
- */
+/**
+ * Loads the BSP program onto the Epiphany cores.
+ * @param nprocs THe number of processors to run on
+ * @return 1 on success, 0 on failure
+  */
 int bsp_begin(int nprocs);
 
-/** Finalizes and cleans up the BSP program.
- *  flag: An integer indicating whether the function finished
- *                succesfully, in which case it is 1, or 0 otherwise.
+/**
+ * Finalizes and cleans up the BSP program.
+ * @return 1 on success, 0 on failure
  */
 int bsp_end();
 
-/** Returns the number of available processors.
- *
- *  nprocs: An integer indicating the number of available processors.
+/**
+ * Returns the number of available processors (Epiphany cores).
+ * @return The number of available processors
  */
 int bsp_nprocs();
 
 /**
- * Set initial tagsize.
+ * Set initial tagsize for message passing.
+ * @param tag_bytes A pointer to an integer containing the new tagsize,
+ * receiving the old tagsize on return.
  *
- * Should be called at most once, before any messages are sent.
+ * The default tagsize is zero.
+ * This function should be called at most once, before any messages are sent.
  * Calling this when receiving messages results in undefined behaviour.
+ *
+ * It is not possible to send messages with different tag sizes. Doing so
+ * will result in undefined behaviour.
  */
 void ebsp_set_tagsize(int *tag_bytes);
 
 /**
- * Send initial messages
+ * Send a message to the Epiphany cores.
+ * @param pid The pid of the target processor
+ * @param tag A pointer to the message tag
+ * @param payload A pointer to the data payload
+ * @param nbytes The size of the payload in bytes
+ *
+ * This is the preferred way to send initial data (for computation) to the
+ * Epiphany cores.
+ *
+ * The size of the buffer pointed to by tag has to be `tagsize`, and must be
+ * the same for every message being sent.
  */
 void ebsp_send_down(int pid, const void *tag, const void *payload, int nbytes);
 
 /**
- * Get the tag-size as set by the epiphany cores.
+ * Get the tagsize as set by the Epiphany program.
+ * @return The tagsize in bytes
  *
  * Use only for gathering result messages at the end of a BSP program.
+ *
+ * When ebsp_spmd() returns, the Epiphany program can have set a different
+ * tagsize which can be obtained using this function.
  */
 int ebsp_get_tagsize();
 
 /**
- * Get the amount of messages in the queue and their total size
+ * Get the amount of messages in the queue and their total size in bytes.
+ * @param packets A pointer to an integer receiving the number of messages
+ * @param accum_bytes The total size of the data payloads of the messages,
+ * in bytes.
  *
  * Use only for gathering result messages at the end of a BSP program.
  */
@@ -156,30 +189,38 @@ void ebsp_qsize(int *packets, int *accum_bytes);
 
 /**
  * Peek the next message.
- *
- * Upon return, status holds the amount of bytes of the next message payload,
- * or -1 if there are no more messages.
- * tag will hold the tag of the next message. The buffer pointed to by tag
- * should be large enough (ebsp_get_tagsize).
+ * @param status A pointer to an integer receiving the amount of bytes of the
+ * next message payload, or -1 if there are no more messages.
+ * @param tag A pointer to a buffer receiving the tag of the next message.
+ * This buffer should be large enough (ebsp_get_tagsize()).
  *
  * Use only for gathering result messages at the end of a BSP program.
  */
 void ebsp_get_tag(int *status, void *tag);
 
 /**
- * Get the next message and pop it from the queue.
+ * Get the next message from the message queue and pop the message.
+ * @param payload A pointer to a buffer receiving the data payload
+ * @param buffer_size The size of the buffer
  *
- * Upon return, payload will hold the contents of the message.
- * The buffer will only be filled till at most buffer_size. Remaining
- * data is truncated. Use ebsp_get_tag to get the size of the data payload.
+ * This will copy the payload and pop the message from the queue.
+ * The size of the payload can be obtained by calling bsp_get_tag().
+ * If `buffer_size` is smaller than the data payload then the data is
+ * truncated.
  *
  * Use only for gathering result messages at the end of a BSP program.
  */
 void ebsp_move(void *payload, int buffer_size);
 
 /**
- * Get the pointer to the next message payload, and pop the message.
- * This will be a pointer to external memory so it is slow.
+ * Get the next message, with tag, from the queue and pop the message.
+ * @param tag_ptr_buf A pointer to a pointer receiving the location of the tag
+ * @param payload_ptr_buf A pointer to a pointer receiving the location of the
+ * data pyaload
+ * @return The number of bytes of the payload data
+ *
+ * This is the faster alternative of ebsp_move(), as this function does
+ * not copy the data but returns the pointers to it.
  *
  * Use only for gathering result messages at the end of a BSP program.
  */
