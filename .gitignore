@@ -1,4 +1,4 @@
 bin/
-doxygen/*
-!doxygen/Doxyfile
-!doxygen/main.dox
+doc/*
+!doc/Doxyfile
+!doc/*.dox
