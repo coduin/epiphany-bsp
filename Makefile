@@ -85,6 +85,9 @@ assembly: $(E_ASMS)
 lint:
 	@scripts/cpplint.py --filter=-whitespace/braces,-readability/casting,-build/include,-build/header_guard --extensions=h,c $(E_SRCS:%.c=src/%.c) $(HOST_SRCS:%c=src/%c) $(E_HEADERS) $(HOST_HEADERS)
 
+unit_test:
+	@make -B; cd test; make -B; ./test.py
+
 doxygen: $(E_HEADERS) $(HOST_HEADERS)
 	@cd doc; doxygen Doxyfile
 
