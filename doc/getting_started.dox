@@ -1,0 +1,37 @@
+/**
+\page getting_started Getting Started
+
+__Note__: These notes are specifically for a 16-core Epiphany Parallella development board, instructions for other devices will become available as they are released and supported.
+
+Before installing the EBSP library make sure you have set up the latest version of the Epiphany SDK, and that common developer tools (in particular gcc and make) are installed. On this page we assume that the toolchain revolves around make, but everything on this page should easily be adapted for building with e.g. and Eclipse based toolchain.
+
+To work on a new EBSP project, first download the latest release from the [release page](https://github.com/buurlage-wits/epiphany-bsp/releases) on GitHub. The archive will contain a folder `lib/bsp` which can be copied to the root of your EBSP project. An EBSP program requires at least two source files. A program is split in a program that runs on the host (in the case of the Parallella16 the ARM processor) and a program that runs on the Epiphany-cores (usually referred to with names such as _guest_, _ecore_, _core_ or _down_). A typical project structure would then look like this:
+
+    .../project
+    ├── bin
+    ├── ext
+    │   └── bsp
+    │       ├── include
+    │       │   ├── e_bsp.h
+    │       │   └── host_bsp.h
+    │       └── lib
+    │           ├── e_bsp.a
+    │           └── host_bsp.a
+    ├── Makefile
+    └─── src
+        ├── ecore_code.c
+        └── host_code.c
+
+An example of a Makefile:
+
+    INCLUDE = -Iext/bsp/include
+    ...
+
+For some simple code examples for the host and ecore code we refer to [the examples in the main GitHub repository](http://www.github.com/buurlage-wits/epiphany-bsp/tree/master/examples).
+
+To build and run the BSP program:
+
+    make
+    ./bin/host_program
+
+*/

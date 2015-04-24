@@ -22,14 +22,12 @@ for anyone new to parallel algorithms, and our goal for this library is to provi
 to implement parallel programs on the Epiphany architecture, without having to resort directly
 to the Epiphany SDK.
 
-test e_bsp.h test
 
 \section sec_res Resources
 
-* [BSP Model](https://github.com/buurlage-wits/epiphany-bsp/wiki/BSP-Model)
-* [Getting Started With EBSP](https://github.com/buurlage-wits/epiphany-bsp/wiki/Getting-Started)
-* [Minimal Example](https://github.com/buurlage-wits/epiphany-bsp/wiki/Minimal-Example)
-* API Reference e_bsp.h
+- \link bsp_model Information on the BSP model \endlink
+- \link getting_started Getting started with EBSP \endlink
+- **API Reference**: See e_bsp.h and host_bsp.h
 
 \section sec_example Minimal example
 
