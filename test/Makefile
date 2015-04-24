@@ -33,7 +33,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: bsp_time bsp_nprocs bsp_pid bsp_init bsp_memtest
+all: bsp_time bsp_nprocs bsp_pid bsp_init bsp_memtest bsp_hpput
 
 dirs:
 	mkdir -p bin
@@ -96,6 +96,16 @@ bin/e_bsp_memtest.elf: bsp_memtest/e_bsp_memtest.c
 	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
 
 ########################################################
+
+bsp_hpput: bin/host_bsp_hpput bin/e_bsp_hpput.elf bin/e_bsp_hpput.srec
+
+bin/host_bsp_hpput: bsp_hpput/host_bsp_hpput.c
+	$(PLATFORM_PREFIX)gcc $(CFLAGS) $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
+	
+bin/e_bsp_hpput.elf: bsp_hpput/e_bsp_hpput.c
+	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
+
+############
 
 clean:
 	rm bin/*

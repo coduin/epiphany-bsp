@@ -36,9 +36,9 @@ int main()
         float t_new = bsp_time();
         if(bsp_pid() == 0) {
             if(t_new > t_old)
-                ebsp_message("Time runs forward", bsp_time());
+                ebsp_message("Time runs forward");
             else
-                ebsp_message("Time runs backwards?", bsp_time());
+                ebsp_message("Time runs backwards? %f->%f",t_old, t_new);
         }
         t_old = t_new;
     }
