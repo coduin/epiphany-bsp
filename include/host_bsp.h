@@ -83,12 +83,29 @@ int ebsp_read(int pid, off_t src, void* dst, int size);
 
 /**
  * Initializes the BSP system.
- * @param e_name A string with the name of the Epiphany program
+ * @param e_name A string with the srec binary name of the Epiphany program
  * @param argc The number of input arguments
  * @param argv An array of strings with the input arguments
  * @return 1 on success, 0 on failure
  *
  * Sets up all the BSP variables and loads the epiphany BSP program.
+ *
+ * The string `e_name` must be of the form `myprogram.srec`. This function
+ * will search for the file in the same directory as the host program,
+ * and not in the current working directory.
+ *
+ * Usage example:
+ * \code
+ * int main(int argc, char** argv)
+ * {
+ *     bsp_init("e_program.srec", argc, argv);
+ *     ...
+ *     return 0;
+ * }
+ * \endcode
+ *
+ * @remarks The `argc` and `argv` parameters are ignored in the current
+ * implementation.
  */
 int bsp_init(const char* e_name, int argc, char **argv);
 
@@ -115,25 +132,57 @@ void ebsp_set_end_callback(void (*cb)());
 /**
  * Runs the Epiphany program on the Epiphany cores.
  * @return 1 on success, 0 on failure
+ *
+ * This function will block untill the BSP program is finished.
  */
 int ebsp_spmd();
 
 /**
  * Loads the BSP program onto the Epiphany cores.
- * @param nprocs THe number of processors to run on
+ * @param nprocs The number of processors to run on
  * @return 1 on success, 0 on failure
-  */
+ *
+ * Usage example:
+ * \code
+ * int main(int argc, char** argv)
+ * {
+ *     bsp_init("e_program.srec", argc, argv);
+ *     bsp_begin(bsp_nprocs());
+ *     ...
+ *     return 0;
+ * }
+ * \endcode
+ *
+ * @remarks The current implementation only allows `nprocs` to be a multiple
+ * of 4 on the 16-core Parallella. Other values of `nprocs` are rounded down.
+ */
 int bsp_begin(int nprocs);
 
 /**
  * Finalizes and cleans up the BSP program.
  * @return 1 on success, 0 on failure
+ *
+ * Usage example:
+ * \code
+ * int main(int argc, char** argv)
+ * {
+ *     bsp_init("e_program.srec", argc, argv);
+ *     bsp_begin(bsp_nprocs());
+ *     ebsp_spmd();
+ *     bsp_end();
+ *     return 0;
+ * }
+ * \endcode
+ *
+ * @remarks This function is different from the bsp_end function in e_bsp.h
  */
 int bsp_end();
 
 /**
  * Returns the number of available processors (Epiphany cores).
  * @return The number of available processors
+ * 
+ * This function may be called after bsp_init().
  */
 int bsp_nprocs();
 

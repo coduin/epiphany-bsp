@@ -37,7 +37,7 @@ see the files COPYING and COPYING.LESSER. If not, see
  * to the order in which they were sent.
  *
  * Before the first sync, the queue contains messages from the ARM host
- * They are invalidated after the first call to bsp_sync.
+ * They are invalidated after the first call to bsp_sync().
  */
 
 
@@ -61,14 +61,15 @@ void bsp_begin();
 void bsp_end();
 
 /**
- * Obtain the number of available processors.
- * @return An integer indicating the number of available processors
+ * Obtain the number of processors currently in use.
+ * @return An integer indicating the number of running processors
  */
 int bsp_nprocs();
 
 /**
  * Obtain the processor ID of the local core.
  * @return An integer with the id of the process
+ * The pid is an integer between 0 and `bsp_nprocs()-1` inclusive.
  */
 int bsp_pid();
 
@@ -109,21 +110,47 @@ unsigned int ebsp_raw_time();
 float ebsp_host_time();
 
 /**
- * Denotes the end of a superstep, and starts all communication.
- * The computation is halted until all communication has been performed.
+ * Denotes the end of a superstep, and performs all communication
+ * and registration.
+ *
+ * Serves as a blocking barrier which halts execution untill all Epiphany
+ * cores are finished with the current superstep.
  */
 void bsp_sync();
 
 /**
  * Register a variable as available for remote access.
- * @param variable A pointer to the variable
+ * @param variable A pointer to the variable (local)
  * @param nbytes The size in bytes of the variable
  *
- * The operation takes effect after the next call to bsp_sync
- * Every core must register the variables, one per syncrhonization step,
- * in the same order.
+ * The operation takes effect after the next call to bsp_sync().
+ * Only one registration is allowed in a single superstep.
+ * When a variable is registered, every core must do so.
+ *
+ * The system maintains a stack of registered variables. Any variables
+ * registered in the same superstep are identified with each other.
+ *
  * Registering a variable needs to be done before it can be used with
  * the functions bsp_put(), bsp_hpput(), bsp_get(), bsp_hpget().
+ *
+ * Usage example:
+ * \code
+ * int a, b, c, p;
+ * int x[16];
+ *
+ * bsp_push_reg(&a, sizeof(int));
+ * bsp_sync();
+ * bsp_push_reg(&x, sizeof(x));
+ * bsp_sync();
+ *
+ * p = bsp_pid();
+ *
+ * // Get the value of the `a` variable of core 0 and save it in `b`
+ * bsp_get(0, &a, 0, &b, sizeof(int));
+ *
+ * // Save the value of `c` into the array `x` on core 0, at array location p
+ * bsp_put(0, &c, &x, p*sizeof(int), sizeof(int));
+ * \endcode
  *
  * @remarks In the current implementation, the parameter nbytes is ignored.
  */
@@ -143,7 +170,7 @@ void bsp_pop_reg(const void* variable);
  * Copy data to another processor (buffered).
  * @param pid The pid of the target processor (can be self)
  * @param src A pointer to the source data
- * @param dst A variable that has been previously registered with bsp_push_reg
+ * @param dst A variable that was previously registered with bsp_push_reg()
  * @param offset An offset to be added to dst
  * @param nbytes The amount of bytes to be copied
  *
@@ -161,10 +188,10 @@ void bsp_pop_reg(const void* variable);
 void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes);
 
 /**
- * Copy data to another processor using a buffer.
+ * Copy data to another processor, unbuffered.
  * @param pid The pid of the target processor (can be self)
  * @param src A pointer to local source data
- * @param dst A variable that has been previously registered with bsp_push_reg
+ * @param dst A variable that was previously registered with bsp_push_reg()
  * @param offset An offset to be added to dst
  * @param nbytes The amount of bytes to be copied
  *
@@ -173,7 +200,7 @@ void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes);
  * This means the programmer must make sure that the other processor is not
  * using the destination at this moment.
  * The data transfer is guaranteed to be complete after the next call to
- * bsp_sync.
+ * bsp_sync().
  *
  * @remarks No warning is thrown when nbytes exceeds the size of the variable
  *          src.
