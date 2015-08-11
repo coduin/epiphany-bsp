@@ -212,3 +212,34 @@ void EXT_MEM_TEXT ebsp_message(const char* format, ... )
     // Unlock mutex
     e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
 }
+
+int ebsp_dma_copy_parallel(e_dma_id_t chan, void *dst, void *src, size_t n)
+{
+    unsigned   index;
+    unsigned   shift;
+    unsigned   stride;
+    unsigned   config;
+    int        ret_val;
+
+    e_dma_desc_t* _dma_copy_descripor_ = *ebsp_core_data._dma_copy_descriptor_0;
+    if( chan  == E_DMA_1 )
+        _dma_copy_descripor_ = *ebsp_core_data._dma_copy_descriptor_1;
+
+    index = (((unsigned) dst) | ((unsigned) src) | ((unsigned) n)) & 7;
+
+    config = E_DMA_MASTER | E_DMA_ENABLE | dma_data_size[index];
+    if ((((unsigned) dst) & local_mask) == 0)
+        config = config | E_DMA_MSGMODE;
+    shift = dma_data_size[index] >> 5;
+    stride = 0x10001 << shift;
+
+    _dma_copy_descriptor_ -> config       = config;
+    _dma_copy_descriptor_ -> inner_stride = stride;
+    _dma_copy_descriptor_ -> count        = 0x10000 | (n >> shift);
+    _dma_copy_descriptor_ -> outer_stride = stride;
+    _dma_copy_descriptor_ -> src_addr     = src;
+    _dma_copy_descriptor_ -> dst_addr     = dst;
+
+    return e_dma_start(_dma_copy_descriptor_, chan);
+}
+

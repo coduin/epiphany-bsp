@@ -74,6 +74,30 @@ typedef struct {
 
     // Mutex for malloc C function
     e_mutex_t       malloc_mutex;
+
+    // Pointer to the next input chunk in exmem
+    void*           exmem_next_in_chunk;
+
+    // Pointer to the current output chunk in exmem
+    void*           exmem_current_out_chunk;
+   
+    // Pointer to current input buffer (in local memory)
+    void*           buffer_in_current;
+
+    // Pointer to current output buffer (in local memory)
+    void*           buffer_out_current;
+ 
+    // Pointer to next input buffer (in local memory)
+    void*           buffer_in_next;
+
+    // Pointer to previous output buffer (in local memory)
+    void*           buffer_out_previous;
+
+    // DMA descriptor needed for channel E_DMA_0
+    e_dma_desc_t    _dma_copy_descriptor_0;
+
+    // DMA descriptor needed for channel E_DMA_1
+    e_dma_desc_t    _dma_copy_descriptor_1;
 } ebsp_core_data;
 
 extern ebsp_core_data coredata;

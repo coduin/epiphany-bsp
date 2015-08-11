@@ -47,6 +47,10 @@ see the files COPYING and COPYING.LESSER. If not, see
 // This is shared amongst all cores!
 #define MAX_PAYLOAD_SIZE (16*0x8000)
 
+// The size of the buffers used for streaming (in bytes)
+#define IN_CHUNK_SIZE 128
+#define OUT_CHUNK_SIZE 64
+
 // See ebsp_data_request::nbytes
 #define DATA_PUT_BIT    (1<<31)
 
@@ -136,6 +140,7 @@ typedef struct
 
 // Possible values for syncstate
 // They start at 1 so that 0 means that the variable was not initialized
+#define STATE_UNDEFINED 0
 #define STATE_RUN       1
 #define STATE_SYNC      2
 #define STATE_CONTINUE  3

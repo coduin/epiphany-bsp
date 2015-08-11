@@ -358,6 +358,30 @@ int bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
 void ebsp_send_up(const void *tag, const void *payload, int nbytes);
 
 /**
+ * Get a pointer to a chunk of input data. This function actually does the following things:
+ * 1) Wait for the previous DMA (from exmem to local memory) to finish
+ * 2) Start a new DMA from exmem to local memory to fill the next chunk
+ * 3) Return a pointer
+ * @remarks
+ * - Returns a NULL pointer if no chunk has to be loaded
+ * - The size of this chunk is defined in common.h as IN_CHUNK_SIZE
+ * - Uses DMA channel E_DMA_0
+ */
+void* ebsp_get_in_chunk();
+
+/**
+ * Get a pointer to a chunk of output data. This function actually does the following things:
+ * 1) Wait for the previous DMA (from local memory to exmem) to finish
+ * 2) Start a new DMA from local memory to exmem to read the next chunk
+ * 3) Return a pointer
+ * @remarks
+ * - There are no guarantees on the initial contents of the output chunk
+ * - The size of this chunk is defined in common.h as OUT_CHUNK_SIZE
+ * - Uses DMA channel E_DMA_1
+ */
+void* ebsp_get_out_chunk();
+
+/**
  * Aborts the program after outputting a message.
  * @param format The formatting string in printf style
  *
@@ -396,4 +420,9 @@ void ebsp_free(void* ptr);
  */
 void ebsp_message(const char * format, ...)
     __attribute__((__format__(__printf__, 1, 2)));
+
+/**
+ * Wrapper for usage of DMA engine
+ */
+int ebsp_dma_copy_parallel(e_dma_id_t chan, void *dst, void *src, size_t n);
 
