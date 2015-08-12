@@ -6,9 +6,11 @@ ELDF=../ebsp_fast.ldf
 ARCH=$(shell uname -m)
 
 ifeq ($(ARCH),x86_64)
-PLATFORM_PREFIX=arm-linux-gnueabihf-
+ARM_PLATFORM_PREFIX=arm-linux-gnueabihf-
+E_PLATFORM_PREFIX  =epiphany-elf-
 else
-PLATFORM_PREFIX=
+ARM_PLATFORM_PREFIX=
+E_PLATFORM_PREFIX  =e-
 endif
 
 # no-tree-loop-distribute-patters makes sure the compiler
@@ -41,19 +43,19 @@ all: hello e_hello primitives dot_product memtest bspbench lu_decomposition memo
 
 bin/%: %.c
 	@echo "CC $<"
-	@$(PLATFORM_PREFIX)gcc $(CFLAGS) $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
+	@$(ARM_PLATFORM_PREFIX)gcc $(CFLAGS) $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
 	
 bin/%.elf: %.c
 	@echo "CC $<"
-	@e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
+	@$(E_PLATFORM_PREFIX)gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
 
 bin/%.s: %.c
 	@echo "CC $<"
-	@e-gcc $(CFLAGS) -T $(ELDF)  $(INCLUDES) -fverbose-asm -S $< -o $@ $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
+	@$(E_PLATFORM_PREFIX)gcc $(CFLAGS) -T $(ELDF)  $(INCLUDES) -fverbose-asm -S $< -o $@ $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
 
 
 bin/%.srec: bin/%.elf
-	@e-objcopy --srec-forceS3 --output-target srec $< $@
+	@$(E_PLATFORM_PREFIX)objcopy --srec-forceS3 --output-target srec $< $@
 
 ########################################################
 
