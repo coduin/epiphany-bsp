@@ -26,24 +26,27 @@ E_ASM_SRCS = \
 		e_bsp_raw_time.s
 
 E_HEADERS = \
-			include/common.h \
-			include/e_bsp.h \
-			include/e_bsp_private.h
+		include/common.h \
+		include/e_bsp.h \
+		include/e_bsp_private.h
 
 HOST_HEADERS = \
-			   include/common.h \
-			   include/host_bsp.h
+		include/common.h \
+		include/host_bsp.h
 
 HOST_SRCS = \
-		host_bsp.c
+		host_bsp.c \
+		host_bsp_memory.c
 
-INCLUDES = -I/usr/arm-linux-gnueabihf/include \
-		   -I/usr/include/esdk \
-		   -I./include \
-		   -I${ESDK}/tools/host/include
+INCLUDES = \
+		-I/usr/arm-linux-gnueabihf/include \
+		-I/usr/include/esdk \
+		-I./include \
+		-I${ESDK}/tools/host/include
 
-HOST_LIBS= -L${ESDK}/tools/host/lib \
-		   -le-hal
+HOST_LIBS = \
+		-L${ESDK}/tools/host/lib \
+		-le-hal
 
 E_FLAGS = -Os -fno-strict-aliasing -ffast-math -std=c99 -Wall
 

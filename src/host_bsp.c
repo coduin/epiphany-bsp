@@ -56,6 +56,9 @@ typedef struct
 
     // External memory that holds ebsp_comm_buf
     e_mem_t emem;
+    // External memory that holds the mallocs
+    e_mem_t emem_malloc;
+
     // Local copy of ebsp_comm_buf to copy from and
     // copy into.
     ebsp_comm_buf comm_buf;
@@ -82,6 +85,8 @@ void _host_sync();
 void _microsleep(int microseconds);  // 1000 gives 1 millisecond
 void _get_p_coords(int pid, int* row, int* col);
 void init_application_path();
+
+void ebsp_malloc_init(void* external_memory_base);
 
 int ebsp_write(int pid, void* src, off_t dst, int size)
 {
@@ -233,9 +238,17 @@ int bsp_begin(int nprocs)
 
     // Allocate communication buffer
     if (e_alloc(&state.emem, COMMBUF_OFFSET, sizeof(ebsp_comm_buf)) != E_OK) {
-        fprintf(stderr, "ERROR: e_alloc failed in bspbegin.\n");
+        fprintf(stderr, "ERROR: e_alloc for comm_buf failed in bspbegin.\n");
         return 0;
     }
+
+    // Allocate buffer for mallocs
+    if (e_alloc(&state.emem_malloc, DYNMEM_OFFSET, DYNMEM_SIZE) != E_OK) {
+        fprintf(stderr, "ERROR: e_alloc for malloc failed in bspbegin.\n");
+        return 0;
+    }
+
+    ebsp_malloc_init(state.emem_malloc.base);
 
     // Set initial buffer to zero so that it can be filled by messages
     // before calling ebsp_spmd
