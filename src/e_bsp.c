@@ -213,22 +213,35 @@ void EXT_MEM_TEXT ebsp_message(const char* format, ... )
     e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
 }
 
+// This is e_dma_copy from the epiphany libs, but without waiting for dma to finish before returning
 int ebsp_dma_copy_parallel(e_dma_id_t chan, void *dst, void *src, size_t n)
 {
     unsigned   index;
     unsigned   shift;
     unsigned   stride;
     unsigned   config;
-    int        ret_val;
+    e_dma_desc_t* _dma_copy_descriptor_;
 
-    e_dma_desc_t* _dma_copy_descripor_ = *ebsp_core_data._dma_copy_descriptor_0;
+    unsigned dma_data_size[8] =
+    {
+        E_DMA_DWORD,
+        E_DMA_BYTE,
+        E_DMA_HWORD,
+        E_DMA_BYTE,
+        E_DMA_WORD,
+        E_DMA_BYTE,
+        E_DMA_HWORD,
+        E_DMA_BYTE,
+    };
+
+    _dma_copy_descriptor_ = &(coredata._dma_copy_descriptor_0);
     if( chan  == E_DMA_1 )
-        _dma_copy_descripor_ = *ebsp_core_data._dma_copy_descriptor_1;
+        _dma_copy_descriptor_ = &(coredata._dma_copy_descriptor_1);
 
     index = (((unsigned) dst) | ((unsigned) src) | ((unsigned) n)) & 7;
 
     config = E_DMA_MASTER | E_DMA_ENABLE | dma_data_size[index];
-    if ((((unsigned) dst) & local_mask) == 0)
+    if ((((unsigned) dst) & (0xfff00000)) == 0)
         config = config | E_DMA_MSGMODE;
     shift = dma_data_size[index] >> 5;
     stride = 0x10001 << shift;

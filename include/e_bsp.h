@@ -421,8 +421,3 @@ void ebsp_free(void* ptr);
 void ebsp_message(const char * format, ...)
     __attribute__((__format__(__printf__, 1, 2)));
 
-/**
- * Wrapper for usage of DMA engine
- */
-int ebsp_dma_copy_parallel(e_dma_id_t chan, void *dst, void *src, size_t n);
-

@@ -108,3 +108,6 @@ extern ebsp_core_data coredata;
 
 void _init_malloc_state();
 
+// Wrapper for usage of DMA engine
+int ebsp_dma_copy_parallel(e_dma_id_t chan, void *dst, void *src, size_t n);
+
