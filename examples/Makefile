@@ -17,7 +17,8 @@ endif
 # does NOT replace loops with calls to memcpy, residing in external memory
 CFLAGS=-std=c99 -Wall -O3 -ffast-math -fno-tree-loop-distribute-patterns
 
-INCLUDES = \
+#First include directory is only for cross-compiling
+INCLUDES = -I/usr/include/esdk \
 		   -I../include\
 		   -I${ESDK}/tools/host/include
 
