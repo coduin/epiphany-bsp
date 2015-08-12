@@ -11,7 +11,9 @@ else
 PLATFORM_PREFIX=
 endif
 
-CFLAGS=-std=c99 -O3 -ffast-math -Wall
+# no-tree-loop-distribute-patters makes sure the compiler
+# does NOT replace loops with calls to memcpy, residing in external memory
+CFLAGS=-std=c99 -Wall -O3 -ffast-math -fno-tree-loop-distribute-patterns
 
 INCLUDES = \
 		   -I../include\
@@ -33,7 +35,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: hello e_hello primitives dot_product memtest bspbench lu_decomposition 
+all: hello e_hello primitives dot_product memtest bspbench lu_decomposition memorybench
 
 ########################################################
 
@@ -44,6 +46,11 @@ bin/%: %.c
 bin/%.elf: %.c
 	@echo "CC $<"
 	@e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
+
+bin/%.s: %.c
+	@echo "CC $<"
+	@e-gcc $(CFLAGS) -T $(ELDF)  $(INCLUDES) -fverbose-asm -S $< -o $@ $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
+
 
 bin/%.srec: bin/%.elf
 	@e-objcopy --srec-forceS3 --output-target srec $< $@
@@ -89,6 +96,13 @@ bspbench: bin/bspbench bin/bspbench/host_bspbench bin/bspbench/e_bspbench.elf bi
 
 bin/bspbench:
 	@mkdir -p bin/bspbench
+
+########################################################
+
+memorybench: bin/memorybench bin/memorybench/host_memorybench bin/memorybench/e_memorybench.elf bin/memorybench/e_memorybench.srec bin/memorybench/e_memorybench.s
+
+bin/memorybench:
+	@mkdir -p bin/memorybench
 
 ########################################################
 
