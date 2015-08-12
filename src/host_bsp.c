@@ -652,6 +652,30 @@ int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
     return m->nbytes;
 }
 
+void ebsp_send_buffered(void* src, int dst_core_id, int nbytes)
+{
+
+    void* exmem_in_buffer = ebsp_ext_malloc(nbytes);
+    if (exmem_in_buffer == 0)
+    {
+        printf("ERROR: not enough memory in exmem for ebsp_send_buffered");
+        return;
+    }
+    memcpy(src, exmem_in_buffer, nbytes);
+    ebsp_comm_buf.exmem_next_in_chunk[dst_core_id] = exmem_in_buffer;
+}
+
+void ebsp_get_buffered(int dst_core_id, int max_nbytes)
+{
+    void* exmem_out_buffer = ebsp_ext_malloc(max_nbytes);
+    if (exmem_out_buffer == 0)
+    {
+        printf("ERROR: not enough memory in exmem for ebsp_send_buffered");
+        return;
+    }
+    ebsp_comm_buf.exmem_current_out_chunk[dst_core_id] = exmem_out_buffer;
+}
+
 //------------------
 // Private functions
 //------------------
