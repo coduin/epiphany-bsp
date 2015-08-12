@@ -46,12 +46,27 @@ void EXT_MEM_TEXT bsp_begin()
     coredata.tagsize_next = coredata.tagsize;
     coredata.queue_index = 0;
     coredata.message_index = 0;
-
+    
     // Initialize the barrier and mutexes
     e_barrier_init(coredata.sync_barrier, coredata.sync_barrier_tgt);
     e_mutex_init(0, 0, &coredata.payload_mutex, MUTEXATTR_NULL);
     e_mutex_init(0, 0, &coredata.ebsp_message_mutex, MUTEXATTR_NULL);
     e_mutex_init(0, 0, &coredata.malloc_mutex, MUTEXATTR_NULL);
+
+    // Initialize buffered communication streams
+    coredata.exmem_next_in_chunk     = comm_buf->exmem_next_in_chunk[coredata.pid];
+    if (coredata.exmem_next_in_chunk != NULL)
+    {
+        coredata.buffer_in_current = ebsp_malloc(IN_CHUNK_SIZE);
+        coredata.buffer_in_next    = ebsp_malloc(IN_CHUNK_SIZE);
+    }
+    
+    coredata.exmem_current_out_chunk = comm_buf->exmem_current_out_chunk[coredata.pid];
+    if (coredata.exmem_current_out_chunk != NULL)
+    {
+        coredata.buffer_out_current  = ebsp_malloc(OUT_CHUNK_SIZE);
+        coredata.buffer_out_previous = ebsp_malloc(OUT_CHUNK_SIZE);
+    }
 
     _init_malloc_state();
 

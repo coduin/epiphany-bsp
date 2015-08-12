@@ -80,13 +80,13 @@ typedef struct {
 
     // Pointer to the current output chunk in exmem
     void*           exmem_current_out_chunk;
-   
+
     // Pointer to current input buffer (in local memory)
     void*           buffer_in_current;
 
     // Pointer to current output buffer (in local memory)
     void*           buffer_out_current;
- 
+
     // Pointer to next input buffer (in local memory)
     void*           buffer_in_next;
 

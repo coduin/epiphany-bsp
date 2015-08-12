@@ -117,6 +117,8 @@ typedef struct
     float               remotetimer;
     int32_t             nprocs;
     int32_t             tagsize;  // Only for initial and final messages
+    void*               exmem_next_in_chunk[_NPROCS];
+    void*               exmem_current_out_chunk[_NPROCS];
 
     // Epiphany <--> Epiphany
     void*               bsp_var_list[MAX_BSP_VARS][_NPROCS];
