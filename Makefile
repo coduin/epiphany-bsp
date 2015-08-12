@@ -36,8 +36,9 @@ HOST_HEADERS = \
 HOST_SRCS = \
 		host_bsp.c
 
-INCLUDES = -I/usr/arm-linux-gnueabihf/include \ #for cross-compiling
-		   -I/usr/include/esdk \ #for cross-compiling
+#First two include directories are only for cross-compiling
+INCLUDES = -I/usr/arm-linux-gnueabihf/include \
+		   -I/usr/include/esdk \
 		   -I./include \
 		   -I${ESDK}/tools/host/include
 
