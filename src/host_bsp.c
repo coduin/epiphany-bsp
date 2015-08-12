@@ -87,6 +87,8 @@ void _get_p_coords(int pid, int* row, int* col);
 void init_application_path();
 
 void ebsp_malloc_init(void* external_memory_base);
+void* ebsp_ext_malloc(unsigned int nbytes);
+void ebsp_free(void* ptr);
 
 int ebsp_write(int pid, void* src, off_t dst, int size)
 {
