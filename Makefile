@@ -4,9 +4,11 @@ ESDK=${EPIPHANY_HOME}
 ARCH=$(shell uname -m)
 
 ifeq ($(ARCH),x86_64)
-PLATFORM_PREFIX=arm-linux-gnueabihf-
+ARM_PLATFORM_PREFIX=arm-linux-gnueabihf-
+E_PLATFORM_PREFIX  =epiphany-elf-
 else
-PLATFORM_PREFIX=
+ARM_PLATFORM_PREFIX=
+E_PLATFORM_PREFIX  =e-
 endif
 
 HOST_LIBNAME = libhost-bsp
@@ -35,6 +37,7 @@ HOST_SRCS = \
 		host_bsp.c
 
 INCLUDES = -I/usr/arm-linux-gnueabihf/include \
+		   -I/usr/include/esdk \
 		   -I./include \
 		   -I${ESDK}/tools/host/include
 
@@ -54,22 +57,22 @@ vpath %.s src
 
 bin/host/%.o: %.c $(HOST_HEADERS)
 	@echo "CC $<"
-	@$(PLATFORM_PREFIX)gcc -O3 -Wall -std=c99 $(INCLUDES) -c $< -o $@ ${HOST_LIBS}
+	@$(ARM_PLATFORM_PREFIX)gcc -O3 -Wall -std=c99 $(INCLUDES) -c $< -o $@ ${HOST_LIBS}
 	
 # C code to object file
 bin/e/%.o: %.c $(E_HEADERS)
 	@echo "CC $<"
-	@e-gcc $(E_FLAGS) $(INCLUDES) -c $< -o $@ -le-lib
+	@$(E_PLATFORM_PREFIX)gcc $(E_FLAGS) $(INCLUDES) -c $< -o $@ -le-lib
 
 # Assembly to object file
 bin/e/%.o: %.s $(E_HEADERS)
 	@echo "CC $<"
-	@e-gcc $(E_FLAGS) -c $< -o $@ -le-lib
+	@$(E_PLATFORM_PREFIX)gcc $(E_FLAGS) -c $< -o $@ -le-lib
 
 # C code to assembly
 bin/e/%.s: %.c $(E_HEADERS)
 	@echo "CC $<"
-	@e-gcc $(E_FLAGS) $(INCLUDES) -fverbose-asm -S $< -o $@
+	@$(E_PLATFORM_PREFIX)gcc $(E_FLAGS) $(INCLUDES) -fverbose-asm -S $< -o $@
 
 all: host e
 
@@ -95,10 +98,10 @@ e_dirs:
 	@mkdir -p bin/e lib
 
 lib/$(HOST_LIBNAME)$(LIBEXT): $(HOST_OBJS)
-	@$(PLATFORM_PREFIX)ar rs $@ $^ 
+	@$(ARM_PLATFORM_PREFIX)ar rs $@ $^ 
 
 lib/$(E_LIBNAME)$(LIBEXT): $(E_OBJS)
-	@e-ar rs $@ $^ 
+	@$(E_PLATFORM_PREFIX)ar rs $@ $^ 
 
 sizecheck: src/sizeof_check.cpp
 	@echo "-----------------------"
@@ -108,7 +111,7 @@ sizecheck: src/sizeof_check.cpp
 	@echo "-----------------------"
 	@echo "Sizecheck using g++"
 	@echo "-----------------------"
-	$(PLATFORM_PREFIX)g++ -Wall $(INCLUDES) -c $< -o /dev/null
+	$(ARM_PLATFORM_PREFIX)g++ -Wall $(INCLUDES) -c $< -o /dev/null
 
 ########################################################
 
