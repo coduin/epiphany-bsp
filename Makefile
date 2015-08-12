@@ -19,7 +19,8 @@ E_SRCS = \
 		e_bsp.c \
 		e_bsp_drma.c \
 		e_bsp_mp.c \
-		e_bsp_memory.c
+		e_bsp_memory.c\
+		e_bsp_buffer.c
 
 E_ASM_SRCS = \
 		e_bsp_raw_time.s

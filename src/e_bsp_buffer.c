@@ -26,7 +26,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <string.h>
 
 void* ebsp_get_in_chunk() {
-    //FIXME Check (using next_in_chunk) whether we need to return NULL
+    //TODO Check (using next_in_chunk) whether we need to return NULL
     e_dma_wait(E_DMA_0);
 
     exmem_next_in_chunk += IN_CHUNK_SIZE;
@@ -35,8 +35,8 @@ void* ebsp_get_in_chunk() {
     buffer_in_current = buffer_in_next;
     buffer_in_next    = buffer_in_current;
 
-    //start DMA exmem (@exmem_next_in_chunk) -> local mem (@buffer_in_next)
-    ebsp_dma_copy_parallel( E_DMA_0, buffer_in_next, exmem_next_in_chunk, (size_t) IN_CHUNK_SIZE );//FIXME size
+    //start DMA exmem -> local mem
+    ebsp_dma_copy_parallel( E_DMA_0, buffer_in_next, exmem_next_in_chunk, (size_t) IN_CHUNK_SIZE );
 
     return buffer_in_current;
 }
@@ -50,8 +50,8 @@ void* ebsp_get_out_chunk() {
     buffer_out_current  = buffer_out_previous;
     buffer_out_previous = buffer_out_current;
 
-    //start dma local mem (@buffer_out_previous) -> exmem (@exmem_current_out_chunk)
-    ebsp_dma_copy_parallel( E_DMA_1, exmem_current_out_chunk, buffer_out_previous, (size_t) IN_CHUNK_SIZE );//FIXME size?
+    //start dma local mem -> exmem
+    ebsp_dma_copy_parallel( E_DMA_1, exmem_current_out_chunk, buffer_out_previous, (size_t) OUT_CHUNK_SIZE );
 
     return buffer_out_current;
 }
