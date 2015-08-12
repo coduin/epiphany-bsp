@@ -1,6 +1,27 @@
 #include <e_bsp.h>
 #include "e-lib.h"
 
+// Fast transfer of 8-byte aligned data only
+// count is measured in longlongs
+// Returns transfer time
+unsigned int transfer(void* destination, const void* source, unsigned int count)
+{
+    ebsp_raw_time(); //reset timer
+    long long* dst = (long long*)destination;
+    const long long* src = (const long long*)source;
+    while(count--)
+        *dst++ = *src++;
+    return ebsp_raw_time();
+}
+
+// count is measured in longlongs
+unsigned int dma_transfer(void* destination, const void* source, unsigned int count)
+{
+    ebsp_raw_time(); //reset timer
+    e_dma_copy(destination, (void*)source, count*sizeof(long long));
+    return ebsp_raw_time();
+}
+
 int main()
 {
     bsp_begin();
@@ -16,20 +37,22 @@ int main()
     long long* extmem_buffer = ebsp_ext_malloc(chunk_size);
     long long local_buffer[dword_count];
 
+    const int samples = 1;
+    int timings[dword_count+1];
+
     // Write speed, one core at a time
     
     if (p == 0) {
         ebsp_message("write extmem nodma nonbusy");
     }
-    for (int iter=0; iter < 32; iter++) {
-        bsp_sync();
-        if (iter % n == p)
+    for (int iter=0; iter < samples; iter++)
+    {
+        for (int i = 0; i < n; i++)
         {
+            bsp_sync();
+            if (i != p) continue;
             for (int h = 0; h <= dword_count; h++) {
-                ebsp_raw_time(); //Reset timer
-                for (int i = 0; i < h; i++)
-                    extmem_buffer[i] = local_buffer[i];
-                int timer = ebsp_raw_time();
+                int timer = transfer(extmem_buffer, local_buffer, h);
                 ebsp_message("%d %d", h, timer);
             }
         }
@@ -41,16 +64,14 @@ int main()
     if (p == 0) {
         ebsp_message("read extmem nodma nonbusy");
     }
-    for (int iter=0; iter < 32; iter++) {
-        bsp_sync();
-        if (iter % n == p)
+    for (int iter=0; iter < samples; iter++)
+    {
+        for (int i = 0; i < n; i++)
         {
+            bsp_sync();
+            if (i != p) continue;
             for (int h = 0; h <= dword_count; h++) {
-                //Reset timer
-                ebsp_raw_time();
-                for (int i = 0; i < h; i++)
-                    local_buffer[i] = extmem_buffer[i];
-                int timer = ebsp_raw_time();
+                int timer = transfer(local_buffer, extmem_buffer, h);
                 ebsp_message("%d %d", h, timer);
             }
         }
@@ -59,20 +80,13 @@ int main()
     // Write speed, all cores at the same time
 
     bsp_sync();
-    int timings[dword_count+1];
     if (p == 0) {
         ebsp_message("write extmem nodma busy");
     }
-    for (int iter=0; iter < 10; iter++) {
+    for (int iter=0; iter < samples; iter++) {
         for (int h = 0; h <= dword_count; h++) {
             bsp_sync();
-            ebsp_raw_time();
-            for (int i = 0; i < h; i++)
-                extmem_buffer[i] = local_buffer[i];
-            timings[h] = ebsp_raw_time();
-            // 'sleep'
-            //for (int i = 0; i < dword_count; i++)
-            //    local_buffer[i] = (local_buffer[dword_count - i - 1] * 5) % (p+100);
+            timings[h] = transfer(extmem_buffer, local_buffer, h);
             bsp_sync();
         }
         for (int h = 0; h <= dword_count; h++ )
@@ -85,16 +99,84 @@ int main()
     if (p == 0) {
         ebsp_message("read extmem nodma busy");
     }
-    for (int iter=0; iter < 10; iter++) {
+    for (int iter=0; iter < samples; iter++) {
         for (int h = 0; h <= dword_count; h++) {
             bsp_sync();
-            ebsp_raw_time();
-            for (int i = 0; i < h; i++)
-                local_buffer[i] = extmem_buffer[i];
-            timings[h] = ebsp_raw_time();
-            // 'sleep'
-            //for (int i = 0; i < dword_count; i++)
-            //    local_buffer[i] = (local_buffer[dword_count - i - 1] * 5) % (p+100);
+            timings[h] = transfer(local_buffer, extmem_buffer, h);
+            bsp_sync();
+        }
+        for (int h = 0; h <= dword_count; h++ )
+            ebsp_message("%d %d", h, timings[h]);
+    }
+
+    //========================================================================
+    // DMA
+    //========================================================================
+
+    // Write speed, one core at a time
+    
+    bsp_sync();
+    if (p == 0) {
+        ebsp_message("write extmem dma nonbusy");
+    }
+    for (int iter=0; iter < samples; iter++)
+    {
+        for (int i = 0; i < n; i++)
+        {
+            bsp_sync();
+            if (i != p) continue;
+            for (int h = 0; h <= dword_count; h++) {
+                int timer = dma_transfer(extmem_buffer, local_buffer, h);
+                ebsp_message("%d %d", h, timer);
+            }
+        }
+    }
+
+    // Read speed, one core at a time
+
+    bsp_sync();
+    if (p == 0) {
+        ebsp_message("read extmem dma nonbusy");
+    }
+    for (int iter=0; iter < samples; iter++)
+    {
+        for (int i = 0; i < n; i++)
+        {
+            bsp_sync();
+            if (i != p) continue;
+            for (int h = 0; h <= dword_count; h++) {
+                int timer = dma_transfer(local_buffer, extmem_buffer, h);
+                ebsp_message("%d %d", h, timer);
+            }
+        }
+    }
+
+    // Write speed, all cores at the same time
+
+    bsp_sync();
+    if (p == 0) {
+        ebsp_message("write extmem dma busy");
+    }
+    for (int iter=0; iter < samples; iter++) {
+        for (int h = 0; h <= dword_count; h++) {
+            bsp_sync();
+            timings[h] = dma_transfer(extmem_buffer, local_buffer, h);
+            bsp_sync();
+        }
+        for (int h = 0; h <= dword_count; h++ )
+            ebsp_message("%d %d", h, timings[h]);
+    }
+    
+    // Read speed, all cores at the same time
+
+    bsp_sync();
+    if (p == 0) {
+        ebsp_message("read extmem dma busy");
+    }
+    for (int iter=0; iter < samples; iter++) {
+        for (int h = 0; h <= dword_count; h++) {
+            bsp_sync();
+            timings[h] = dma_transfer(local_buffer, extmem_buffer, h);
             bsp_sync();
         }
         for (int h = 0; h <= dword_count; h++ )
