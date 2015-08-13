@@ -32,11 +32,15 @@ E_HEADERS = \
 
 HOST_HEADERS = \
 		include/common.h \
-		include/host_bsp.h
+		include/host_bsp.h \
+		include/host_bsp_private.h
 
 HOST_SRCS = \
 		host_bsp.c \
-		host_bsp_memory.c
+		host_bsp_memory.c \
+		host_bsp_mp.c \
+		host_bsp_private.c \
+		host_bsp_utility.c
 
 INCLUDES = \
 		-I/usr/arm-linux-gnueabihf/include \
