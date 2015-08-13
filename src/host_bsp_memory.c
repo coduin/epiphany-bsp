@@ -1,5 +1,5 @@
 /*
-File: e_bsp_memory.c
+File: host_bsp_memory.c
 
 This file is part of the Epiphany BSP library.
 
@@ -22,24 +22,29 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
-#include "e_bsp_private.h"
-#define DYNMEM_START   DYNMEM_EADDR
-#define MALLOC_FUNCTION_PREFIX  EXT_MEM_TEXT
 
+void* DYNMEM_START;
+#define MALLOC_FUNCTION_PREFIX 
 #include "extmem_malloc_implementation.cpp"
 
-void* EXT_MEM_TEXT ebsp_ext_malloc(unsigned int nbytes)
+//
+//Host version of ebsp memory allocation functions
+//Can only be used when epiphany cores are not running
+//
+
+//Should be called once on host
+void ebsp_malloc_init(void* external_memory_base)
 {
-    void *ret = 0;
-    e_mutex_lock(0, 0, &coredata.malloc_mutex);
-    ret = _malloc(nbytes);
-    e_mutex_unlock(0, 0, &coredata.malloc_mutex);
-    return ret;
+    DYNMEM_START = external_memory_base;
+    return _init_malloc_state();
 }
 
-void EXT_MEM_TEXT ebsp_free(void* ptr)
+void* ebsp_ext_malloc(unsigned int nbytes)
 {
-    e_mutex_lock(0, 0, &coredata.malloc_mutex);
-    _free(ptr);
-    e_mutex_unlock(0, 0, &coredata.malloc_mutex);
+    return _malloc(nbytes);
+}
+
+void ebsp_free(void* ptr)
+{
+    return _free(ptr);
 }

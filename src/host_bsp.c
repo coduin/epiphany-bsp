@@ -56,6 +56,9 @@ typedef struct
 
     // External memory that holds ebsp_comm_buf
     e_mem_t emem;
+    // External memory that holds the mallocs
+    e_mem_t emem_malloc;
+
     // Local copy of ebsp_comm_buf to copy from and
     // copy into.
     ebsp_comm_buf comm_buf;
@@ -82,6 +85,10 @@ void _host_sync();
 void _microsleep(int microseconds);  // 1000 gives 1 millisecond
 void _get_p_coords(int pid, int* row, int* col);
 void init_application_path();
+
+void ebsp_malloc_init(void* external_memory_base);
+void* ebsp_ext_malloc(unsigned int nbytes);
+void ebsp_free(void* ptr);
 
 int ebsp_write(int pid, void* src, off_t dst, int size)
 {
@@ -233,9 +240,17 @@ int bsp_begin(int nprocs)
 
     // Allocate communication buffer
     if (e_alloc(&state.emem, COMMBUF_OFFSET, sizeof(ebsp_comm_buf)) != E_OK) {
-        fprintf(stderr, "ERROR: e_alloc failed in bspbegin.\n");
+        fprintf(stderr, "ERROR: e_alloc for comm_buf failed in bspbegin.\n");
         return 0;
     }
+
+    // Allocate buffer for mallocs
+    if (e_alloc(&state.emem_malloc, DYNMEM_OFFSET, DYNMEM_SIZE) != E_OK) {
+        fprintf(stderr, "ERROR: e_alloc for malloc failed in bspbegin.\n");
+        return 0;
+    }
+
+    ebsp_malloc_init(state.emem_malloc.base);
 
     // Set initial buffer to zero so that it can be filled by messages
     // before calling ebsp_spmd
@@ -637,6 +652,30 @@ int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
     *tag_ptr_buf = _e_to_arm_pointer(m->tag);
     *payload_ptr_buf = _e_to_arm_pointer(m->payload);
     return m->nbytes;
+}
+
+void ebsp_send_buffered(void* src, int dst_core_id, int nbytes)
+{
+
+    void* exmem_in_buffer = ebsp_ext_malloc(nbytes);
+    if (exmem_in_buffer == 0)
+    {
+        printf("ERROR: not enough memory in exmem for ebsp_send_buffered");
+        return;
+    }
+    memcpy(src, exmem_in_buffer, nbytes);
+    ebsp_comm_buf.exmem_next_in_chunk[dst_core_id] = exmem_in_buffer;
+}
+
+void ebsp_get_buffered(int dst_core_id, int max_nbytes)
+{
+    void* exmem_out_buffer = ebsp_ext_malloc(max_nbytes);
+    if (exmem_out_buffer == 0)
+    {
+        printf("ERROR: not enough memory in exmem for ebsp_send_buffered");
+        return;
+    }
+    ebsp_comm_buf.exmem_current_out_chunk[dst_core_id] = exmem_out_buffer;
 }
 
 //------------------

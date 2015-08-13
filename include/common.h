@@ -117,6 +117,8 @@ typedef struct
     float               remotetimer;
     int32_t             nprocs;
     int32_t             tagsize;  // Only for initial and final messages
+    void*               exmem_next_in_chunk[_NPROCS];
+    void*               exmem_current_out_chunk[_NPROCS];
 
     // Epiphany <--> Epiphany
     void*               bsp_var_list[MAX_BSP_VARS][_NPROCS];
@@ -133,10 +135,14 @@ typedef struct
 
 // For info on these addresses, see
 // https://github.com/buurlage-wits/epiphany-bsp/wiki/Memory-on-the-parallella
+#define COMMBUF_OFFSET 0x01800000
+#define DYNMEM_OFFSET  (COMMBUF_OFFSET + sizeof(ebsp_comm_buf))
+
 #define SHARED_MEM     0x8e000000
 #define SHARED_MEM_END 0x90000000
-#define COMMBUF_OFFSET 0x01800000
 #define COMMBUF_EADDR  (SHARED_MEM + COMMBUF_OFFSET)
+#define DYNMEM_EADDR   (SHARED_MEM + DYNMEM_OFFSET)
+#define DYNMEM_SIZE    (SHARED_MEM_END - DYNMEM_EADDR)
 
 // Possible values for syncstate
 // They start at 1 so that 0 means that the variable was not initialized
