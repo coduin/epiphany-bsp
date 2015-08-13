@@ -41,15 +41,13 @@ HOST_SRCS = \
 		host_bsp_mp.c \
 		host_bsp_utility.c
 
-INCLUDES = \
-		-I/usr/arm-linux-gnueabihf/include \
-		-I/usr/include/esdk \
-		-I./include \
-		-I${ESDK}/tools/host/include
+#First include directory is only for cross-compiling
+INCLUDES = -I/usr/include/esdk \
+		   -I./include \
+		   -I${ESDK}/tools/host/include
 
-HOST_LIBS = \
-		-L${ESDK}/tools/host/lib \
-		-le-hal
+HOST_LIBS= -L${ESDK}/tools/host/lib \
+		   -le-hal
 
 E_FLAGS = -Os -fno-strict-aliasing -ffast-math -std=c99 -Wall
 
