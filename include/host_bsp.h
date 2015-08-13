@@ -274,3 +274,15 @@ void ebsp_move(void *payload, int buffer_size);
  * Use only for gathering result messages at the end of a BSP program.
  */
 int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
+
+/**
+ * Initialize streaming of nbytes from *src to core dst_core_id
+ */
+void ebsp_send_buffered(void* src, int dst_core_id, int nbytes);
+
+/**
+ * Initialize streaming of at most max_nbytes from core dst_core_id
+ * to an buffer in exmem.
+ */
+void ebsp_get_buffered(int dst_core_id, int max_nbytes);
+
