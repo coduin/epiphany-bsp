@@ -68,7 +68,7 @@ void EXT_MEM_TEXT bsp_begin()
         coredata.buffer_out_previous = ebsp_malloc(OUT_CHUNK_SIZE);
     }
 
-    _init_malloc_state();
+    _init_local_malloc();
 
     // Send &syncstate to ARM
     if (coredata.pid == 0)
