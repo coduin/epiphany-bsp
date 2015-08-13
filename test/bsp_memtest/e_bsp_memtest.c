@@ -1,5 +1,5 @@
 /*
-File: e_bsp_pid.c
+File: e_bsp_memtest.c
 
 This file is part of the Epiphany BSP library.
 

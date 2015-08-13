@@ -1,5 +1,5 @@
 /*
-File: host_e_hello.c
+File: host_bsp_memtest.c
 
 This file is part of the Epiphany BSP library.
 
