@@ -39,7 +39,6 @@ HOST_SRCS = \
 		host_bsp.c \
 		host_bsp_memory.c \
 		host_bsp_mp.c \
-		host_bsp_private.c \
 		host_bsp_utility.c
 
 INCLUDES = \
