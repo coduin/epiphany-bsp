@@ -53,6 +53,9 @@ void EXT_MEM_TEXT bsp_begin()
     e_mutex_init(0, 0, &coredata.ebsp_message_mutex, MUTEXATTR_NULL);
     e_mutex_init(0, 0, &coredata.malloc_mutex, MUTEXATTR_NULL);
 
+
+    _init_local_malloc();
+
     // Initialize buffered communication streams
     coredata.exmem_next_in_chunk     = comm_buf->exmem_next_in_chunk[coredata.pid];
     if (coredata.exmem_next_in_chunk != NULL)
@@ -68,7 +71,6 @@ void EXT_MEM_TEXT bsp_begin()
         coredata.buffer_out_previous = ebsp_malloc(OUT_CHUNK_SIZE);
     }
 
-    _init_local_malloc();
 
     // Send &syncstate to ARM
     if (coredata.pid == 0)
