@@ -32,8 +32,9 @@ int n, p;
 // On return, nbytes contains the amount of bytes that were retrieved
 void get_initial_data(void *buffer, unsigned int *nbytes);
 
-// Test allocating and freeing of external memory
+// Test allocating and freeing of memory
 int extmem_test();
+int localmem_test();
 
 int main()
 {
@@ -107,6 +108,9 @@ int main()
     int memresult = extmem_test();
     time1 = bsp_time();
     time0 = time1 - time0 - timefix;
+
+    // Allocate local memory
+    localmem_test();
 
     // Everything is done. The only thing left now is sending results
     int tag = 100+p;
@@ -189,12 +193,57 @@ void get_initial_data(void *buffer, unsigned int *nbytes)
     *nbytes = offset;
 }
 
+int localmem_test()
+{
+    if (p == 0)
+        ebsp_message("Memory test: allocating 100 local memory objects per core");
+
+    // Allocate limited local memory
+    // Use ebsp_malloc and ebsp_free 100 times per core to check if it works
+    void* ptrs[100];
+    for (int i = 0; i < 100; i++)
+        ptrs[i] = ebsp_malloc(1);
+    // Now free all odd ones
+    for (int i = 0; i < 100; i += 2)
+        ebsp_free(ptrs[i]);
+    // Allocate them again
+    for (int i = 0; i < 100; i += 2)
+        ptrs[i] = ebsp_malloc(1);
+    // Free all the memory
+    for (int i = 0; i < 100; i++)
+        ebsp_free(ptrs[i]);
+    ebsp_message("Allocation done");
+
+    bsp_sync();
+
+    if (p == 0)
+        ebsp_message("Memory test: trying to allocate more and more untill it overflows the stack");
+
+    for (int i = 0; i < 100; i++)
+        ptrs[i] = 0;
+
+    for (int i = 0; i < 100; i++)
+    {
+        ptrs[i] = ebsp_malloc(0x100);
+        if (ptrs[i] == 0) {
+            if (p == 0)
+                ebsp_message("Allocation failed after first succesfully allocating %d = %p bytes.", i*0x100, (void*)(i*0x100));
+            break;
+        }
+    }
+
+    for (int i = 0; i < 100; i++)
+        if (ptrs[i]) ebsp_free(ptrs[i]);
+
+    return 0;
+}
+
 int extmem_test()
 {
     int errors = 0;
 
     if (p == 0)
-        ebsp_message("Memory test: allocating 100 memory objects per core");
+        ebsp_message("Memory test: allocating 100 external memory objects per core");
 
     // Allocate external (slow, but larger) memory
     // Use ebsp_ext_malloc and ebsp_free 100 times per core to check if it works
