@@ -1,5 +1,5 @@
 /*
-File: host_bsp_inspector.h
+File: host_bsp_private.h
 
 This file is part of the Epiphany BSP library.
 
@@ -20,10 +20,20 @@ You should have received a copy of the GNU General Public License
 and the GNU Lesser General Public License along with this program,
 see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
- */
+*/
 
-#pragma once
 
-/** Enable the EBSP inspector
- */
-void ebsp_inspector_enable();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
