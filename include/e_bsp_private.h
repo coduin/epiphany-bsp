@@ -72,8 +72,11 @@ typedef struct {
     // Mutex for ebsp_message
     e_mutex_t       ebsp_message_mutex;
 
-    // Mutex for malloc C function
+    // Mutex for ebsp_ext_malloc (internal malloc does not have mutex)
     e_mutex_t       malloc_mutex;
+
+    // Base address of malloc table for internal malloc
+    void*           local_malloc_base;
 
     // Pointer to the next input chunk in exmem
     void*           exmem_next_in_chunk;
@@ -106,7 +109,7 @@ extern ebsp_core_data coredata;
 #define comm_buf ((ebsp_comm_buf*)COMMBUF_EADDR)
 // ebsp_comm_buf * const comm_buf = (ebsp_comm_buf*)COMMBUF_EADDR;
 
-void _init_malloc_state();
+void _init_local_malloc();
 
 // Wrapper for usage of DMA engine
 int ebsp_dma_copy_parallel(e_dma_id_t chan, void *dst, void *src, size_t n);

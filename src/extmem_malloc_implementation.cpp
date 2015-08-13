@@ -22,29 +22,13 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
-//
-// This file assumes the following (preprocessor) variables are defined:
-// DYNMEM_START - address where the allocation table starts
-//                Should be exactly after ebsp_comm_buf
-//                Hardcoded on epiphany, host bases it on mmap
-// MALLOC_FUNCTION_PREFIX -
-//                _malloc and _free are prefixed with this
-//                Empty variable on the host
-//                On the Epiphany, puts function in correct memory location
-// 
-// On the epiphany cores these should point to the correct address in
-// external memory
-// On the ARM host this should point to the memory-mapped version
-// of the external memory
-//
-// This file will implement _malloc and _free using those defines.
-// Another file wraps it in ebsp_ext_malloc.
-// The epiphany version will use a mutex there.
+// This file assumes the following preprocessor variable is defined:
+// MALLOC_FUNCTION_PREFIX - _malloc and _free are prefixed with this
+//                        - Empty variable on the host
+//                        - On the Epiphany, puts function itself in external
+//                          memory
 
-//=============================================================================
-
-#include "common.h" //for the ebsp_comm_buf size
-#include <stdlib.h>
+#include <stdint.h>
 
 // Allocated chunks are 8-byte (64-bit) aligned
 // so that they can be used by for example the DMA engine
@@ -59,15 +43,25 @@ typedef struct {
     uint32_t padding;
 } memory_object;
 
-// At DYNMEM_START there is first a long bitmask that indicates which chunks
+//
+// Layout of memory:
+//     base + 0x00: uint32_t total_bitmask_ints
+//     base + 0x04: uint32_t bitmasks[total_bitmask_ints]
+//     base + 0x??: allocated memory
+// 
+// Use get_alloc_base to get the ?? address
+//
+
+// At base+4 there is first a long bitmask that indicates which chunks
 // are currently in use. For n integers in the bitmask we can cover
 // 32*CHUNK_SIZE*n bytes of memory. But these n integers use 4*n space of
 // that as well. That means, if we have k bytes of memory, we need n so that
 // 4*n + 32*CHUNK_SIZE*n = k
 // Meaning n = k / (4+32*CHUNK_SIZE)
-#define total_bitmask_ints (DYNMEM_SIZE / (4 + 32*CHUNK_SIZE))
+#define compute_total_bitmask_ints(size) ((size-4) / (4 + 32*CHUNK_SIZE))
+
 // The allocated memory starts at
-// chunk_roundup(DYNMEM_START + total_bitmask_ints*4)
+// chunk_roundup(base + 4 + total_bitmask_ints*4)
 // Round up to the next multiple of CHUNK_SIZE only if not a multiple yet
 inline uint32_t chunk_roundup(uint32_t a)
 {
@@ -78,6 +72,7 @@ inline uint32_t chunk_roundup(uint32_t a)
     return ((a+CHUNK_SIZE-1)/CHUNK_SIZE)*CHUNK_SIZE;
 }
 
+// rounded-up divide
 // Divide by chunksize but rounded up so that
 // it is the amount of chunks this size takes up
 inline uint32_t chunk_division(uint32_t a)
@@ -86,20 +81,29 @@ inline uint32_t chunk_division(uint32_t a)
     return ((a + CHUNK_SIZE - 1)/CHUNK_SIZE);
 }
 
-// This value is actually known at compile time but becomes a long define
-// to write explicitly in the source. Making it inline will optimize
-// to a constant at compile time
-inline void* get_alloc_base()
+inline uint32_t get_bitmask_count(const void* base)
 {
-    return (void*)chunk_roundup((uint32_t)(DYNMEM_START + total_bitmask_ints*4));
+    return *(uint32_t*)base;
+}
+
+inline uint32_t* get_bitmasks(const void* base)
+{
+    return (uint32_t*)(base + 4);
+}
+
+inline void* get_alloc_base(const void* base)
+{
+    return (void*)chunk_roundup((uint32_t)(base + 4*(1 + *(uint32_t*)base)));
 }
 
 // ebsp_ext_malloc wraps this in a mutex
-void* MALLOC_FUNCTION_PREFIX _malloc(uint32_t nbytes)
+void* MALLOC_FUNCTION_PREFIX _malloc(void* base, uint32_t nbytes)
 {
     nbytes += sizeof(memory_object);
     uint32_t chunk_count = chunk_division(nbytes);
-    uint32_t *bitmasks = (uint32_t*)DYNMEM_START;
+
+    uint32_t total_bitmask_ints = get_bitmask_count(base);
+    uint32_t *bitmasks = get_bitmasks(base);
 
     // Search for a sequence of chunk_count zero bits
     uint32_t start_mask = 0;
@@ -160,18 +164,18 @@ void* MALLOC_FUNCTION_PREFIX _malloc(uint32_t nbytes)
     }
 
     // Bits have been filled. Now put a memory_object at the allocated space
-    void* ptr = get_alloc_base() + CHUNK_SIZE*(start_mask*32+start_bit);
+    void* ptr = get_alloc_base(base) + CHUNK_SIZE*(start_mask*32+start_bit);
     ((memory_object*)ptr)->chunk_count = chunk_count;
     return ptr + sizeof(memory_object);
 }
 
-void MALLOC_FUNCTION_PREFIX _free(void* ptr)
+void MALLOC_FUNCTION_PREFIX _free(void* base, void* ptr)
 {
     ptr -= sizeof(memory_object);
-    uint32_t chunk_start = ((unsigned)(ptr - get_alloc_base()))/CHUNK_SIZE;
+    uint32_t chunk_start = ((unsigned)(ptr - get_alloc_base(base)))/CHUNK_SIZE;
     uint32_t chunk_count = ((memory_object*)ptr)->chunk_count;
 
-    uint32_t *bitmasks = (uint32_t*)DYNMEM_START;
+    uint32_t *bitmasks = get_bitmasks(base);
 
     uint32_t chunk_mask = chunk_start/32;
     uint32_t bit = chunk_start%32;
@@ -189,9 +193,16 @@ void MALLOC_FUNCTION_PREFIX _free(void* ptr)
     return;
 }
 
-void MALLOC_FUNCTION_PREFIX _init_malloc_state()
+// Initializes the malloc table
+void MALLOC_FUNCTION_PREFIX _init_malloc_state(void* base, uint32_t size)
 {
-    uint32_t *bitmasks = (uint32_t*)DYNMEM_START;
-    for (uint32_t i = 0; i < total_bitmask_ints; ++i)
-        bitmasks[i] = 0;
+    uint32_t total_bitmask_ints = compute_total_bitmask_ints(size);
+
+    //First we store the AMOUNT of bitmask ints
+    //Then there is the bitmask ints themselves
+    //Then there is the allocated memory
+    uint32_t* ptr = (uint32_t*)base;
+    *ptr++ = total_bitmask_ints;
+    while (total_bitmask_ints--)
+        *ptr++ = 0;
 }

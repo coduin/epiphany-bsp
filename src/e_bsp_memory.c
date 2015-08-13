@@ -23,23 +23,57 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include "e_bsp_private.h"
-#define DYNMEM_START   DYNMEM_EADDR
+#include "common.h"
 #define MALLOC_FUNCTION_PREFIX  EXT_MEM_TEXT
 
 #include "extmem_malloc_implementation.cpp"
+
+// This variable indicates end of global vars
+// So 'end' untill 'stack' can be used by malloc
+extern int end;
+
+// Called in bsp_begin by every core
+void EXT_MEM_TEXT _init_local_malloc()
+{
+    coredata.local_malloc_base = (void*)chunk_roundup((uint32_t)(&end+8));
+    uint32_t size = 0x8000 - (uint32_t)coredata.local_malloc_base;
+    _init_malloc_state(coredata.local_malloc_base, size);
+}
 
 void* EXT_MEM_TEXT ebsp_ext_malloc(unsigned int nbytes)
 {
     void *ret = 0;
     e_mutex_lock(0, 0, &coredata.malloc_mutex);
-    ret = _malloc(nbytes);
+    ret = _malloc((void*)DYNMEM_EADDR, nbytes);
     e_mutex_unlock(0, 0, &coredata.malloc_mutex);
+    return ret;
+}
+
+void* EXT_MEM_TEXT ebsp_malloc(unsigned int nbytes)
+{
+    void *ret = 0;
+    ret = _malloc(coredata.local_malloc_base, nbytes);
+    // Check if it does not overwrite the current stack position
+    // Plus 128 bytes of margin
+    if ((uint32_t)ret + nbytes + 128 > (uint32_t)&ret)
+    {
+        _free(coredata.local_malloc_base, ret);
+        ebsp_message("ERROR: allocation of %d bytes of local memory overwrites the stack", nbytes);
+        return 0;
+    }
     return ret;
 }
 
 void EXT_MEM_TEXT ebsp_free(void* ptr)
 {
-    e_mutex_lock(0, 0, &coredata.malloc_mutex);
-    _free(ptr);
-    e_mutex_unlock(0, 0, &coredata.malloc_mutex);
+    if (((unsigned)ptr) & 0xfff00000)
+    {
+        e_mutex_lock(0, 0, &coredata.malloc_mutex);
+        _free((void*)DYNMEM_EADDR, ptr);
+        e_mutex_unlock(0, 0, &coredata.malloc_mutex);
+    }
+    else
+    {
+        _free(coredata.local_malloc_base, ptr);
+    }
 }

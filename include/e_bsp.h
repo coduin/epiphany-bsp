@@ -404,8 +404,18 @@ void bsp_abort(const char * format, ...)
 void* ebsp_ext_malloc(unsigned int nbytes);
 
 /**
- * Free allocated external memory.
+ * Allocate local memory.
+ * @param nbytes The size of the memory block
+ *
+ * This function allocates memory in local SRAM, meaning the memory is fast
+ * but extremely limited.
+ */
+void* ebsp_malloc(unsigned int nbytes);
+
+/**
+ * Free allocated external or local memory.
  * @param ptr A pointer to memory previously allocated by ebsp_ext_malloc()
+ *            or by ebsp_malloc()
  */
 void ebsp_free(void* ptr);
 

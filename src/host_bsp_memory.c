@@ -23,7 +23,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 
-void* DYNMEM_START;
 #define MALLOC_FUNCTION_PREFIX 
 #include "extmem_malloc_implementation.cpp"
 #include "host_bsp_private.h"
@@ -37,21 +36,23 @@ extern bsp_state_t state;
 //Can only be used when epiphany cores are not running
 //
 
+void* malloc_base;
+
 //Should be called once on host
 void ebsp_malloc_init(void* external_memory_base)
 {
-    DYNMEM_START = external_memory_base;
-    return _init_malloc_state();
+    malloc_base = external_memory_base;
+    return _init_malloc_state(malloc_base, DYNMEM_SIZE);
 }
 
 void* ebsp_ext_malloc(unsigned int nbytes)
 {
-    return _malloc(nbytes);
+    return _malloc(malloc_base, nbytes);
 }
 
 void ebsp_free(void* ptr)
 {
-    return _free(ptr);
+    return _free(malloc_base, ptr);
 }
 
 int ebsp_write(int pid, void* src, off_t dst, int size)
