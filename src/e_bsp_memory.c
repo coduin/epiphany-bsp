@@ -55,7 +55,7 @@ void* EXT_MEM_TEXT ebsp_malloc(unsigned int nbytes)
     ret = _malloc(coredata.local_malloc_base, nbytes);
     // Check if it does not overwrite the current stack position
     // Plus 128 bytes of margin
-    if ((uint32_t)ret + nbytes + 128 > (uint32_t)&ret)
+    if ((uint32_t)ret + nbytes + 128 > (uint32_t)&ret) // <-- only epiphany
     {
         _free(coredata.local_malloc_base, ret);
         ebsp_message("ERROR: allocation of %d bytes of local memory overwrites the stack", nbytes);
