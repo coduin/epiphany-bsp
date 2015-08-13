@@ -25,6 +25,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include "host_bsp.h"
 #include "common.h"
 
+#define __USE_XOPEN2K
 #define __USE_POSIX199309 1
 #include <time.h>
 
