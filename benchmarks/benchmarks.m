@@ -4,8 +4,8 @@
 (*Data import*)
 
 
-datapath="/data/BuurlageWits/benchmarks/";
-rawdata=Import[datapath<>"benchmarks.txt","Table"];
+datapath=NotebookDirectory[];
+rawdata=Import[datapath<>"benchmarks_new.txt","Table"];
 data=Partition[SplitBy[rawdata,Length],2];
 labels=ToString/@Flatten[data[[All,1,All,{2,3,4,5}]],1];
 cycles=Map[N[{#[[2]]*8,#[[3]]}]&,data[[All,2]],{2}];
@@ -16,7 +16,7 @@ speeds=Map[N[{#[[2]]*8,#[[2]]*8*600/#[[3]]}]&,data[[All,2]],{2}];
 (*Mean speeds*)
 
 
-TableForm[{labels,Map[Mean,speeds[[All,All,2]]]}]
+TableForm[Transpose[{labels,Map[Mean,speeds[[All,All,2]]]}]]
 
 
 (* ::Section:: *)
@@ -30,58 +30,77 @@ ListPlot[speeds[[All]],PlotLegends->labels[[All]],AxesLabel->{"Bytes","MB/s"},Pl
 (*Clockcycles plot*)
 
 
+makePlot[datasetIndices_]:=ListPlot[cycles[[datasetIndices]],PlotLegends->labels[[datasetIndices]],AxesLabel->{"Bytes","cycles"},PlotRange->All]
+
+
+(* ::Subsection:: *)
+(*Single core writes*)
+
+
+makePlot[{1,2,6}]
+
+
 (* ::Subsection:: *)
 (*Writes*)
 
 
-ListPlot[cycles[[{1,3,5}]],PlotLegends->labels[[{1,3,5}]],AxesLabel->{"Bytes","cycles"},PlotRange->All]
+makePlot[{1,2,4,6,7}]
 
 
 (* ::Subsection:: *)
 (*Reads*)
 
 
-ListPlot[cycles[[{2,4}]],PlotLegends->labels[[{2,4}]],AxesLabel->{"Bytes","cycles"},PlotRange->All]
+makePlot[{3,5}]
 
 
 (* ::Subsection:: *)
 (*DMA*)
 
 
-ListPlot[cycles[[{5}]],PlotLegends->labels[[{1,3,5}]],AxesLabel->{"Bytes","cycles"},PlotRange->All]
+makePlot[{6,7}]
 
 
 (* ::Section:: *)
 (*Splits per core*)
 
 
-(* ::Input:: *)
-(*fast={"$03:","$07:","$11:","$15:"};*)
-(*medium={"$02:","$06:","$10:","$14:"};*)
-(*slow={"$01:","$05:","$09:","$13:","$00:","$04:","$08:","$12:"};*)
+fast={"$03:","$07:","$11:","$15:"};
+medium={"$02:","$06:","$10:","$14:"};
+slow={"$01:","$05:","$09:","$13:","$00:","$04:","$08:","$12:"};
+
+plotSpeedSplitted[setIndex_]:=Module[{grouped,speeds},
+grouped=GroupBy[data[[setIndex,2]],First];
+speeds=Map[N[{#[[2]]*8,#[[2]]*8*600/#[[3]]}]&,grouped,{2}];
+Column[{
+Map[ListPlot[#,PlotRange->All]&,speeds[[fast]]],
+Map[ListPlot[#,PlotRange->All]&,speeds[[medium]]],
+Map[ListPlot[#,PlotRange->All]&,speeds[[slow]]]
+}]
+]
+
+plotCyclesSplitted[setIndex_]:=Module[{grouped},
+grouped=GroupBy[data[[setIndex,2]],First];
+Column[{
+Map[ListPlot[#,PlotRange->All]&,grouped[[fast,All,{2,3}]]],
+Map[ListPlot[#,PlotRange->All]&,grouped[[medium,All,{2,3}]]],
+Map[ListPlot[#,PlotRange->All]&,grouped[[slow,All,{2,3}]]]
+}]
+]
 
 
 (* ::Subsection:: *)
 (*Busy writes*)
 
 
-(* ::Input:: *)
-(*busywrites=GroupBy[data[[3,2]],First];*)
-(*busyspeeds=Map[N[{#[[2]]*8,#[[2]]*8*600/#[[3]]}]&,busywrites,{2}];*)
-(*Map[ListPlot[#,PlotRange->{0,25}]&,busyspeeds[[fast]]]*)
-(*Map[ListPlot[#,PlotRange->{0,25}]&,busyspeeds[[medium]]]*)
-(*Map[ListPlot[#,PlotRange->{0,25}]&,busyspeeds[[slow]]]*)
+plotSpeedSplitted[4]
 
 
 (* ::Subsection:: *)
 (*DMA*)
 
 
-(* ::Input:: *)
-(*dmawrites=GroupBy[data[[5,2]],First];*)
-(*Map[ListPlot[#,PlotRange->{0,6000}]&,dmawrites[[fast,All,{2,3}]]]*)
-(*Map[ListPlot[#,PlotRange->{0,6000}]&,dmawrites[[medium,All,{2,3}]]]*)
-(*Map[ListPlot[#,PlotRange->{0,6000}]&,dmawrites[[slow,All,{2,3}]]]*)
+plotCyclesSplitted[5]
 
 
 (* ::Section:: *)
