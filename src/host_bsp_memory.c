@@ -26,6 +26,11 @@ see the files COPYING and COPYING.LESSER. If not, see
 void* DYNMEM_START;
 #define MALLOC_FUNCTION_PREFIX 
 #include "extmem_malloc_implementation.cpp"
+#include "host_bsp_private.h"
+
+#include <stdio.h>
+
+extern bsp_state_t state;
 
 //
 //Host version of ebsp memory allocation functions
@@ -48,3 +53,53 @@ void ebsp_free(void* ptr)
 {
     return _free(ptr);
 }
+
+int ebsp_write(int pid, void* src, off_t dst, int size)
+{
+    int prow, pcol;
+    _get_p_coords(pid, &prow, &pcol);
+    if (e_write(&state.dev,
+                prow, pcol,
+                dst, src, size) != size)
+    {
+        fprintf(stderr,
+                "ERROR: e_write(dev,%d,%d,%p,%p,%d) failed in ebsp_write.\n",
+                prow, pcol, (void*)dst, (void*)src, size);
+        return 0;
+    }
+    return 1;
+}
+
+int ebsp_read(int pid, off_t src, void* dst, int size)
+{
+    int prow, pcol;
+    _get_p_coords(pid, &prow, &pcol);
+    if (e_read(&state.dev,
+                prow, pcol,
+                src, dst, size) != size)
+    {
+        fprintf(stderr,
+                "ERROR: e_read(dev,%d,%d,%p,%p,%d) failed in ebsp_read.\n",
+                prow, pcol, (void*)src, (void*)dst, size);
+        return 0;
+    }
+    return 1;
+}
+
+int _write_core_syncstate(int pid, int syncstate)
+{
+    return ebsp_write(pid, &syncstate, (off_t)state.comm_buf.syncstate_ptr, 4);
+}
+
+int _write_extmem(void* src, off_t offset, int size)
+{
+    if (e_write(&state.emem, 0, 0, offset, src, size) != size)
+    {
+        fprintf(stderr, "ERROR: _write_extmem(src,%p,%d) failed.\n",
+                (void*)offset, size);
+        return 0;
+    }
+    return 1;
+}
+
+

@@ -1,5 +1,5 @@
 /*
-File: bsp_host.c
+File: host_bsp.c
 
 This file is part of the Epiphany BSP library.
 
@@ -22,121 +22,19 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
-#include "host_bsp.h"
+#include "host_bsp_private.h"
+
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 #include <stddef.h>
 #include <e-loader.h>
-#include "common.h"
 
 #define __USE_XOPEN2K
 #include <unistd.h>  // readlink, for getting the path to the executable
-#define __USE_POSIX199309 1
-#include <time.h>
 
-// Global BSP state
-typedef struct
-{
-    // The number of processors available
-    int nprocs;
+extern bsp_state_t state;
 
-    // The directory of the program and e-program
-    // including a trailing slash
-    char e_directory[1024];
-    // The name of the e-program
-    char e_fullpath[1024];
-
-    // Number of rows or columns in use
-    int rows;
-    int cols;
-
-    // Number of processors in use
-    int nprocs_used;
-
-    // External memory that holds ebsp_comm_buf
-    e_mem_t emem;
-    // External memory that holds the mallocs
-    e_mem_t emem_malloc;
-
-    // Local copy of ebsp_comm_buf to copy from and
-    // copy into.
-    ebsp_comm_buf comm_buf;
-    // For reading out the final queue
-    int message_index;
-
-    void (*sync_callback)(void);
-    void (*end_callback)(void);
-
-    int num_vars_registered;
-
-    // Epiphany specific variables
-    e_platform_t platform;
-    e_epiphany_t dev;
-
-    // Timer storage
-    struct timespec ts_start, ts_end;
-} bsp_state_t;
-
-bsp_state_t state;
-int bsp_initialized = 0;;
-
-void _host_sync();
-void _microsleep(int microseconds);  // 1000 gives 1 millisecond
-void _get_p_coords(int pid, int* row, int* col);
-void init_application_path();
-
-void ebsp_malloc_init(void* external_memory_base);
-void* ebsp_ext_malloc(unsigned int nbytes);
-void ebsp_free(void* ptr);
-
-int ebsp_write(int pid, void* src, off_t dst, int size)
-{
-    int prow, pcol;
-    _get_p_coords(pid, &prow, &pcol);
-    if (e_write(&state.dev,
-                prow, pcol,
-                dst, src, size) != size)
-    {
-        fprintf(stderr,
-                "ERROR: e_write(dev,%d,%d,%p,%p,%d) failed in ebsp_write.\n",
-                prow, pcol, (void*)dst, (void*)src, size);
-        return 0;
-    }
-    return 1;
-}
-
-int ebsp_read(int pid, off_t src, void* dst, int size)
-{
-    int prow, pcol;
-    _get_p_coords(pid, &prow, &pcol);
-    if (e_read(&state.dev,
-                prow, pcol,
-                src, dst, size) != size)
-    {
-        fprintf(stderr,
-                "ERROR: e_read(dev,%d,%d,%p,%p,%d) failed in ebsp_read.\n",
-                prow, pcol, (void*)src, (void*)dst, size);
-        return 0;
-    }
-    return 1;
-}
-
-int _write_core_syncstate(int pid, int syncstate)
-{
-    return ebsp_write(pid, &syncstate, (off_t)state.comm_buf.syncstate_ptr, 4);
-}
-
-int _write_extmem(void* src, off_t offset, int size)
-{
-    if (e_write(&state.emem, 0, 0, offset, src, size) != size)
-    {
-        fprintf(stderr, "ERROR: _write_extmem(src,%p,%d) failed.\n",
-                (void*)offset, size);
-        return 0;
-    }
-    return 1;
-}
+int bsp_initialized = 0;
 
 int bsp_init(const char* _e_name,
         int argc,
@@ -257,29 +155,6 @@ int bsp_begin(int nprocs)
     memset(&state.comm_buf, 0, sizeof(ebsp_comm_buf));
 
     return 1;
-}
-
-void ebsp_set_sync_callback(void (*cb)())
-{
-    state.sync_callback = cb;
-}
-
-void ebsp_set_end_callback(void (*cb)())
-{
-    state.end_callback = cb;
-}
-
-void _update_remote_timer()
-{
-    // Current time. Repeat these lines every iteration
-    clock_gettime(CLOCK_MONOTONIC, &state.ts_end);
-
-    float time_elapsed = (state.ts_end.tv_sec - state.ts_start.tv_sec +
-            (state.ts_end.tv_nsec - state.ts_start.tv_nsec) * 1.0e-9);
-
-    _write_extmem(&time_elapsed,
-            offsetof(ebsp_comm_buf, remotetimer),
-            sizeof(float));
 }
 
 int ebsp_spmd()
@@ -518,202 +393,3 @@ int bsp_nprocs()
     return state.nprocs;
 }
 
-void ebsp_set_tagsize(int *tag_bytes)
-{
-    int oldsize = state.comm_buf.tagsize;
-    state.comm_buf.tagsize = *tag_bytes;
-    *tag_bytes = oldsize;
-}
-
-// Converting between epiphany and arm pointers
-// Only for things stored in state.comm_buf !
-
-void* _arm_to_e_pointer(void* ptr)
-{
-    return (void*)((unsigned int)ptr
-            - (unsigned int)&state.comm_buf
-            + COMMBUF_EADDR);
-}
-
-void* _e_to_arm_pointer(void* ptr)
-{
-    return (void*)((unsigned int)ptr
-            - COMMBUF_EADDR
-            + (unsigned int)&state.comm_buf);
-}
-
-void ebsp_send_down(int pid, const void *tag, const void *payload, int nbytes)
-{
-    ebsp_message_queue* q = &state.comm_buf.message_queue[0];
-    unsigned int index = q->count;
-    unsigned int payload_offset = state.comm_buf.data_payloads.buffer_size;
-    unsigned int total_nbytes = state.comm_buf.tagsize + nbytes;
-    void *tag_ptr;
-    void *payload_ptr;
-
-    if (index >= MAX_MESSAGES) {
-        fprintf(stderr,
-                "ERROR: Maximal message count reached in ebsp_send_down.\n");
-        return;
-    }
-    if (payload_offset + total_nbytes > MAX_PAYLOAD_SIZE) {
-        fprintf(stderr,
-                "ERROR: Maximal data payload sent in ebsp_send_down.\n");
-        return;
-    }
-
-    q->count++;
-    state.comm_buf.data_payloads.buffer_size += total_nbytes;
-
-    tag_ptr = &state.comm_buf.data_payloads.buf[payload_offset];
-    payload_offset += state.comm_buf.tagsize;
-    payload_ptr = &state.comm_buf.data_payloads.buf[payload_offset];
-
-    q->message[index].pid = pid;
-    q->message[index].tag = _arm_to_e_pointer(tag_ptr);
-    q->message[index].payload = _arm_to_e_pointer(payload_ptr);
-    q->message[index].nbytes = nbytes;
-    memcpy(tag_ptr, tag, state.comm_buf.tagsize);
-    memcpy(payload_ptr, payload, nbytes);
-}
-
-int ebsp_get_tagsize()
-{
-    return state.comm_buf.tagsize;
-}
-
-void ebsp_qsize(int *packets, int *accum_bytes)
-{
-    *packets = 0;
-    *accum_bytes = 0;
-
-    ebsp_message_queue* q = &state.comm_buf.message_queue[0];
-    int mindex = state.message_index;
-    int qsize = q->count;
-
-    // Count everything after mindex
-    for (; mindex < qsize; mindex++)
-    {
-        *packets += 1;
-        *accum_bytes += q->message[mindex].nbytes;
-    }
-    return;
-}
-
-ebsp_message_header* _next_queue_message()
-{
-    ebsp_message_queue* q = &state.comm_buf.message_queue[0];
-    if (state.message_index < q->count)
-        return &q->message[state.message_index];
-    return 0;
-}
-
-void _pop_queue_message()
-{
-    state.message_index++;
-}
-
-void ebsp_get_tag(int *status, void *tag)
-{
-    ebsp_message_header* m = _next_queue_message();
-    if (m == 0)
-    {
-        *status = -1;
-        return;
-    }
-    *status = m->nbytes;
-    memcpy(tag, _e_to_arm_pointer(m->tag), state.comm_buf.tagsize);
-}
-
-void ebsp_move(void *payload, int buffer_size)
-{
-    ebsp_message_header* m = _next_queue_message();
-    _pop_queue_message();
-    if (m == 0)
-    {
-        // This part is not defined by the BSP standard
-        return;
-    }
-
-    if (buffer_size == 0)  // Specified by BSP standard
-        return;
-
-    if (m->nbytes < buffer_size)
-        buffer_size = m->nbytes;
-
-    memcpy(payload, _e_to_arm_pointer(m->payload), buffer_size);
-}
-
-int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
-{
-    ebsp_message_header* m = _next_queue_message();
-    _pop_queue_message();
-    if (m == 0) return -1;
-    *tag_ptr_buf = _e_to_arm_pointer(m->tag);
-    *payload_ptr_buf = _e_to_arm_pointer(m->payload);
-    return m->nbytes;
-}
-
-void ebsp_send_buffered(void* src, int dst_core_id, int nbytes)
-{
-
-    void* exmem_in_buffer = ebsp_ext_malloc(nbytes);
-    if (exmem_in_buffer == 0)
-    {
-        printf("ERROR: not enough memory in exmem for ebsp_send_buffered");
-        return;
-    }
-    memcpy(src, exmem_in_buffer, nbytes);
-    ebsp_comm_buf.exmem_next_in_chunk[dst_core_id] = exmem_in_buffer;
-}
-
-void ebsp_get_buffered(int dst_core_id, int max_nbytes)
-{
-    void* exmem_out_buffer = ebsp_ext_malloc(max_nbytes);
-    if (exmem_out_buffer == 0)
-    {
-        printf("ERROR: not enough memory in exmem for ebsp_send_buffered");
-        return;
-    }
-    ebsp_comm_buf.exmem_current_out_chunk[dst_core_id] = exmem_out_buffer;
-}
-
-//------------------
-// Private functions
-//------------------
-
-void _microsleep(int microseconds)
-{
-    struct timespec request, remain;
-    request.tv_sec = (int)(microseconds / 1000000);
-    request.tv_nsec = (microseconds - 1000000 * request.tv_sec) * 1000;
-    if (clock_nanosleep(CLOCK_MONOTONIC, 0, &request, &remain) != 0)
-        fprintf(stderr, "ERROR: clock_nanosleep was interrupted.\n");
-}
-
-void _get_p_coords(int pid, int* row, int* col)
-{
-    (*row) = pid / state.cols;
-    (*col) = pid % state.cols;
-}
-
-// Get the directory that the application is running in
-// and store it in state.e_directory
-// It will include a trailing slash
-void init_application_path()
-{
-    char path[1024];
-    if (readlink("/proc/self/exe", path, 1024) > 0) {
-        char * slash = strrchr(path, '/');
-        if (slash)
-        {
-            int count = slash-path + 1;
-            memcpy(state.e_directory, path, count);
-            state.e_directory[count+1] = 0;
-        }
-    } else {
-        fprintf(stderr, "ERROR: Could not find process directory.\n");
-        memcpy(state.e_directory, "./", 3);  // including terminating 0
-    }
-    return;
-}
