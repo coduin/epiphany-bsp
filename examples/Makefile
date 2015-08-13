@@ -38,7 +38,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: hello e_hello primitives dot_product memtest bspbench lu_decomposition memorybench
+all: hello e_hello primitives dot_product streaming_dot_product memtest bspbench lu_decomposition memorybench
 
 ########################################################
 
@@ -80,6 +80,14 @@ bin/dot_product:
 	@mkdir -p bin/dot_product
 
 ########################################################
+
+streaming_dot_product: bin/streaming_dot_product bin/streaming_dot_product/host_streaming_dot_product bin/streaming_dot_product/e_streaming_dot_product.elf bin/streaming_dot_product/e_streaming_dot_product.srec
+
+bin/streaming_dot_product:
+	@mkdir -p bin/streaming_dot_product
+
+########################################################
+
 
 lu_decomposition: bin/lu_decomposition bin/lu_decomposition/host_lu_decomposition bin/lu_decomposition/e_lu_decomposition.elf bin/lu_decomposition/e_lu_decomposition.srec
 
