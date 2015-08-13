@@ -30,8 +30,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 #define __USE_XOPEN2K
 #include <unistd.h>  // readlink, for getting the path to the executable
 
-extern bsp_state_t state;
-
 void ebsp_set_sync_callback(void (*cb)())
 {
     state.sync_callback = cb;

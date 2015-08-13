@@ -74,8 +74,7 @@ typedef struct
     struct timespec ts_start, ts_end;
 } bsp_state_t;
 
-bsp_state_t state;
-
+extern bsp_state_t state;
 
 /*
  *  host_bsp

@@ -29,8 +29,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #include <stdio.h>
 
-extern bsp_state_t state;
-
 //
 //Host version of ebsp memory allocation functions
 //Can only be used when epiphany cores are not running

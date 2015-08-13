@@ -22,7 +22,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
-#include "host_bsp.h"
+#include "host_bsp_private.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

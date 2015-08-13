@@ -30,9 +30,9 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <e-loader.h>
 
 #define __USE_XOPEN2K
-#include <unistd.h>  // readlink, for getting the path to the executable
+#include <unistd.h>  // For the function 'access' in bsp_init
 
-extern bsp_state_t state;
+bsp_state_t state;
 
 int bsp_initialized = 0;
 

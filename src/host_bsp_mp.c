@@ -27,8 +27,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdio.h>
 #include <string.h>
 
-extern bsp_state_t state;
-
 void ebsp_set_tagsize(int *tag_bytes)
 {
     int oldsize = state.comm_buf.tagsize;
