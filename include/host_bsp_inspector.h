@@ -1,5 +1,5 @@
 /*
-File: e_bsp.h
+File: host_bsp_inspector.h
 
 This file is part of the Epiphany BSP library.
 
