@@ -6,19 +6,24 @@ ELDF=../ebsp_fast.ldf
 ARCH=$(shell uname -m)
 
 ifeq ($(ARCH),x86_64)
-PLATFORM_PREFIX=arm-linux-gnueabihf-
+ARM_PLATFORM_PREFIX=arm-linux-gnueabihf-
+E_PLATFORM_PREFIX  =epiphany-elf-
 else
-PLATFORM_PREFIX=
+ARM_PLATFORM_PREFIX=
+E_PLATFORM_PREFIX  =e-
 endif
 
-CFLAGS=-std=c99 -O3 -ffast-math -Wall
+# no-tree-loop-distribute-patters makes sure the compiler
+# does NOT replace loops with calls to memcpy, residing in external memory
+CFLAGS=-std=c99 -Wall -O3 -ffast-math -fno-tree-loop-distribute-patterns
 
-INCLUDES = \
+#First include directory is only for cross-compiling
+INCLUDES = -I/usr/include/esdk \
 		   -I../include\
 		   -I${ESDK}/tools/host/include
 
 LIBS = \
-	 -L../bin/lib
+	 -L../lib
 
 HOST_LIBS = \
 	 -L /usr/arm-linux-gnueabihf/lib \
@@ -40,72 +45,35 @@ dirs:
 
 ########################################################
 
+cfiles := $(shell find -iname '*.c')
+
+vpath %.c $(dir $(cfiles))
+
+bin/%: %.c
+	@echo "CC $<"
+	@$(ARM_PLATFORM_PREFIX)gcc $(CFLAGS) $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
+
+bin/%.elf: %.c
+	@echo "CC $<"
+	@$(E_PLATFORM_PREFIX)gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
+
+bin/%.s: %.c
+	@echo "CC $<"
+	@$(E_PLATFORM_PREFIX)gcc $(CFLAGS) -T $(ELDF)  $(INCLUDES) -fverbose-asm -S $< -o $@ $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
+
 bin/%.srec: bin/%.elf
-	e-objcopy --srec-forceS3 --output-target srec $< $@
-
-#########################################
-
-bsp_time: bin/host_bsp_time bin/e_bsp_time.elf bin/e_bsp_time.srec
-
-bin/host_bsp_time: bsp_time/host_bsp_time.c
-	$(PLATFORM_PREFIX)gcc $(CFLAGS) $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
-	
-bin/e_bsp_time.elf: bsp_time/e_bsp_time.c
-	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
-
-
-#########################################
-
-bsp_nprocs: bin/host_bsp_nprocs bin/e_bsp_nprocs.elf bin/e_bsp_nprocs.srec
-
-bin/host_bsp_nprocs: bsp_nprocs/host_bsp_nprocs.c
-	$(PLATFORM_PREFIX)gcc $(CFLAGS) $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
-	
-bin/e_bsp_nprocs.elf: bsp_nprocs/e_bsp_nprocs.c
-	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
-
+	@$(E_PLATFORM_PREFIX)objcopy --srec-forceS3 --output-target srec $< $@
 
 ########################################################
 
-bsp_pid: bin/host_bsp_pid bin/e_bsp_pid.elf bin/e_bsp_pid.srec
-
-bin/host_bsp_pid: bsp_pid/host_bsp_pid.c
-	$(PLATFORM_PREFIX)gcc $(CFLAGS) $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
-	
-bin/e_bsp_pid.elf: bsp_pid/e_bsp_pid.c
-	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
-
-########################################################
-
-bsp_init: bin/host_bsp_init bin/e_bsp_init.elf bin/e_bsp_init.srec
-
-bin/host_bsp_init: bsp_init/host_bsp_init.c
-	$(PLATFORM_PREFIX)gcc $(CFLAGS) $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
-	
-bin/e_bsp_init.elf: bsp_init/e_bsp_init.c
-	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
+bsp_time:   bin/e_bsp_time.elf      bin/e_bsp_time.srec     bin/host_bsp_time
+bsp_nprocs: bin/e_bsp_nprocs.elf    bin/e_bsp_nprocs.srec   bin/host_bsp_nprocs
+bsp_pid:    bin/e_bsp_pid.elf       bin/e_bsp_pid.srec      bin/host_bsp_pid
+bsp_init:   bin/e_bsp_init.elf      bin/e_bsp_init.srec     bin/host_bsp_init
+bsp_memtest:bin/e_bsp_memtest.elf   bin/e_bsp_memtest.srec  bin/host_bsp_memtest
+bsp_hpput:  bin/e_bsp_hpput.elf     bin/e_bsp_hpput.srec    bin/host_bsp_hpput
 
 ########################################################
-
-bsp_memtest: bin/host_bsp_memtest bin/e_bsp_memtest.elf bin/e_bsp_memtest.srec
-
-bin/host_bsp_memtest: bsp_memtest/host_bsp_memtest.c
-	$(PLATFORM_PREFIX)gcc $(CFLAGS) $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
-	
-bin/e_bsp_memtest.elf: bsp_memtest/e_bsp_memtest.c
-	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
-
-########################################################
-
-bsp_hpput: bin/host_bsp_hpput bin/e_bsp_hpput.elf bin/e_bsp_hpput.srec
-
-bin/host_bsp_hpput: bsp_hpput/host_bsp_hpput.c
-	$(PLATFORM_PREFIX)gcc $(CFLAGS) $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
-	
-bin/e_bsp_hpput.elf: bsp_hpput/e_bsp_hpput.c
-	e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
-
-############
 
 clean:
 	rm bin/*

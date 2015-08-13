@@ -28,7 +28,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <string.h>
 #include <stddef.h>
 
-#define __USE_XOPEN2K
 #include <unistd.h>  // readlink, for getting the path to the executable
 
 void ebsp_set_sync_callback(void (*cb)())
