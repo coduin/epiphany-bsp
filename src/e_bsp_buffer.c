@@ -36,7 +36,8 @@ void* ebsp_get_in_chunk() {
     coredata.buffer_in_next    = tmp;
 
     ebsp_dma_copy_parallel( E_DMA_0, coredata.buffer_in_next, coredata.exmem_next_in_chunk, (size_t) IN_CHUNK_SIZE );
-
+    //TODO fix dma_copy_parallel
+    //TODO fix address space convertion
     return coredata.buffer_in_current;
 }
 

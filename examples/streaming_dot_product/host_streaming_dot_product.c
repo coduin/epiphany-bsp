@@ -46,7 +46,7 @@ int main(int argc, char **argv)
     printf("chunk_size: %i\n", chunk_size);
     if (chunk_size * bsp_nprocs() != 2 * l)
         printf("ROUNDING ERRORS!\n");
-    
+
     for (int pid = 0; pid < bsp_nprocs(); pid++)
     {
         void* chunkptr = (void*)(((uint32_t)ab)+(pid * chunk_size));
@@ -61,9 +61,11 @@ int main(int argc, char **argv)
         tag = 1;
         ebsp_send_down(pid, &tag, &chunk_size, sizeof(int));
     }
-    
+
     // run dotproduct
+    printf("StartPMD\n");
     ebsp_spmd();
+    printf("SPMDone\n");
 
     // read output
     int packets, accum_bytes;

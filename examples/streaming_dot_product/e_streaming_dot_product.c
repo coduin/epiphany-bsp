@@ -57,13 +57,17 @@ int main()
     int counter = 0;
 
     do {
+        ebsp_message("getting chunk (%p)", ab);
         ab = ebsp_get_in_chunk();
+        ebsp_message("counter: %d\t/\t%d (%p)", counter, chunk_size, ab);
         for (int i = 0; i < IN_CHUNK_SIZE / sizeof(int) && counter < chunk_size; i += 2, counter += 2) {
+            ebsp_message("i: %d\t/\t%d", i, IN_CHUNK_SIZE /sizeof(int));
             sum += (*ab) * (*(ab+1));
         }
     }
     while (ab != 0);
 
+    ebsp_message("done counting!");
     // A sync is required between getting messages
     // from host and sending them back
     bsp_sync();
