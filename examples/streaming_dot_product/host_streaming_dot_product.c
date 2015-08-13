@@ -1,5 +1,5 @@
 /*
-File: host_dot_product.c
+File: host_streaming_dot_product.c
 
 This file is part of the Epiphany BSP library.
 
@@ -26,24 +26,32 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <host_bsp_inspector.h>
 #include <stdlib.h>
 #include <stdio.h> 
+#include <stdint.h> 
 
 int main(int argc, char **argv)
 {
     bsp_init("e_streaming_dot_product.srec", argc, argv);
     bsp_begin(bsp_nprocs());
 
-    // allocate two random vectors of length 512
+    // allocate two interleaved random vectors of length 512 each
     int l = 512;
-    int* a = (int*)malloc(sizeof(int) * l);
-    int* b = (int*)malloc(sizeof(int) * l);
+    int* ab = (int*)malloc(sizeof(int) * 2 * l);
     for (int i = 0; i < l; ++i) {
-        a[i] = i;
-        b[i] = 2*i;
+        ab[2*i] = i;
+        ab[2*i+1] = 2*i;
     }
 
     // partition and write to processors
-    int chunk = l / bsp_nprocs();
-    printf("chunk: %i\n", chunk);
+    int chunk_size = (2 * l) / bsp_nprocs();
+    printf("chunk_size: %i\n", chunk_size);
+    if (chunk_size * bsp_nprocs() != 2 * l)
+        printf("ROUNDING ERRORS!\n");
+    
+    for (int pid = 0; pid < bsp_nprocs(); pid++)
+    {
+        void* chunkptr = (void*)(((uint32_t)ab)+(pid * chunk_size));
+        ebsp_send_buffered(chunkptr, pid, chunk_size);
+    }
 
     int tag;
     int tagsize = sizeof(int);
@@ -51,16 +59,9 @@ int main(int argc, char **argv)
     for (int pid = 0; pid < bsp_nprocs(); pid++)
     {
         tag = 1;
-        ebsp_send_down(pid, &tag, &chunk, sizeof(int));
-        tag = 2;
-        ebsp_send_down(pid, &tag, &a[pid*chunk], sizeof(int)*chunk);
-        tag = 3;
-        ebsp_send_down(pid, &tag, &b[pid*chunk], sizeof(int)*chunk);
+        ebsp_send_down(pid, &tag, &chunk_size, sizeof(int));
     }
     
-    // enable memory inspector
-    //ebsp_inspector_enable();
-
     // run dotproduct
     ebsp_spmd();
 
@@ -83,8 +84,7 @@ int main(int argc, char **argv)
 
     printf("SUM: %i\n", sum);
 
-    free(a);
-    free(b);
+    free(ab);
 
     // finalize
     bsp_end();
