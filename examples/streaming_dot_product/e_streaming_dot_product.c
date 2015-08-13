@@ -1,5 +1,5 @@
 /*
-File: e_dot_product.c
+File: e_streaming_dot_product.c
 
 This file is part of the Epiphany BSP library.
 
@@ -23,17 +23,16 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include <e_bsp.h>
+#include <common.h>
 
 int main()
 {
     bsp_begin();
 
     int p = bsp_pid();
+    int chunk_size = 0;
 
-    int chunk = 0;
-    int *a = 0, *b = 0;
-
-    char buffer[0x2000];
+    char buffer[0x20];
     void *ptr = (void*)&buffer;
     int sizeleft = sizeof(buffer);
 
@@ -47,27 +46,23 @@ int main()
         bsp_move(ptr, sizeleft);
 
         if (tag == 1)
-            chunk = *(int*)ptr;
-        else if (tag == 2)
-            a = (int*)ptr;
-        else if (tag == 3)
-            b = (int*)ptr;
+            chunk_size = *(int*)ptr;
 
         sizeleft -= status;
         ptr += status;
     }
 
     int sum = 0;
+    int *ab = 0;
+    int counter = 0;
 
-    if (a == 0 || b == 0)
-    {
-        ebsp_message("Did not receive data from host");
+    do {
+        ab = ebsp_get_in_chunk();
+        for (int i = 0; i < IN_CHUNK_SIZE / sizeof(int) && counter < chunk_size; i += 2, counter += 2) {
+            sum += (*ab) * (*(ab+1));
+        }
     }
-    else
-    {
-        for (int i = 0; i < chunk; ++i)
-            sum += a[i] * b[i];
-    }
+    while (ab != 0);
 
     // A sync is required between getting messages
     // from host and sending them back
