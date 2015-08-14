@@ -29,18 +29,18 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 void ebsp_set_tagsize(int *tag_bytes)
 {
-    int oldsize = state.comm_buf.tagsize;
-    state.comm_buf.tagsize = *tag_bytes;
+    int oldsize = state.combuf.tagsize;
+    state.combuf.tagsize = *tag_bytes;
     *tag_bytes = oldsize;
 }
 
 
 void ebsp_send_down(int pid, const void *tag, const void *payload, int nbytes)
 {
-    ebsp_message_queue* q = &state.comm_buf.message_queue[0];
+    ebsp_message_queue* q = &state.combuf.message_queue[0];
     unsigned int index = q->count;
-    unsigned int payload_offset = state.comm_buf.data_payloads.buffer_size;
-    unsigned int total_nbytes = state.comm_buf.tagsize + nbytes;
+    unsigned int payload_offset = state.combuf.data_payloads.buffer_size;
+    unsigned int total_nbytes = state.combuf.tagsize + nbytes;
     void *tag_ptr;
     void *payload_ptr;
 
@@ -56,23 +56,23 @@ void ebsp_send_down(int pid, const void *tag, const void *payload, int nbytes)
     }
 
     q->count++;
-    state.comm_buf.data_payloads.buffer_size += total_nbytes;
+    state.combuf.data_payloads.buffer_size += total_nbytes;
 
-    tag_ptr = &state.comm_buf.data_payloads.buf[payload_offset];
-    payload_offset += state.comm_buf.tagsize;
-    payload_ptr = &state.comm_buf.data_payloads.buf[payload_offset];
+    tag_ptr = &state.combuf.data_payloads.buf[payload_offset];
+    payload_offset += state.combuf.tagsize;
+    payload_ptr = &state.combuf.data_payloads.buf[payload_offset];
 
     q->message[index].pid = pid;
     q->message[index].tag = _arm_to_e_pointer(tag_ptr);
     q->message[index].payload = _arm_to_e_pointer(payload_ptr);
     q->message[index].nbytes = nbytes;
-    memcpy(tag_ptr, tag, state.comm_buf.tagsize);
+    memcpy(tag_ptr, tag, state.combuf.tagsize);
     memcpy(payload_ptr, payload, nbytes);
 }
 
 int ebsp_get_tagsize()
 {
-    return state.comm_buf.tagsize;
+    return state.combuf.tagsize;
 }
 
 void ebsp_qsize(int *packets, int *accum_bytes)
@@ -80,7 +80,7 @@ void ebsp_qsize(int *packets, int *accum_bytes)
     *packets = 0;
     *accum_bytes = 0;
 
-    ebsp_message_queue* q = &state.comm_buf.message_queue[0];
+    ebsp_message_queue* q = &state.combuf.message_queue[0];
     int mindex = state.message_index;
     int qsize = q->count;
 
@@ -95,7 +95,7 @@ void ebsp_qsize(int *packets, int *accum_bytes)
 
 ebsp_message_header* _next_queue_message()
 {
-    ebsp_message_queue* q = &state.comm_buf.message_queue[0];
+    ebsp_message_queue* q = &state.combuf.message_queue[0];
     if (state.message_index < q->count)
         return &q->message[state.message_index];
     return 0;
@@ -115,7 +115,7 @@ void ebsp_get_tag(int *status, void *tag)
         return;
     }
     *status = m->nbytes;
-    memcpy(tag, _e_to_arm_pointer(m->tag), state.comm_buf.tagsize);
+    memcpy(tag, _e_to_arm_pointer(m->tag), state.combuf.tagsize);
 }
 
 void ebsp_move(void *payload, int buffer_size)
@@ -157,7 +157,7 @@ void ebsp_send_buffered(void* src, int dst_core_id, int nbytes)
         return;
     }
     memcpy(src, exmem_in_buffer, nbytes);
-    state.comm_buf.exmem_next_in_chunk[dst_core_id] = exmem_in_buffer;
+    state.combuf.exmem_next_in_chunk[dst_core_id] = exmem_in_buffer;
 }
 
 void ebsp_get_buffered(int dst_core_id, int max_nbytes)
@@ -168,7 +168,7 @@ void ebsp_get_buffered(int dst_core_id, int max_nbytes)
         printf("ERROR: not enough memory in exmem for ebsp_send_buffered");
         return;
     }
-    state.comm_buf.exmem_current_out_chunk[dst_core_id] = exmem_out_buffer;
+    state.combuf.exmem_current_out_chunk[dst_core_id] = exmem_out_buffer;
 }
 
 

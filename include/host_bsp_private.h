@@ -51,15 +51,17 @@ typedef struct
     // Number of processors in use
     int nprocs_used;
 
-    // External memory that holds ebsp_comm_buf
+    // Epiphany structure to describe external memory mmap info
     e_mem_t emem;
-    // External memory that holds the mallocs
-    e_mem_t emem_malloc;
 
-    // Local copy of ebsp_comm_buf to copy from and
-    // copy into.
-    ebsp_comm_buf comm_buf;
-    // For reading out the final queue
+    // memory-mapped pointers to external memory
+    // They are the host-side version of E_XXX_ADDR in common.h
+    void* host_combuf_addr;
+    void* host_dynmem_addr;
+
+    // Local copy of ebsp_comm_buf to copy from and copy into.
+    ebsp_combuf combuf;
+    // For reading out the final queue after spmd
     int message_index;
 
     void (*sync_callback)(void);
@@ -108,7 +110,7 @@ void init_application_path();
  *  host_bsp_memory
  */
 
-void ebsp_malloc_init(void* external_memory_base);
+void ebsp_malloc_init();
 void* ebsp_ext_malloc(unsigned int nbytes);
 void ebsp_free(void* ptr);
 int ebsp_write(int pid, void* src, off_t dst, int size);
