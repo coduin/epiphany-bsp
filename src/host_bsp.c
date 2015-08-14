@@ -296,6 +296,7 @@ int ebsp_spmd()
             printf("$%02d: %s\n",
                     state.comm_buf.msgflag - 1,  // flag = pid+1
                     state.comm_buf.msgbuf);
+            fflush(stdout);
             // Reset flag to let epiphany cores continue
             state.comm_buf.msgflag = 0;
             // Write the int to the external comm_buf
@@ -306,10 +307,10 @@ int ebsp_spmd()
 
 #ifdef DEBUG
         if (iter % 1000 == 0) {
-            printf("Current time: %E seconds\n", time_elapsed);
-            printf("run %02d - sync %02d - finish %02d - continue %02d\n",
+            printf("run %02d - sync %02d - finish %02d - continue %02d -- iteration %d\n",
                     run_counter, sync_counter, finish_counter,
-                    continue_counter);
+                    continue_counter, iter);
+            fflush(stdout);
         }
         ++iter;
 #endif
@@ -320,8 +321,8 @@ int ebsp_spmd()
             // This part of the sync (host side)
             // usually does not crash so only one
             // line of debug output is needed here
-            printf("(BSP) DEBUG: Sync %d after %f seconds\n",
-                    total_syncs, time_elapsed);
+            printf("(BSP) DEBUG: Sync %d\n",
+                    total_syncs);
 #endif
             // if call back, call and wait
             if (state.sync_callback)
