@@ -27,6 +27,8 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdio.h>
 #include <string.h>
 
+extern bsp_state_t state;
+
 void ebsp_set_tagsize(int *tag_bytes)
 {
     int oldsize = state.combuf.tagsize;
@@ -165,7 +167,7 @@ void ebsp_get_buffered(int dst_core_id, int max_nbytes)
     void* exmem_out_buffer = ebsp_ext_malloc(max_nbytes);
     if (exmem_out_buffer == 0)
     {
-        printf("ERROR: not enough memory in exmem for ebsp_send_buffered");
+        printf("ERROR: not enough memory in exmem for ebsp_get_buffered");
         return;
     }
     state.combuf.exmem_current_out_chunk[dst_core_id] = exmem_out_buffer;

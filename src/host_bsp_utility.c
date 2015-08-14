@@ -44,19 +44,20 @@ void ebsp_set_end_callback(void (*cb)())
 // Converting between epiphany and arm pointers
 // Only for things stored in state.comm_buf !
 
-void* _arm_to_e_pointer(void* ptr)
+void* _arm_to_e_pointer_dynmem(void* ptr)
 {
     return (void*)((unsigned int)ptr
-            - (unsigned int)&state.comm_buf
-            + COMMBUF_EADDR);
+            - state.host_combuf_addr
+            + E_COMBUF_ADDR);
 }
 
-void* _e_to_arm_pointer(void* ptr)
+void* _e_to_arm_pointer_dynmem(void* ptr)
 {
     return (void*)((unsigned int)ptr
-            - COMMBUF_EADDR
-            + (unsigned int)&state.comm_buf);
+            - E_COMBUF_ADDR
+            + state.host_combuf_addr);
 }
+
 
 void _update_remote_timer()
 {
