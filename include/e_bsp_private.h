@@ -49,7 +49,7 @@ typedef struct {
     // time_passed is epiphany cpu time (so not walltime) in seconds
     float           time_passed;
 
-    // counter for ebsp_comm_buf::data_requests[pid]
+    // counter for ebsp_combuf::data_requests[pid]
     uint32_t        request_counter;
 
     // message_index is an index into an epiphany<->epiphany queue and
@@ -106,8 +106,8 @@ typedef struct {
 extern ebsp_core_data coredata;
 
 // The define is faster; it saves a pointer lookup
-#define comm_buf ((ebsp_comm_buf*)COMMBUF_EADDR)
-// ebsp_comm_buf * const comm_buf = (ebsp_comm_buf*)COMMBUF_EADDR;
+#define comm_buf ((ebsp_combuf*)E_COMBUF_ADDR)
+// ebsp_combuf * const comm_buf = (ebsp_combuf*)E_COMBUF_ADDR;
 
 void _init_local_malloc();
 

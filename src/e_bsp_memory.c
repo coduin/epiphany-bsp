@@ -44,7 +44,7 @@ void* EXT_MEM_TEXT ebsp_ext_malloc(unsigned int nbytes)
 {
     void *ret = 0;
     e_mutex_lock(0, 0, &coredata.malloc_mutex);
-    ret = _malloc((void*)DYNMEM_EADDR, nbytes);
+    ret = _malloc((void*)E_DYNMEM_ADDR, nbytes);
     e_mutex_unlock(0, 0, &coredata.malloc_mutex);
     return ret;
 }
@@ -69,7 +69,7 @@ void EXT_MEM_TEXT ebsp_free(void* ptr)
     if (((unsigned)ptr) & 0xfff00000)
     {
         e_mutex_lock(0, 0, &coredata.malloc_mutex);
-        _free((void*)DYNMEM_EADDR, ptr);
+        _free((void*)E_DYNMEM_ADDR, ptr);
         e_mutex_unlock(0, 0, &coredata.malloc_mutex);
     }
     else
