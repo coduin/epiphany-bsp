@@ -59,7 +59,7 @@ typedef struct
     void* host_combuf_addr;
     void* host_dynmem_addr;
 
-    // Local copy of ebsp_comm_buf to copy from and copy into.
+    // Local copy of ebsp_combuf to copy from and copy into.
     ebsp_combuf combuf;
     // For reading out the final queue after spmd
     int message_index;

@@ -36,6 +36,25 @@ void ebsp_set_tagsize(int *tag_bytes)
     *tag_bytes = oldsize;
 }
 
+//TODO: Do not use the local copy state.combuf
+//Instead, copy directly to the memory mapped external memory
+
+// Convert pointers pointing to the local copy state.combuf
+// to epiphany address space and back
+
+void* _pointer_to_e(void* ptr)
+{
+    return (void*)((unsigned int)ptr
+            - (unsigned)&state.combuf
+            + E_COMBUF_ADDR);
+}
+
+void* _pointer_to_arm(void* ptr)
+{
+    return (void*)((unsigned int)ptr
+            - E_COMBUF_ADDR
+            + (unsigned)&state.combuf);
+}
 
 void ebsp_send_down(int pid, const void *tag, const void *payload, int nbytes)
 {
@@ -65,8 +84,8 @@ void ebsp_send_down(int pid, const void *tag, const void *payload, int nbytes)
     payload_ptr = &state.combuf.data_payloads.buf[payload_offset];
 
     q->message[index].pid = pid;
-    q->message[index].tag = _arm_to_e_pointer(tag_ptr);
-    q->message[index].payload = _arm_to_e_pointer(payload_ptr);
+    q->message[index].tag = _pointer_to_e(tag_ptr);
+    q->message[index].payload = _pointer_to_e(payload_ptr);
     q->message[index].nbytes = nbytes;
     memcpy(tag_ptr, tag, state.combuf.tagsize);
     memcpy(payload_ptr, payload, nbytes);
@@ -117,7 +136,7 @@ void ebsp_get_tag(int *status, void *tag)
         return;
     }
     *status = m->nbytes;
-    memcpy(tag, _e_to_arm_pointer(m->tag), state.combuf.tagsize);
+    memcpy(tag, _pointer_to_arm(m->tag), state.combuf.tagsize);
 }
 
 void ebsp_move(void *payload, int buffer_size)
@@ -136,7 +155,7 @@ void ebsp_move(void *payload, int buffer_size)
     if (m->nbytes < buffer_size)
         buffer_size = m->nbytes;
 
-    memcpy(payload, _e_to_arm_pointer(m->payload), buffer_size);
+    memcpy(payload, _pointer_to_arm(m->payload), buffer_size);
 }
 
 int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
@@ -144,8 +163,8 @@ int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
     ebsp_message_header* m = _next_queue_message();
     _pop_queue_message();
     if (m == 0) return -1;
-    *tag_ptr_buf = _e_to_arm_pointer(m->tag);
-    *payload_ptr_buf = _e_to_arm_pointer(m->payload);
+    *tag_ptr_buf = _pointer_to_arm(m->tag);
+    *payload_ptr_buf = _pointer_to_arm(m->payload);
     return m->nbytes;
 }
 

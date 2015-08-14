@@ -296,7 +296,7 @@ int ebsp_spmd()
             fflush(stdout);
             // Reset flag to let epiphany cores continue
             state.combuf.msgflag = 0;
-            // Write the int to the external comm_buf
+            // Write the int to the external combuf
             _write_extmem((void*)&state.combuf.msgflag,
                     offsetof(ebsp_combuf, msgflag),
                     sizeof(int));
@@ -325,7 +325,7 @@ int ebsp_spmd()
             if (state.sync_callback)
                 state.sync_callback();
 
-            // First reset the comm_buf
+            // First reset the combuf
             for (int i = 0; i < state.nprocs; i++)
                 state.combuf.syncstate[i] = STATE_CONTINUE;
             _write_extmem(&state.combuf.syncstate,
