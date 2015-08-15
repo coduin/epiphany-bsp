@@ -25,35 +25,31 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include "e_bsp_private.h"
 #include <string.h>
 
-void* ebsp_get_in_chunk() {
-    //TODO Check (using next_in_chunk) whether we need to return NULL
-    e_dma_wait(E_DMA_0);
 
+
+
+/*
+void* ebsp_get_in_chunk() {//TODO rewrite
     coredata.exmem_next_in_chunk += IN_CHUNK_SIZE;
 
     void* tmp = coredata.buffer_in_current;
     coredata.buffer_in_current = coredata.buffer_in_next;
     coredata.buffer_in_next    = tmp;
 
-    ebsp_dma_copy_parallel( E_DMA_0, coredata.buffer_in_next, coredata.exmem_next_in_chunk, (size_t) IN_CHUNK_SIZE );
-    //TODO fix dma_copy_parallel
-    //TODO fix address space convertion
+    ebsp_dma_copy_parallel( E_DMA_0, coredata.buffer_in_next, coredata.exmem_next_in_chunk, (size_t) IN_CHUNK_SIZE );//REPLACE BY QUEUE
     return coredata.buffer_in_current;
 }
 
 void* ebsp_get_out_chunk() {
-    e_dma_wait(E_DMA_1);
+    coredata.exmem_current_out_chunk += OUT_CHUNK_SIZE;//TODO Change OUT_CHUNK_SIZE to var passed down 
+    //FIXME check for overflow
 
-    coredata.exmem_current_out_chunk += OUT_CHUNK_SIZE;//FIXME not checking for overflow in exmem yet!
-
-    void* tmp = coredata.buffer_out_current;
+    void* tmp = coredata.buffer_out_current;//TODO support slow mode?
     coredata.buffer_out_current  = coredata.buffer_out_previous;
     coredata.buffer_out_previous = tmp;
 
-    //start dma local mem -> exmem
-    ebsp_dma_copy_parallel( E_DMA_1, coredata.exmem_current_out_chunk, coredata.buffer_out_previous, (size_t) OUT_CHUNK_SIZE );
+    ebsp_dma_copy_parallel( E_DMA_1, coredata.exmem_current_out_chunk, coredata.buffer_out_previous, (size_t) OUT_CHUNK_SIZE );//TODO REPLACE BY QUEUE
 
     return coredata.buffer_out_current;
 }
-
-//TODO fixmes on this page + write from arm -> exmem, get adress of those things to epiphany cores
+*/

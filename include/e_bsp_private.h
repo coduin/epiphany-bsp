@@ -49,7 +49,7 @@ typedef struct {
     // time_passed is epiphany cpu time (so not walltime) in seconds
     float           time_passed;
 
-    // counter for ebsp_comm_buf::data_requests[pid]
+    // counter for ebsp_combuf::data_requests[pid]
     uint32_t        request_counter;
 
     // message_index is an index into an epiphany<->epiphany queue and
@@ -78,24 +78,6 @@ typedef struct {
     // Base address of malloc table for internal malloc
     void*           local_malloc_base;
 
-    // Pointer to the next input chunk in exmem
-    void*           exmem_next_in_chunk;
-
-    // Pointer to the current output chunk in exmem
-    void*           exmem_current_out_chunk;
-
-    // Pointer to current input buffer (in local memory)
-    void*           buffer_in_current;
-
-    // Pointer to current output buffer (in local memory)
-    void*           buffer_out_current;
-
-    // Pointer to next input buffer (in local memory)
-    void*           buffer_in_next;
-
-    // Pointer to previous output buffer (in local memory)
-    void*           buffer_out_previous;
-
     // DMA descriptor needed for channel E_DMA_0
     e_dma_desc_t    _dma_copy_descriptor_0;
 
@@ -106,8 +88,8 @@ typedef struct {
 extern ebsp_core_data coredata;
 
 // The define is faster; it saves a pointer lookup
-#define comm_buf ((ebsp_comm_buf*)COMMBUF_EADDR)
-// ebsp_comm_buf * const comm_buf = (ebsp_comm_buf*)COMMBUF_EADDR;
+#define comm_buf ((ebsp_combuf*)E_COMBUF_ADDR)
+// ebsp_combuf * const comm_buf = (ebsp_combuf*)E_COMBUF_ADDR;
 
 void _init_local_malloc();
 

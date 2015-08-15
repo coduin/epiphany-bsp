@@ -56,22 +56,6 @@ void EXT_MEM_TEXT bsp_begin()
 
     _init_local_malloc();
 
-    // Initialize buffered communication streams
-    coredata.exmem_next_in_chunk     = comm_buf->exmem_next_in_chunk[coredata.pid];
-    if (coredata.exmem_next_in_chunk != NULL)
-    {
-        coredata.buffer_in_current = ebsp_malloc(IN_CHUNK_SIZE);
-        coredata.buffer_in_next    = ebsp_malloc(IN_CHUNK_SIZE);
-    }
-    
-    coredata.exmem_current_out_chunk = comm_buf->exmem_current_out_chunk[coredata.pid];
-    if (coredata.exmem_current_out_chunk != NULL)
-    {
-        coredata.buffer_out_current  = ebsp_malloc(OUT_CHUNK_SIZE);
-        coredata.buffer_out_previous = ebsp_malloc(OUT_CHUNK_SIZE);
-    }
-
-
     // Send &syncstate to ARM
     if (coredata.pid == 0)
         comm_buf->syncstate_ptr = (int8_t*)&coredata.syncstate;

@@ -47,10 +47,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 // This is shared amongst all cores!
 #define MAX_PAYLOAD_SIZE (16*0x8000)
 
-// The size of the buffers used for streaming (in bytes)
-#define IN_CHUNK_SIZE 128
-#define OUT_CHUNK_SIZE 64
-
 // See ebsp_data_request::nbytes
 #define DATA_PUT_BIT    (1<<31)
 
@@ -101,7 +97,7 @@ typedef struct {
     ebsp_message_header message[MAX_MESSAGES];
 } ebsp_message_queue;
 
-// ebsp_comm_buf is a struct for epiphany <-> ARM communication
+// ebsp_combuf is a struct for epiphany <-> ARM communication
 // It is located in external memory. For more info see
 // https://github.com/buurlage-wits/epiphany-bsp/wiki/Memory-on-the-parallella
 
@@ -117,8 +113,9 @@ typedef struct
     float               remotetimer;
     int32_t             nprocs;
     int32_t             tagsize;  // Only for initial and final messages
-    void*               exmem_next_in_chunk[_NPROCS];
+    void*               exmem_in_streams[_NPROCS];
     void*               exmem_current_out_chunk[_NPROCS];
+    int                 outsize;
 
     // Epiphany <--> Epiphany
     void*               bsp_var_list[MAX_BSP_VARS][_NPROCS];
@@ -126,23 +123,26 @@ typedef struct
     ebsp_data_request   data_requests[_NPROCS][MAX_DATA_REQUESTS];
     ebsp_message_queue  message_queue[2];
     ebsp_payload_buffer data_payloads;  // used for put/get/send
-} ebsp_comm_buf;
+} ebsp_combuf;
 
-// Right after comm_buf there is the memory used for mallocs
+// Right after combuf there is the memory used for mallocs
 // all the way till the end of external memory
 
 #pragma pack(pop)
 
-// For info on these addresses, see
+// For info on these external memory addresses, see
 // https://github.com/buurlage-wits/epiphany-bsp/wiki/Memory-on-the-parallella
-#define COMMBUF_OFFSET 0x01800000
-#define DYNMEM_OFFSET  (COMMBUF_OFFSET + sizeof(ebsp_comm_buf))
 
-#define SHARED_MEM     0x8e000000
-#define SHARED_MEM_END 0x90000000
-#define COMMBUF_EADDR  (SHARED_MEM + COMMBUF_OFFSET)
-#define DYNMEM_EADDR   (SHARED_MEM + DYNMEM_OFFSET)
-#define DYNMEM_SIZE    (SHARED_MEM_END - DYNMEM_EADDR)
+// Sizes within external memory
+#define EXTMEM_SIZE     0x02000000  // Total size, 32 MB
+#define NEWLIB_SIZE     0x01800000
+#define COMBUF_SIZE     sizeof(ebsp_combuf)
+#define DYNMEM_SIZE     (EXTMEM_SIZE - COMBUF_SIZE - NEWLIB_SIZE)
+
+// Epiphany addresses
+#define E_EXTMEM_ADDR   0x8e000000
+#define E_COMBUF_ADDR   (E_EXTMEM_ADDR + NEWLIB_SIZE)
+#define E_DYNMEM_ADDR   (E_EXTMEM_ADDR + NEWLIB_SIZE + COMBUF_SIZE)
 
 // Possible values for syncstate
 // They start at 1 so that 0 means that the variable was not initialized

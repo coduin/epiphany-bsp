@@ -34,23 +34,20 @@ see the files COPYING and COPYING.LESSER. If not, see
 //Can only be used when epiphany cores are not running
 //
 
-void* malloc_base;
-
-//Should be called once on host
-void ebsp_malloc_init(void* external_memory_base)
+//Should be called once on host after state.host_dynmem_addr has been set
+void ebsp_malloc_init()
 {
-    malloc_base = external_memory_base;
-    return _init_malloc_state(malloc_base, DYNMEM_SIZE);
+    return _init_malloc_state(state.host_dynmem_addr, DYNMEM_SIZE);
 }
 
 void* ebsp_ext_malloc(unsigned int nbytes)
 {
-    return _malloc(malloc_base, nbytes);
+    return _malloc(state.host_dynmem_addr, nbytes);
 }
 
 void ebsp_free(void* ptr)
 {
-    return _free(malloc_base, ptr);
+    return _free(state.host_dynmem_addr, ptr);
 }
 
 int ebsp_write(int pid, void* src, off_t dst, int size)
@@ -87,7 +84,7 @@ int ebsp_read(int pid, off_t src, void* dst, int size)
 
 int _write_core_syncstate(int pid, int syncstate)
 {
-    return ebsp_write(pid, &syncstate, (off_t)state.comm_buf.syncstate_ptr, 4);
+    return ebsp_write(pid, &syncstate, (off_t)state.combuf.syncstate_ptr, 4);
 }
 
 int _write_extmem(void* src, off_t offset, int size)

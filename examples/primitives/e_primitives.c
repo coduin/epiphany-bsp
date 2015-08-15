@@ -235,6 +235,11 @@ int localmem_test()
     for (int i = 0; i < 100; i++)
         if (ptrs[i]) ebsp_free(ptrs[i]);
 
+    bsp_sync();
+
+    if (p == 0)
+        ebsp_message("Memory test: complete");
+
     return 0;
 }
 

@@ -276,13 +276,22 @@ void ebsp_move(void *payload, int buffer_size);
 int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
 
 /**
- * Initialize streaming of nbytes from *src to core dst_core_id
+ * Initialize streaming of nbytes from *src to core dst_core_id.
+ * This splits the input into chunks of size chunksize (at most), adds headers,
+ * writes the result to extmem and sends a message to the e_core.
  */
-void ebsp_send_buffered(void* src, int dst_core_id, int nbytes);
+void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int chunksize);
+
+/**
+ * Initialize streaming of nbytes from *src to core dst_core_id
+ * This assumes *src contains headers already and writes it directly to extmem.
+ * Finally a message is sent to the relevant e_core.
+ */
+void ebsp_send_buffered_raw(void* src, int dst_core_id, int nbytes, int max_chunksize);
 
 /**
  * Initialize streaming of at most max_nbytes from core dst_core_id
- * to an buffer in exmem.
+ * to an buffer in extmem.
  */
-void ebsp_get_buffered(int dst_core_id, int max_nbytes);
+void ebsp_get_buffered(int dst_core_id, int max_nbytes, int chunksize);
 
