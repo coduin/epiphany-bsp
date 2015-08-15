@@ -132,6 +132,6 @@ void _pop_queue_message();
 void ebsp_get_tag(int *status, void *tag);
 void ebsp_move(void *payload, int buffer_size);
 int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
-void ebsp_send_buffered(void* src, int dst_core_id, int nbytes);
-void ebsp_get_buffered(int dst_core_id, int max_nbytes);
+void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int chunksize);
+void ebsp_get_buffered(int dst_core_id, int max_nbytes, int chunksize);
 

@@ -168,8 +168,15 @@ int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
     return m->nbytes;
 }
 
-void ebsp_send_buffered(void* src, int dst_core_id, int nbytes)
-{
+
+
+
+
+
+
+
+void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int chunksize)
+{   //TODO rewrite
 
     void* exmem_in_buffer = ebsp_ext_malloc(nbytes);
     if (exmem_in_buffer == 0)
@@ -181,8 +188,14 @@ void ebsp_send_buffered(void* src, int dst_core_id, int nbytes)
     state.combuf.exmem_next_in_chunk[dst_core_id] = exmem_in_buffer;
 }
 
-void ebsp_get_buffered(int dst_core_id, int max_nbytes)
+void ebsp_send_buffered_raw(void* src, int dst_core_id, int nbytes, int max_chunksize)
 {
+    //TODO write
+
+}
+
+void ebsp_get_buffered(int dst_core_id, int max_nbytes, int chunksize)
+{   //TODO fix (must now pass chunksize down)
     void* exmem_out_buffer = ebsp_ext_malloc(max_nbytes);
     if (exmem_out_buffer == 0)
     {

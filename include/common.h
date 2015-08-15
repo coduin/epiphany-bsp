@@ -47,10 +47,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 // This is shared amongst all cores!
 #define MAX_PAYLOAD_SIZE (16*0x8000)
 
-// The size of the buffers used for streaming (in bytes)
-#define IN_CHUNK_SIZE 128
-#define OUT_CHUNK_SIZE 64
-
 // See ebsp_data_request::nbytes
 #define DATA_PUT_BIT    (1<<31)
 
