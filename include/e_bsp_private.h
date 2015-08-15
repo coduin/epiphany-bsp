@@ -78,11 +78,8 @@ typedef struct {
     // Base address of malloc table for internal malloc
     void*           local_malloc_base;
 
-    // DMA descriptor needed for channel E_DMA_0
-    e_dma_desc_t    _dma_copy_descriptor_0;
-
-    // DMA descriptor needed for channel E_DMA_1
-    e_dma_desc_t    _dma_copy_descriptor_1;
+    // End of chain of DMA descriptors
+    e_dma_desc_t*   last_dma_desc;
 } ebsp_core_data;
 
 extern ebsp_core_data coredata;
@@ -93,9 +90,15 @@ extern ebsp_core_data coredata;
 
 void _init_local_malloc();
 
-// Wrapper for usage of DMA engine
-// Returns dma_id
-unsigned ebsp_dma_push(void *dst, const void *src, size_t n);
+/* Push a new task to the DMA engine
+ * @param desc   Is completely filled by this function
+ * @param dst    Destination address
+ * @param src    Source address
+ * @param nbytes Amount of bytes to be copied
+ *
+ * Assumes previous task in `desc` is completed (use ebsp_dma_wait())
+ */
+void ebsp_dma_push(e_dma_desc_t* desc, void *dst, const void *src, size_t nbytes);
 
-void ebsp_dma_wait(unsigned dma_id);
+void ebsp_dma_wait(e_dma_desc_t* desc);
 
