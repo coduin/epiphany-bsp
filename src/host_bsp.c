@@ -81,7 +81,7 @@ int bsp_init(const char* _e_name,
 
     // Initialize buffering
     for (int p = 0; p < _NPROCS; p++) {
-        state.n_in_streams[p] = 0;
+        state.combuf.n_in_streams[p] = 0;
     }
     
     bsp_initialized = 1;
@@ -162,7 +162,7 @@ int bsp_begin(int nprocs)
         int nbytes = state.combuf.n_in_streams[p]*sizeof(ebsp_in_stream_descriptor);
         void* in_stream_descriptors = ebsp_ext_malloc(nbytes);
         memcpy(in_stream_descriptors, state.buffered_in_streams[p], nbytes);
-        state.combuf.exmem_in_streams[p] = _arm_to_e_pointer(in_streams_descriptors);
+        state.combuf.exmem_in_streams[p] = _arm_to_e_pointer(in_stream_descriptors);
 
         //TODO void*               exmem_current_out_chunk[_NPROCS];
         //TODO int                 out_buffer_size[_NPROCS];

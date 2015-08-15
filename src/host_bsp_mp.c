@@ -175,6 +175,7 @@ int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
 
 
 
+/*
 void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int chunksize)
 {   //TODO rewrite
 
@@ -192,6 +193,7 @@ void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int chunksize)
     memcpy(src, exmem_in_buffer, nbytes);
     state.combuf.exmem_next_in_chunk[dst_core_id] = _arm_to_e_pointer(exmem_in_buffer);
 }
+*/
 
 void ebsp_send_buffered_raw(void* src, int dst_core_id, int nbytes, int max_chunksize)
 {
@@ -206,9 +208,9 @@ void ebsp_send_buffered_raw(void* src, int dst_core_id, int nbytes, int max_chun
     memcpy(src, exmem_in_buffer, nbytes);
 
     // 3) add ebsp_stream_descriptor to state.buffered_in_streams, update state.n_in_streams
-    if (state.n_in_streams[dst_core_id] == MAX_N_IN_STREAMS)
+    if (state.combuf.n_in_streams[dst_core_id] == MAX_N_IN_STREAMS)
     {
-        printf("ERROR: state.n_in_streams >= MAX_N_IN_STREAMS\n");
+        printf("ERROR: state.combuf.n_in_streams >= MAX_N_IN_STREAMS\n");
         return;
     }
 
@@ -216,12 +218,13 @@ void ebsp_send_buffered_raw(void* src, int dst_core_id, int nbytes, int max_chun
 
     x.extmem_in_addr = _arm_to_e_pointer(exmem_in_buffer);
     x.nbytes = nbytes;
-    x.max_chunksize = max_chunksize
+    x.max_chunksize = max_chunksize;
 
     state.buffered_in_streams[dst_core_id][state.combuf.n_in_streams[dst_core_id]] = x;
     state.combuf.n_in_streams[dst_core_id]++;
 }
 
+/*
 void ebsp_get_buffered(int dst_core_id, int max_nbytes, int chunksize)
 {   //TODO fix (must now pass chunksize down)
     void* exmem_out_buffer = ebsp_ext_malloc(max_nbytes);
@@ -232,5 +235,5 @@ void ebsp_get_buffered(int dst_core_id, int max_nbytes, int chunksize)
     }
     state.combuf.exmem_current_out_chunk[dst_core_id] = _arm_to_e_pointer(exmem_out_buffer);
 }
-
+*/
 
