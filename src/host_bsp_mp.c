@@ -159,7 +159,7 @@ void ebsp_send_buffered(void* src, int dst_core_id, int nbytes)
         return;
     }
     memcpy(src, exmem_in_buffer, nbytes);
-    state.comm_buf.exmem_next_in_chunk[dst_core_id] = exmem_in_buffer;
+    state.comm_buf.exmem_next_in_chunk[dst_core_id] = _arm_to_e_pointer(exmem_in_buffer);
 }
 
 void ebsp_get_buffered(int dst_core_id, int max_nbytes)
@@ -170,7 +170,7 @@ void ebsp_get_buffered(int dst_core_id, int max_nbytes)
         printf("ERROR: not enough memory in exmem for ebsp_get_buffered");
         return;
     }
-    state.comm_buf.exmem_current_out_chunk[dst_core_id] = exmem_out_buffer;
+    state.comm_buf.exmem_current_out_chunk[dst_core_id] = _arm_to_e_pointer(exmem_out_buffer);
 }
 
 
