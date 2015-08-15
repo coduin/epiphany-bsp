@@ -97,6 +97,12 @@ typedef struct {
     ebsp_message_header message[MAX_MESSAGES];
 } ebsp_message_queue;
 
+typedef struct {
+    void*   extmem_in_addr; // input data in extmem in e_core address space
+    int     nbytes;         // size of the stream including headers
+    int     max_chunksize; // size of required buffer in e_core memory
+} ebsp_in_stream_descriptor;
+
 // ebsp_combuf is a struct for epiphany <-> ARM communication
 // It is located in external memory. For more info see
 // https://github.com/buurlage-wits/epiphany-bsp/wiki/Memory-on-the-parallella
@@ -113,9 +119,10 @@ typedef struct
     float               remotetimer;
     int32_t             nprocs;
     int32_t             tagsize;  // Only for initial and final messages
+    int                 n_in_streams[_NPROCS];
     void*               exmem_in_streams[_NPROCS];
     void*               exmem_current_out_chunk[_NPROCS];
-    int                 outsize;
+    int                 out_buffer_size[_NPROCS];
 
     // Epiphany <--> Epiphany
     void*               bsp_var_list[MAX_BSP_VARS][_NPROCS];
