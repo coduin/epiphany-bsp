@@ -94,6 +94,8 @@ extern ebsp_core_data coredata;
 void _init_local_malloc();
 
 // Wrapper for usage of DMA engine
-void ebsp_push_dma(void *dst, void *src, size_t n);
+// Returns dma_id
+unsigned ebsp_dma_push(void *dst, const void *src, size_t n);
 
+void ebsp_dma_wait(unsigned dma_id);
 
