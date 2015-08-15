@@ -150,7 +150,10 @@ int bsp_begin(int nprocs)
     // Set initial buffer to zero so that it can be filled by messages
     // before calling ebsp_spmd
     memset(&state.combuf, 0, sizeof(ebsp_combuf));
-
+    
+    // Write stream structs to extmem
+    // TODO
+    
     return 1;
 }
 

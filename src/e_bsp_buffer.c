@@ -25,6 +25,9 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include "e_bsp_private.h"
 #include <string.h>
 
+
+
+
 /*
 void* ebsp_get_in_chunk() {//TODO rewrite
     coredata.exmem_next_in_chunk += IN_CHUNK_SIZE;
