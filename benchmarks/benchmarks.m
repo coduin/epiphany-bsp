@@ -18,7 +18,7 @@ speeds=SortBy[First]/@speeds;
 (*Mean speeds*)
 
 
-TableForm[Transpose[{{"Type"}~Join~labels,{"Mean"}~Join~Map[Mean,speeds[[All,All,2]]],{"Max"}~Join~Map[Max,speeds[[All,All,2]]]}]]
+TableForm[Transpose[{Range[0,Length[labels]],{"Type"}~Join~labels,{"Mean"}~Join~Map[Mean,speeds[[All,All,2]]],{"Max"}~Join~Map[Max,speeds[[All,All,2]]]}]]
 
 
 (* ::Section:: *)
@@ -29,31 +29,38 @@ makeSpeedPlot[datasetIndices_,options_]:=ListPlot[speeds[[datasetIndices]],PlotL
 
 
 (* ::Subsection:: *)
-(*Single-core write*)
+(*Single-core read/write extmem*)
 
 
 makeSpeedPlot[{1,2,3,6,7},PlotRange->{{0,2000},{0,300}}]
 
 
 (* ::Subsection:: *)
-(*Busy speeds - write*)
+(*Busy speeds - write extmem*)
 
 
 makeSpeedPlot[{4,8},PlotRange->{{0,2000},{0,40}}]
 
 
 (* ::Subsection:: *)
-(*Busy speeds - read*)
+(*Busy speeds - read extmem*)
 
 
 makeSpeedPlot[{5,9},PlotRange->{{0,2000},{0,20}}]
 
 
 (* ::Subsection:: *)
-(*Write speeds*)
+(*Single core - write to core*)
 
 
-makeSpeedPlot[{1,2,4,6,8},{}]
+makeSpeedPlot[{10,12,14,16},{}]
+
+
+(* ::Subsection:: *)
+(*Single core - read from core*)
+
+
+makeSpeedPlot[{11,13,15,17},{}]
 
 
 (* ::Section:: *)
