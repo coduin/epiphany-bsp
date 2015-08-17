@@ -78,6 +78,9 @@ typedef struct {
     // Base address of malloc table for internal malloc
     void*           local_malloc_base;
 
+    // Location of local copy of combuf.exmem_in_streams
+    void*           local_in_streams;
+
     // DMA descriptor needed for channel E_DMA_0
     e_dma_desc_t    _dma_copy_descriptor_0;
 
@@ -95,7 +98,8 @@ void _init_local_malloc();
 
 // Wrapper for usage of DMA engine
 // Returns dma_id
-unsigned ebsp_dma_push(void *dst, const void *src, size_t n);
+unsigned ebsp_dma_push(e_dma_desc_t* desc, void *dst, const void *src, size_t n);
 
-void ebsp_dma_wait(unsigned dma_id);
+// Wait for
+void ebsp_dma_wait(e_dma_desc_t* desc);
 

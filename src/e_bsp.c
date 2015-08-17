@@ -53,8 +53,12 @@ void EXT_MEM_TEXT bsp_begin()
     e_mutex_init(0, 0, &coredata.ebsp_message_mutex, MUTEXATTR_NULL);
     e_mutex_init(0, 0, &coredata.malloc_mutex, MUTEXATTR_NULL);
 
-
     _init_local_malloc();
+
+    // Copy in_stream descriptors to local memory
+    unsigned int nbytes = combuf.n_in_streams[coredata.pid] * sizeof(combuf.ebsp_in_stream_descriptor);
+    coredata.local_in_streams = ebsp_malloc(nbytes);
+    memcpy(local_address, combuf.exmem_in_streams[coredata.pid], nbytes);
 
     // Send &syncstate to ARM
     if (coredata.pid == 0)

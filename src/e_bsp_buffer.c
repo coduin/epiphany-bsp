@@ -25,8 +25,18 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include "e_bsp_private.h"
 #include <string.h>
 
+int get_next_chunk(void& address, unsigned stream_id, bool prealloc = true)
+{
+    ebsp_in_stream_descriptor* in_stream = coredata.local_in_streams[stream_id];
+    e_dma_desc_t* desc = &(in_stream->e_dma_desc);
+    ebsp_dma_push(desc, void *dst, const void *src, size_t n);
+             //TODO: swap ----^   counter -----^           ^---- read from header
+
+//    unsigned ebsp_dma_push(e_dma_desc_t* desc, void *dst, const void *src, size_t n);
+//    void ebsp_dma_wait(e_dma_desc_t* desc);
 
 
+}
 
 /*
 void* ebsp_get_in_chunk() {//TODO rewrite
