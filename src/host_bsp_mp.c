@@ -216,9 +216,13 @@ void ebsp_send_buffered_raw(void* src, int dst_core_id, int nbytes, int max_chun
 
     ebsp_in_stream_descriptor x;
 
-    x.extmem_in_addr = _arm_to_e_pointer(exmem_in_buffer);
-    x.nbytes = nbytes;
-    x.max_chunksize = max_chunksize;
+    x.extmem_in_addr    = _arm_to_e_pointer(exmem_in_buffer);
+    x.in_cursor         = x.exmem_in_addr;
+    x.nbytes            = nbytes;
+    x.max_chunksize     = max_chunksize;
+    memset(&x.e_dma_desc, 0, sizeof(e_dma_desc_t));
+    x.current_in_buffer = NULL;
+    x.next_in_buffer    = NULL;
 
     state.buffered_in_streams[dst_core_id][state.combuf.n_in_streams[dst_core_id]] = x;
     state.combuf.n_in_streams[dst_core_id]++;

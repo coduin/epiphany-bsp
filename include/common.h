@@ -98,10 +98,13 @@ typedef struct {
 } ebsp_message_queue;
 
 typedef struct {
-    void*           extmem_in_addr; // input data in extmem in e_core address space
-    int             nbytes;         // size of the stream including headers
-    int             max_chunksize;  // size of required buffer in e_core memory
-    e_dma_desc_t    e_dma_desc;     // descriptor of dma, used as dma_id as well
+    void*           extmem_in_addr;     // input data in extmem in e_core address space
+    void*           in_cursor;          // current position of the stream in extmem
+    int             nbytes;             // size of the stream including headers
+    int             max_chunksize;      // size of required buffer in e_core memory
+    e_dma_desc_t    e_dma_desc;         // descriptor of dma, used as dma_id as well
+    void*           current_in_buffer;  // pointer (in e_core_mem) to current input chunk
+    void*           next_in_buffer;     // pointer (in e_core_mem) to next input chunk
 } ebsp_in_stream_descriptor;
 
 // ebsp_combuf is a struct for epiphany <-> ARM communication

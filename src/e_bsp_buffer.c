@@ -29,13 +29,64 @@ int get_next_chunk(void& address, unsigned stream_id, bool prealloc = true)
 {
     ebsp_in_stream_descriptor* in_stream = coredata.local_in_streams[stream_id];
     e_dma_desc_t* desc = &(in_stream->e_dma_desc);
-    ebsp_dma_push(desc, void *dst, const void *src, size_t n);
-             //TODO: swap ----^   counter -----^           ^---- read from header
 
-//    unsigned ebsp_dma_push(e_dma_desc_t* desc, void *dst, const void *src, size_t n);
-//    void ebsp_dma_wait(e_dma_desc_t* desc);
+    if (in_stream->next_in_buffer == NULL) // did not prealloc last time
+    {
+        size_t chunk_size = *in_stream->in_cursor;  // read header from ext
+        void* dst = in_stream->current_in_buffer;
+        void* src = in_stream->in_cursor;
+        ebsp_dma_push(desc, dst, src, chunk_size);  // write to current
 
+        // jump over header+chunk
+        in_stream->in_cursor = (void*) (((unsigned) (in_stream->in_cursor))
+                                                 + sizeof(int) + chunk_size); 
+    } 
+    else // did prealloc last time
+    { 
+        void* tmp = in_stream->current_in_buffer;
+        in_stream->current_in_buffer = in_stream->next_in_buffer;
+        in_stream->next_in_buffer = tmp;
+    }
 
+    // address points after the counter header
+    address = (void*) ((unsigned)current_in_buffer+sizeof(int));
+
+    ebsp_dma_wait(desc);
+
+    // the counter header
+    int current_chunk_size = *((int*)in_stream->current_in_buffer); 
+   
+    if (current_chunk_size == 0)    // stream has ended
+    {
+        address = NULL;
+        return 0;
+    }
+     
+    if (prealloc)
+    {
+        if (in_stream->next_in_buffer == NULL)
+            in_stream->next_in_buffer = ebsp_malloc(in_stream->max_chunksize);
+
+        size_t chunk_size = *in_stream->in_cursor;  // read header from ext
+        void* dst = in_stream->next_in_buffer;
+        void* src = in_stream->in_cursor;
+        ebsp_dma_push(desc, dst, src, chunk_size);  // write to next
+
+        // jump over header+chunk
+        in_stream->in_cursor = (void*) (((unsigned) (in_stream->in_cursor))
+                                                 + sizeof(int) + chunk_size); 
+    }
+    else
+    {
+        if (in_stream->next_in_buffer != NULL)
+        {
+            ebsp_free(in_stream->next_in_buffer);
+            in_stream->next_in_buffer = NULL;
+        }
+
+    }
+
+    return current_chunk_size;
 }
 
 /*
