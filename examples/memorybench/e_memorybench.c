@@ -84,43 +84,214 @@ unsigned int dma_transfer(void* destination, const void* source, unsigned int co
     return ebsp_raw_time();
 }
 
+#define chunk_size  2048
+#define dword_count (chunk_size / sizeof(long long))
+
+long long* extmem_buffer;
+long long local_buffer[dword_count];
+
+const int samples = 1;
+int timings[dword_count+1];
+
+int p, n;
+
 //Integrity check
-void check_buffer(const long long* buffer, unsigned int count)
+void check_buffers()
 {
-    for (unsigned int i = 0; i < count;  i++)
+    for (unsigned int i = 0; i < dword_count;  i++)
     {
-        if (buffer[i] != i)
+        if (local_buffer[i] != i)
         {
-            bsp_abort("Buffer %p is corrupted!!!", buffer);
+            bsp_abort("Local buffer is corrupted!!!");
+            break;
+        }
+        if (extmem_buffer[i] != i)
+        {
+            bsp_abort("External buffer is corrupted!!!");
             break;
         }
     }
 }
 
+void* get_remote_addr(int pid, const void *addr)
+{
+    return e_get_global_address(pid / e_group_config.group_cols, pid % e_group_config.group_cols, addr);
+}
+
+void measure(const char* target_string, void* target_buffer)
+{
+    // Write speed, one core at a time
+    
+    bsp_sync();
+    if (p == 0) {
+        ebsp_message("write %s nodma nonbusy", target_string);
+    }
+    for (int iter=0; iter < samples; iter++)
+    {
+        for (int i = 0; i < n; i++)
+        {
+            bsp_sync();
+            if (i != p) continue;
+            for (int h = 0; h <= dword_count; h++) {
+                int timer = reverse_transfer(target_buffer, local_buffer, h);
+                ebsp_message("%d %d", h, timer);
+            }
+        }
+    }
+
+    check_buffers();
+
+    // Read speed, one core at a time
+
+    bsp_sync();
+    if (p == 0) {
+        ebsp_message("read %s nodma nonbusy", target_string);
+    }
+    for (int iter=0; iter < samples; iter++)
+    {
+        for (int i = 0; i < n; i++)
+        {
+            bsp_sync();
+            if (i != p) continue;
+            for (int h = 0; h <= dword_count; h++) {
+                int timer = transfer(local_buffer, target_buffer, h);
+                ebsp_message("%d %d", h, timer);
+            }
+        }
+    }
+
+    check_buffers();
+
+    // Write speed, all cores at the same time
+
+    bsp_sync();
+    if (p == 0) {
+        ebsp_message("write %s nodma busy", target_string);
+    }
+    for (int iter=0; iter < samples; iter++) {
+        for (int h = 0; h <= dword_count; h++) {
+            bsp_sync();
+            timings[h] = transfer(target_buffer, local_buffer, h);
+            bsp_sync();
+        }
+        for (int h = 0; h <= dword_count; h++ )
+            ebsp_message("%d %d", h, timings[h]);
+    }
+
+    check_buffers();
+
+    // Read speed, all cores at the same time
+
+    bsp_sync();
+    if (p == 0) {
+        ebsp_message("read %s nodma busy", target_string);
+    }
+    for (int iter=0; iter < samples; iter++) {
+        for (int h = 0; h <= dword_count; h++) {
+            bsp_sync();
+            timings[h] = transfer(local_buffer, target_buffer, h);
+            bsp_sync();
+        }
+        for (int h = 0; h <= dword_count; h++ )
+            ebsp_message("%d %d", h, timings[h]);
+    }
+
+    check_buffers();
+
+    //========================================================================
+    // DMA
+    //========================================================================
+
+    // Write speed, one core at a time
+    
+    bsp_sync();
+    if (p == 0) {
+        ebsp_message("write %s dma nonbusy", target_string);
+    }
+    for (int iter=0; iter < samples; iter++)
+    {
+        for (int i = 0; i < n; i++)
+        {
+            bsp_sync();
+            if (i != p) continue;
+            for (int h = 0; h <= dword_count; h++) {
+                int timer = dma_transfer(target_buffer, local_buffer, h);
+                ebsp_message("%d %d", h, timer);
+            }
+        }
+    }
+
+    check_buffers();
+
+    // Read speed, one core at a time
+
+    bsp_sync();
+    if (p == 0) {
+        ebsp_message("read %s dma nonbusy", target_string);
+    }
+
+    for (int iter=0; iter < samples; iter++)
+    {
+        for (int i = 0; i < n; i++)
+        {
+            bsp_sync();
+            if (i != p) continue;
+            for (int h = 0; h <= dword_count; h++) {
+                int timer = dma_transfer(local_buffer, target_buffer, h);
+                ebsp_message("%d %d", h, timer);
+            }
+        }
+    }
+    check_buffers();
+
+    //// Write speed, all cores at the same time
+
+    bsp_sync();
+    if (p == 0) {
+        ebsp_message("write %s dma busy", target_string);
+    }
+    for (int iter=0; iter < samples; iter++) {
+        for (int h = 0; h <= dword_count; h++) {
+            bsp_sync();
+            timings[h] = dma_transfer(target_buffer, local_buffer, h);
+            bsp_sync();
+        }
+        for (int h = 0; h <= dword_count; h++ )
+            ebsp_message("%d %d", h, timings[h]);
+    }
+    check_buffers();
+    
+    // Read speed, all cores at the same time
+
+    bsp_sync();
+    if (p == 0) {
+        ebsp_message("read %s dma busy", target_string);
+    }
+    for (int iter=0; iter < samples; iter++) {
+        for (int h = 0; h <= dword_count; h++) {
+            bsp_sync();
+            timings[h] = dma_transfer(local_buffer, target_buffer, h);
+            bsp_sync();
+        }
+        for (int h = 0; h <= dword_count; h++ )
+            ebsp_message("%d %d", h, timings[h]);
+    }
+    check_buffers();
+}
+
 int main()
 {
     bsp_begin();
-    int p = bsp_pid();
-    int n = bsp_nprocs();
+    p = bsp_pid();
+    n = bsp_nprocs();
 
-    //
-    // Core <-> External memory
-    //
-    const long chunk_size = 2048;
-    const long dword_count = chunk_size / sizeof(long long);
-
-    long long* extmem_buffer = ebsp_ext_malloc(chunk_size);
-    long long local_buffer[dword_count];
+    extmem_buffer = ebsp_ext_malloc(chunk_size);
 
     // Integrity checks
     for (int i = 0; i < dword_count; i++)
         local_buffer[i] = i;
 
-    const int samples = 1;
-    int timings[dword_count+1];
-
-    // Write speed, one core at a time
-    
+    // Special case: extmem burst mode
     bsp_sync();
     if (p == 0) {
         ebsp_message("write extmem nodma burst");
@@ -137,173 +308,12 @@ int main()
             }
         }
     }
+    check_buffers();
 
-    check_buffer(extmem_buffer, dword_count);
-    check_buffer(local_buffer, dword_count);
+    measure("extmem", extmem_buffer);
 
-    bsp_sync();
-    if (p == 0) {
-        ebsp_message("write extmem nodma nonbusy");
-    }
-    for (int iter=0; iter < samples; iter++)
-    {
-        for (int i = 0; i < n; i++)
-        {
-            bsp_sync();
-            if (i != p) continue;
-            for (int h = 0; h <= dword_count; h++) {
-                int timer = reverse_transfer(extmem_buffer, local_buffer, h);
-                ebsp_message("%d %d", h, timer);
-            }
-        }
-    }
-
-    check_buffer(extmem_buffer, dword_count);
-    check_buffer(local_buffer, dword_count);
-
-    // Read speed, one core at a time
-
-    bsp_sync();
-    if (p == 0) {
-        ebsp_message("read extmem nodma nonbusy");
-    }
-    for (int iter=0; iter < samples; iter++)
-    {
-        for (int i = 0; i < n; i++)
-        {
-            bsp_sync();
-            if (i != p) continue;
-            for (int h = 0; h <= dword_count; h++) {
-                int timer = transfer(local_buffer, extmem_buffer, h);
-                ebsp_message("%d %d", h, timer);
-            }
-        }
-    }
-
-    check_buffer(extmem_buffer, dword_count);
-    check_buffer(local_buffer, dword_count);
-
-    // Write speed, all cores at the same time
-
-    bsp_sync();
-    if (p == 0) {
-        ebsp_message("write extmem nodma busy");
-    }
-    for (int iter=0; iter < samples; iter++) {
-        for (int h = 0; h <= dword_count; h++) {
-            bsp_sync();
-            timings[h] = transfer(extmem_buffer, local_buffer, h);
-            bsp_sync();
-        }
-        for (int h = 0; h <= dword_count; h++ )
-            ebsp_message("%d %d", h, timings[h]);
-    }
-
-    check_buffer(extmem_buffer, dword_count);
-    check_buffer(local_buffer, dword_count);
-
-    // Read speed, all cores at the same time
-
-    bsp_sync();
-    if (p == 0) {
-        ebsp_message("read extmem nodma busy");
-    }
-    for (int iter=0; iter < samples; iter++) {
-        for (int h = 0; h <= dword_count; h++) {
-            bsp_sync();
-            timings[h] = transfer(local_buffer, extmem_buffer, h);
-            bsp_sync();
-        }
-        for (int h = 0; h <= dword_count; h++ )
-            ebsp_message("%d %d", h, timings[h]);
-    }
-
-    check_buffer(extmem_buffer, dword_count);
-    check_buffer(local_buffer, dword_count);
-
-    //========================================================================
-    // DMA
-    //========================================================================
-
-    // Write speed, one core at a time
-    
-    bsp_sync();
-    if (p == 0) {
-        ebsp_message("write extmem dma nonbusy");
-    }
-    for (int iter=0; iter < samples; iter++)
-    {
-        for (int i = 0; i < n; i++)
-        {
-            bsp_sync();
-            if (i != p) continue;
-            for (int h = 0; h <= dword_count; h++) {
-                int timer = dma_transfer(extmem_buffer, local_buffer, h);
-                ebsp_message("%d %d", h, timer);
-            }
-        }
-    }
-
-    check_buffer(extmem_buffer, dword_count);
-    check_buffer(local_buffer, dword_count);
-
-    // Read speed, one core at a time
-
-    bsp_sync();
-    if (p == 0) {
-        ebsp_message("read extmem dma nonbusy");
-    }
-
-    for (int iter=0; iter < samples; iter++)
-    {
-        for (int i = 0; i < n; i++)
-        {
-            bsp_sync();
-            if (i != p) continue;
-            for (int h = 0; h <= dword_count; h++) {
-                int timer = dma_transfer(local_buffer, extmem_buffer, h);
-                ebsp_message("%d %d", h, timer);
-            }
-        }
-    }
-
-    check_buffer(extmem_buffer, dword_count);
-    check_buffer(local_buffer, dword_count);
-
-    //// Write speed, all cores at the same time
-
-    bsp_sync();
-    if (p == 0) {
-        ebsp_message("write extmem dma busy");
-    }
-    for (int iter=0; iter < samples; iter++) {
-        for (int h = 0; h <= dword_count; h++) {
-            bsp_sync();
-            timings[h] = dma_transfer(extmem_buffer, local_buffer, h);
-            bsp_sync();
-        }
-        for (int h = 0; h <= dword_count; h++ )
-            ebsp_message("%d %d", h, timings[h]);
-    }
-
-    check_buffer(extmem_buffer, dword_count);
-    check_buffer(local_buffer, dword_count);
-    
-    // Read speed, all cores at the same time
-
-    bsp_sync();
-    if (p == 0) {
-        ebsp_message("read extmem dma busy");
-    }
-    for (int iter=0; iter < samples; iter++) {
-        for (int h = 0; h <= dword_count; h++) {
-            bsp_sync();
-            timings[h] = dma_transfer(local_buffer, extmem_buffer, h);
-            bsp_sync();
-        }
-        for (int h = 0; h <= dword_count; h++ )
-            ebsp_message("%d %d", h, timings[h]);
-    }
+    void* neighbor_buffer = get_remote_addr((p+1)%n, &local_buffer);
+    measure("core", neighbor_buffer);
 
     bsp_end();
     
