@@ -25,14 +25,15 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include "e_bsp_private.h"
 #include <string.h>
 
-int get_next_chunk(void& address, unsigned stream_id, bool prealloc = true)
+
+int get_next_chunk(void** address, unsigned stream_id, int prealloc)
 {
-    ebsp_in_stream_descriptor* in_stream = coredata.local_in_streams[stream_id];
-    e_dma_desc_t* desc = &(in_stream->e_dma_desc);
+    ebsp_in_stream_descriptor* in_stream = coredata.local_in_streams + stream_id;
+    e_dma_desc_t* desc = (e_dma_desc_t*) &(in_stream->e_dma_desc);
 
     if (in_stream->next_in_buffer == NULL) // did not prealloc last time
     {
-        size_t chunk_size = *in_stream->in_cursor;  // read header from ext
+        size_t chunk_size = *(int*)(in_stream->in_cursor);  // read header from ext
         void* dst = in_stream->current_in_buffer;
         void* src = in_stream->in_cursor;
         ebsp_dma_push(desc, dst, src, chunk_size);  // write to current
@@ -48,8 +49,8 @@ int get_next_chunk(void& address, unsigned stream_id, bool prealloc = true)
         in_stream->next_in_buffer = tmp;
     }
 
-    // address points after the counter header
-    address = (void*) ((unsigned)current_in_buffer+sizeof(int));
+    // *address points after the counter header
+    (*address) = (void*) ((unsigned)in_stream->current_in_buffer+sizeof(int));
 
     ebsp_dma_wait(desc);
 
@@ -58,7 +59,7 @@ int get_next_chunk(void& address, unsigned stream_id, bool prealloc = true)
    
     if (current_chunk_size == 0)    // stream has ended
     {
-        address = NULL;
+        (*address) = NULL;
         return 0;
     }
      
@@ -67,7 +68,7 @@ int get_next_chunk(void& address, unsigned stream_id, bool prealloc = true)
         if (in_stream->next_in_buffer == NULL)
             in_stream->next_in_buffer = ebsp_malloc(in_stream->max_chunksize);
 
-        size_t chunk_size = *in_stream->in_cursor;  // read header from ext
+        size_t chunk_size = *(int*)(in_stream->in_cursor);  // read header from ext
         void* dst = in_stream->next_in_buffer;
         void* src = in_stream->in_cursor;
         ebsp_dma_push(desc, dst, src, chunk_size);  // write to next

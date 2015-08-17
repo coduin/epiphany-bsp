@@ -53,10 +53,10 @@ void* _get_remote_addr(int pid, const void *addr, int offset)
     // Find the slot for our local pid
     // And return the entry for the remote pid including the epiphany mapping
     for (int slot = 0; slot < MAX_BSP_VARS; ++slot)
-        if (comm_buf->bsp_var_list[slot][coredata.pid] == addr)
+        if (combuf->bsp_var_list[slot][coredata.pid] == addr)
             return e_get_global_address(pid / e_group_config.group_cols,
                     pid % e_group_config.group_cols,
-                    (void*)((int)comm_buf->bsp_var_list[slot][pid] + offset));
+                    (void*)((int)combuf->bsp_var_list[slot][pid] + offset));
     ebsp_message(err_var_not_found, addr);
     return 0;
 }
@@ -66,10 +66,10 @@ void bsp_push_reg(const void* variable, const int nbytes)
     if (coredata.var_pushed)
         return ebsp_message(err_pushreg_multiple);
 
-    if (comm_buf->bsp_var_counter == MAX_BSP_VARS)
+    if (combuf->bsp_var_counter == MAX_BSP_VARS)
         return ebsp_message(err_pushreg_overflow);
 
-    comm_buf->bsp_var_list[comm_buf->bsp_var_counter][coredata.pid] =
+    combuf->bsp_var_list[combuf->bsp_var_counter][coredata.pid] =
         (void*)variable;
 
     coredata.var_pushed = 1;
@@ -100,12 +100,12 @@ void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes)
 
     e_mutex_lock(0, 0, &coredata.payload_mutex);
 
-    payload_offset = comm_buf->data_payloads.buffer_size;
+    payload_offset = combuf->data_payloads.buffer_size;
 
     if (payload_offset + nbytes > MAX_PAYLOAD_SIZE)
         payload_offset = -1;
     else
-        comm_buf->data_payloads.buffer_size += nbytes;
+        combuf->data_payloads.buffer_size += nbytes;
 
     e_mutex_unlock(0, 0, &coredata.payload_mutex);
 
@@ -113,14 +113,14 @@ void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes)
         return ebsp_message(err_put_overflow2);
 
     // We are now ready to save the request and payload
-    void* payload_ptr = &comm_buf->data_payloads.buf[payload_offset];
+    void* payload_ptr = &combuf->data_payloads.buf[payload_offset];
 
     // TODO(Tom)
     // Measure if e_dma_copy is faster here for both request and payload
 
     // Save request
     uint32_t req_count = coredata.request_counter;
-    ebsp_data_request* req = &comm_buf->data_requests[coredata.pid][req_count];
+    ebsp_data_request* req = &combuf->data_requests[coredata.pid][req_count];
     req->src = payload_ptr;
     req->dst = dst_remote;
     req->nbytes = nbytes | DATA_PUT_BIT;
@@ -145,7 +145,7 @@ void bsp_get(int pid, const void *src, int offset, void *dst, int nbytes)
     if (!src_remote) return;
 
     uint32_t req_count = coredata.request_counter;
-    ebsp_data_request* req = &comm_buf->data_requests[coredata.pid][req_count];
+    ebsp_data_request* req = &combuf->data_requests[coredata.pid][req_count];
     req->src = src_remote;
     req->dst = dst;
     req->nbytes = nbytes;

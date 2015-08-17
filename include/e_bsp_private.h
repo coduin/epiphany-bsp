@@ -78,7 +78,7 @@ typedef struct {
     // Base address of malloc table for internal malloc
     void*           local_malloc_base;
 
-    // Location of local copy of combuf.exmem_in_streams
+    // Location of local copy of combuf.extmem_in_streams
     void*           local_in_streams;
 
     // End of chain of DMA descriptors
@@ -89,8 +89,8 @@ typedef struct {
 extern ebsp_core_data coredata;
 
 // The define is faster; it saves a pointer lookup
-#define comm_buf ((ebsp_combuf*)E_COMBUF_ADDR)
-// ebsp_combuf * const comm_buf = (ebsp_combuf*)E_COMBUF_ADDR;
+#define combuf ((ebsp_combuf*)E_COMBUF_ADDR)
+// ebsp_combuf * const combuf = (ebsp_combuf*)E_COMBUF_ADDR;
 
 void _init_local_malloc();
 

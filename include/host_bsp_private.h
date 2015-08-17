@@ -85,6 +85,8 @@ typedef struct
 
 extern bsp_state_t state;
 
+
+
 /*
  *  host_bsp
  */

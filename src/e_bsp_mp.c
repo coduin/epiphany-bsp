@@ -36,7 +36,7 @@ int ebsp_get_tagsize()
 void bsp_set_tagsize(int *tag_bytes)
 {
     coredata.tagsize_next = *tag_bytes;
-    comm_buf->tagsize = *tag_bytes;
+    combuf->tagsize = *tag_bytes;
     *tag_bytes = coredata.tagsize;
 }
 
@@ -46,12 +46,12 @@ void bsp_send(int pid, const void *tag, const void *payload, int nbytes)
     unsigned int payload_offset;
     unsigned int total_nbytes = coredata.tagsize + nbytes;
 
-    ebsp_message_queue* q = &comm_buf->message_queue[coredata.queue_index];
+    ebsp_message_queue* q = &combuf->message_queue[coredata.queue_index];
 
     e_mutex_lock(0, 0, &coredata.payload_mutex);
 
     index = q->count;
-    payload_offset = comm_buf->data_payloads.buffer_size;
+    payload_offset = combuf->data_payloads.buffer_size;
 
     if ((payload_offset + total_nbytes > MAX_PAYLOAD_SIZE)
             || (index >= MAX_MESSAGES)) {
@@ -59,7 +59,7 @@ void bsp_send(int pid, const void *tag, const void *payload, int nbytes)
         payload_offset = -1;
     } else {
         q->count++;
-        comm_buf->data_payloads.buffer_size += total_nbytes;
+        combuf->data_payloads.buffer_size += total_nbytes;
     }
 
     e_mutex_unlock(0, 0, &coredata.payload_mutex);
@@ -68,9 +68,9 @@ void bsp_send(int pid, const void *tag, const void *payload, int nbytes)
         return ebsp_message(err_send_overflow);
 
     // We are now ready to save the request and payload
-    void* tag_ptr = &comm_buf->data_payloads.buf[payload_offset];
+    void* tag_ptr = &combuf->data_payloads.buf[payload_offset];
     payload_offset += coredata.tagsize;
-    void* payload_ptr = &comm_buf->data_payloads.buf[payload_offset];
+    void* payload_ptr = &combuf->data_payloads.buf[payload_offset];
 
     q->message[index].pid = pid;
     q->message[index].tag = tag_ptr;
@@ -85,7 +85,7 @@ void bsp_send(int pid, const void *tag, const void *payload, int nbytes)
 // Returns 0 if no message
 ebsp_message_header* _next_queue_message()
 {
-    ebsp_message_queue* q = &comm_buf->message_queue[coredata.queue_index];
+    ebsp_message_queue* q = &combuf->message_queue[coredata.queue_index];
     int qsize = q->count;
 
     // currently searching at message_index
@@ -107,7 +107,7 @@ void bsp_qsize(int *packets, int *accum_bytes)
     *packets = 0;
     *accum_bytes = 0;
 
-    ebsp_message_queue* q = &comm_buf->message_queue[coredata.queue_index];
+    ebsp_message_queue* q = &combuf->message_queue[coredata.queue_index];
     int mindex = coredata.message_index;
     int qsize = q->count;
 

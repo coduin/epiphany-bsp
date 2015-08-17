@@ -97,15 +97,26 @@ typedef struct {
     ebsp_message_header message[MAX_MESSAGES];
 } ebsp_message_queue;
 
+typedef struct
+{
+    unsigned config;
+    unsigned inner_stride;
+    unsigned count;
+    unsigned outer_stride;
+    void    *src_addr;
+    void    *dst_addr;
+} __attribute__((aligned (8))) e_dma_desc_host_t;
+
 typedef struct {
     void*           extmem_in_addr;     // input data in extmem in e_core address space
     void*           in_cursor;          // current position of the stream in extmem
     int             nbytes;             // size of the stream including headers
     int             max_chunksize;      // size of required buffer in e_core memory
-    e_dma_desc_t    e_dma_desc;         // descriptor of dma, used as dma_id as well
+    e_dma_desc_host_t    e_dma_desc;         // descriptor of dma, used as dma_id as well
     void*           current_in_buffer;  // pointer (in e_core_mem) to current input chunk
     void*           next_in_buffer;     // pointer (in e_core_mem) to next input chunk
-} ebsp_in_stream_descriptor;
+} __attribute__((aligned (8))) ebsp_in_stream_descriptor;
+
 
 // ebsp_combuf is a struct for epiphany <-> ARM communication
 // It is located in external memory. For more info see
@@ -124,8 +135,8 @@ typedef struct
     int32_t             nprocs;
     int32_t             tagsize;  // Only for initial and final messages
     int                 n_in_streams[_NPROCS];
-    void*               exmem_in_streams[_NPROCS];
-    void*               exmem_current_out_chunk[_NPROCS];
+    void*               extmem_in_streams[_NPROCS];
+    void*               extmem_current_out_chunk[_NPROCS];
     int                 out_buffer_size[_NPROCS];
 
     // Epiphany <--> Epiphany

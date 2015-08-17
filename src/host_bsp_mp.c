@@ -198,14 +198,14 @@ void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int chunksize)
 void ebsp_send_buffered_raw(void* src, int dst_core_id, int nbytes, int max_chunksize)
 {
     // 1) malloc in extmem
-    void* exmem_in_buffer = ebsp_ext_malloc(nbytes);
-    if (exmem_in_buffer == 0)
+    void* extmem_in_buffer = ebsp_ext_malloc(nbytes);
+    if (extmem_in_buffer == 0)
     {
-        printf("ERROR: not enough memory in exmem for ebsp_send_buffered_raw\n");
+        printf("ERROR: not enough memory in extmem for ebsp_send_buffered_raw\n");
         return;
     }
     // 2) copy the data there directly
-    memcpy(src, exmem_in_buffer, nbytes);
+    memcpy(src, extmem_in_buffer, nbytes);
 
     // 3) add ebsp_stream_descriptor to state.buffered_in_streams, update state.n_in_streams
     if (state.combuf.n_in_streams[dst_core_id] == MAX_N_IN_STREAMS)
@@ -216,11 +216,11 @@ void ebsp_send_buffered_raw(void* src, int dst_core_id, int nbytes, int max_chun
 
     ebsp_in_stream_descriptor x;
 
-    x.extmem_in_addr    = _arm_to_e_pointer(exmem_in_buffer);
-    x.in_cursor         = x.exmem_in_addr;
+    x.extmem_in_addr    = _arm_to_e_pointer(extmem_in_buffer);
+    x.in_cursor         = x.extmem_in_addr;
     x.nbytes            = nbytes;
     x.max_chunksize     = max_chunksize;
-    memset(&x.e_dma_desc, 0, sizeof(e_dma_desc_t));
+    memset(&x.e_dma_desc, 0, sizeof(e_dma_desc_host_t));
     x.current_in_buffer = NULL;
     x.next_in_buffer    = NULL;
 

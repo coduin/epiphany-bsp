@@ -39,10 +39,10 @@ void EXT_MEM_TEXT bsp_begin()
 
     // Initialize local data
     coredata.pid = col + cols * row;
-    coredata.nprocs = comm_buf->nprocs;
+    coredata.nprocs = combuf->nprocs;
     coredata.request_counter = 0;
     coredata.var_pushed = 0;
-    coredata.tagsize = comm_buf->tagsize;
+    coredata.tagsize = combuf->tagsize;
     coredata.tagsize_next = coredata.tagsize;
     coredata.queue_index = 0;
     coredata.message_index = 0;
@@ -56,13 +56,13 @@ void EXT_MEM_TEXT bsp_begin()
     _init_local_malloc();
 
     // Copy in_stream descriptors to local memory
-    unsigned int nbytes = combuf.n_in_streams[coredata.pid] * sizeof(combuf.ebsp_in_stream_descriptor);
+    unsigned int nbytes = combuf->n_in_streams[coredata.pid] * sizeof(ebsp_in_stream_descriptor);
     coredata.local_in_streams = ebsp_malloc(nbytes);
-    memcpy(local_address, combuf.exmem_in_streams[coredata.pid], nbytes);
+    memcpy(coredata.local_in_streams, combuf->extmem_in_streams[coredata.pid], nbytes);
 
     // Send &syncstate to ARM
     if (coredata.pid == 0)
-        comm_buf->syncstate_ptr = (int8_t*)&coredata.syncstate;
+        combuf->syncstate_ptr = (int8_t*)&coredata.syncstate;
 
 #ifdef DEBUG
     // Wait for ARM before starting
@@ -101,7 +101,7 @@ float EXT_MEM_TEXT bsp_time()
 
 float ebsp_host_time()
 {
-    return comm_buf->remotetimer;
+    return combuf->remotetimer;
 }
 
 // Sync
@@ -112,7 +112,7 @@ void bsp_sync()
 
     // Instead of copying the code twice, we put it in a loop
     // so that the code is shorter (this is tested)
-    ebsp_data_request* reqs = &comm_buf->data_requests[coredata.pid][0];
+    ebsp_data_request* reqs = &combuf->data_requests[coredata.pid][0];
     for (int put = 0;;)
     {
         e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
@@ -134,8 +134,8 @@ void bsp_sync()
     // (as long as it is after the first barrier and before the last one
     // so all cores are syncing) and only one core needs to set this, but
     // letting all cores set it produces smaller code (binary size)
-    comm_buf->data_payloads.buffer_size = 0;
-    comm_buf->message_queue[coredata.queue_index].count = 0;
+    combuf->data_payloads.buffer_size = 0;
+    combuf->message_queue[coredata.queue_index].count = 0;
     // Switch queue between 0 and 1
     // xor seems to produce the shortest assembly
     coredata.queue_index ^= 1;
@@ -144,7 +144,7 @@ void bsp_sync()
     {
         coredata.var_pushed = 0;
         if (coredata.pid == 0)
-            comm_buf->bsp_var_counter++;
+            combuf->bsp_var_counter++;
     }
 
     coredata.tagsize = coredata.tagsize_next;
@@ -163,7 +163,7 @@ void ebsp_host_sync()
 void _write_syncstate(int8_t state)
 {
     coredata.syncstate = state;  // local variable
-    comm_buf->syncstate[coredata.pid] = state;  // being polled by ARM
+    combuf->syncstate[coredata.pid] = state;  // being polled by ARM
 }
 
 void EXT_MEM_TEXT bsp_abort(const char * format, ...)
@@ -182,10 +182,10 @@ void EXT_MEM_TEXT bsp_abort(const char * format, ...)
     // Lock mutex
     e_mutex_lock(0, 0, &coredata.ebsp_message_mutex);
     // Write the message
-    memcpy(&comm_buf->msgbuf[0], &buf[0], sizeof(buf));
-    comm_buf->msgflag = coredata.pid+1;
+    memcpy(&combuf->msgbuf[0], &buf[0], sizeof(buf));
+    combuf->msgflag = coredata.pid+1;
     // Wait for it to be printed
-    while (comm_buf->msgflag != 0){}
+    while (combuf->msgflag != 0){}
     // Unlock mutex
     e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
 
@@ -210,10 +210,10 @@ void EXT_MEM_TEXT ebsp_message(const char* format, ... )
     // Lock mutex
     e_mutex_lock(0, 0, &coredata.ebsp_message_mutex);
     // Write the message
-    memcpy(&comm_buf->msgbuf[0], &buf[0], sizeof(buf));
-    comm_buf->msgflag = coredata.pid+1;
+    memcpy(&combuf->msgbuf[0], &buf[0], sizeof(buf));
+    combuf->msgflag = coredata.pid+1;
     // Wait for it to be printed
-    while (comm_buf->msgflag != 0){}
+    while (combuf->msgflag != 0){}
     // Unlock mutex
     e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
 }
