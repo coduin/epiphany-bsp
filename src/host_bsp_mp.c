@@ -174,26 +174,44 @@ int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
 
 
 
-
-/*
 void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int chunksize)
-{   //TODO rewrite
-
-    // 0) calculate nbytes including headers
+{
+    int nchunks = nbytes/chunksize;
+    int nbytes_including_headers = nbytes + nchunks + 1; // the +1 is the terminating header
+    //TODO
     // 1) malloc in extmem
-    // 2) copy the data there, while chopping it into chunks and adding headers
-    // 3) add ebsp_stream_descriptor to state.buffered_in_streams, update state.n_in_streams
-
-    void* exmem_in_buffer = ebsp_ext_malloc(nbytes);
-    if (exmem_in_buffer == 0)
+    void* extmem_in_buffer = ebsp_ext_malloc(nbytes_including_headers);
+    if (extmem_in_buffer == 0)
     {
-        printf("ERROR: not enough memory in exmem for ebsp_send_buffered\n");
+        printf("ERROR: not enough memory in extmem for ebsp_send_buffered_raw\n");
         return;
     }
-    memcpy(src, exmem_in_buffer, nbytes);
-    state.combuf.exmem_next_in_chunk[dst_core_id] = _arm_to_e_pointer(exmem_in_buffer);
+
+    // 2) copy the data there directly
+    for (int chunki = 0; chunki < nchunks; chu
+    memcpy(src, extmem_in_buffer, nbytes_including_headers);
+
+    // 3) add ebsp_stream_descriptor to state.buffered_in_streams, update state.n_in_streams
+    if (state.combuf.n_in_streams[dst_core_id] == MAX_N_IN_STREAMS)
+    {
+        printf("ERROR: state.combuf.n_in_streams >= MAX_N_IN_STREAMS\n");
+        return;
+    }
+
+    ebsp_in_stream_descriptor x;
+
+    x.extmem_in_addr    = _arm_to_e_pointer(extmem_in_buffer);
+    x.in_cursor         = x.extmem_in_addr;
+    x.nbytes            = nbytes;
+    x.max_chunksize     = max_chunksize;
+    memset(&x.e_dma_desc, 0, sizeof(e_dma_desc_host_t));
+    x.current_in_buffer = NULL;
+    x.next_in_buffer    = NULL;
+
+    state.buffered_in_streams[dst_core_id][state.combuf.n_in_streams[dst_core_id]] = x;
+    state.combuf.n_in_streams[dst_core_id]++;
 }
-*/
+
 
 void ebsp_send_buffered_raw(void* src, int dst_core_id, int nbytes, int max_chunksize)
 {
