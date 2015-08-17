@@ -18,7 +18,7 @@ speeds=SortBy[First]/@speeds;
 (*Mean speeds*)
 
 
-TableForm[Transpose[{labels,Map[Mean,speeds[[All,All,2]]]}]]
+TableForm[Transpose[{{"Type"}~Join~labels,{"Mean"}~Join~Map[Mean,speeds[[All,All,2]]],{"Max"}~Join~Map[Max,speeds[[All,All,2]]]}]]
 
 
 (* ::Section:: *)
