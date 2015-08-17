@@ -142,4 +142,5 @@ void ebsp_move(void *payload, int buffer_size);
 int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
 void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int chunksize);
 void ebsp_get_buffered(int dst_core_id, int max_nbytes, int chunksize);
+void _ebsp_add_stream(int dst_core_id, void* extmem_in_buffer, int nbytes, int max_chunksize);
 
