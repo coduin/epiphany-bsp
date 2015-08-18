@@ -38,7 +38,7 @@ int main()
     ebsp_message("the loop");
     while (1){
         int a_size = get_next_chunk(&a, 0, 1);
-        int b_size = get_next_chunk(&b, 0, 1);
+        int b_size = get_next_chunk(&b, 1, 1);
        
         if (a_size != b_size) {
             ebsp_message("mismatching chunks!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
@@ -55,8 +55,8 @@ int main()
             int ai = *((int*)((unsigned)a + offset));
             int bi = *((int*)((unsigned)b + offset));
             counter += ai*bi;
-            ebsp_message("counter = %d", counter);
         }
+        ebsp_message("counter = %d", counter);
     }
 
     ebsp_message("done counting!");

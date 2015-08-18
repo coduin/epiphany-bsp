@@ -51,12 +51,14 @@ void ebsp_dma_push(e_dma_desc_t* desc, void *dst, const void *src, size_t nbytes
     // Set the contents of the descriptor
     prepare_descriptor(desc, dst, src, nbytes);
     
-    // Change the previous descriptor to chain to this one
+    // Change the previous descriptor to chain to this one if it is a different one
     e_dma_desc_t* last = coredata.last_dma_desc;
 
-    unsigned newconfig = (last->config & 0x0000ffff) | ((unsigned)desc << 16) | E_DMA_CHAIN;
-    last->config = newconfig;
-    coredata.last_dma_desc = desc;
+    if (last != desc) {
+        unsigned newconfig = (last->config & 0x0000ffff) | ((unsigned)desc << 16) | E_DMA_CHAIN;
+        last->config = newconfig;
+        coredata.last_dma_desc = desc;
+    }
 
     // Check if the DMA is idle and start it if needed
     volatile unsigned* dmastatus = e_get_global_address(e_group_config.core_row, e_group_config.core_col, (void*)E_REG_DMA1STATUS);
@@ -71,9 +73,11 @@ void ebsp_dma_wait(e_dma_desc_t* desc)
     volatile unsigned* dmastatusreg = e_get_global_address(e_group_config.core_row, e_group_config.core_col, (void*)E_REG_DMA1STATUS);
 
     int task_in_queue = 1;
+    int counter = 0;
     while(task_in_queue)
     {
         unsigned dmastatus = *dmastatusreg;
+
 
         // Check if DMA is idle
         if ((dmastatus & 0xf) == 0) return;
@@ -84,6 +88,9 @@ void ebsp_dma_wait(e_dma_desc_t* desc)
         // Follow path to see if 'desc' still has to be done
         task_in_queue = 0;
         for(;;) {
+            if (counter++ % 64 == 0)//!!!!!!!
+                ebsp_message("(%05d) dmastatus = %p", counter,dmastatus);
+
             if (cur == 0)
                 break;
             if (cur == desc) {

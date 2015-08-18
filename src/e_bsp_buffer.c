@@ -29,8 +29,9 @@ see the files COPYING and COPYING.LESSER. If not, see
 int get_next_chunk(void** address, unsigned stream_id, int prealloc)
 {
     ebsp_message("get_next_chunk");
-    ebsp_in_stream_descriptor* in_stream = coredata.local_in_streams + stream_id;
+    ebsp_in_stream_descriptor* in_stream = coredata.local_in_streams + stream_id*sizeof(ebsp_in_stream_descriptor);
     e_dma_desc_t* desc = (e_dma_desc_t*) &(in_stream->e_dma_desc);
+    ebsp_message("desc = %p", desc);
 
     if (in_stream->next_in_buffer == NULL) // did not prealloc last time
     {
@@ -62,11 +63,12 @@ int get_next_chunk(void** address, unsigned stream_id, int prealloc)
     
     ebsp_message("waiting for dma");
     ebsp_dma_wait(desc);
+    ebsp_message("done waiting for dma");
 
     // the counter header
     int current_chunk_size = *((int*)in_stream->current_in_buffer); 
   
-    if (coredata.pid >= 0)
+    if (coredata.pid == 0)
     { 
         ebsp_message(">>>\t\t\t\t\t\t\t\t\t>>>>>>>> current_chunk_size = %d = %d * %d", current_chunk_size, sizeof(int), current_chunk_size/sizeof(int));
         for (int i=0; i<current_chunk_size/(sizeof(int)); i++)
