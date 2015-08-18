@@ -30,49 +30,35 @@ int main()
     bsp_begin();
 
     int p = bsp_pid();
-    int chunk_size = 0;
-
-    char buffer[0x20];
-    void *ptr = (void*)&buffer;
-    int sizeleft = sizeof(buffer);
-
-    int packets, accum_bytes, status, tag;
-    bsp_qsize(&packets, &accum_bytes);
-    for (int i = 0; i < packets; i++)
-    {
-        // We assume all packet sizes are multiples of 4
-        // If not, the cores will crash because of unaligned memory accesses
-        bsp_get_tag(&status, &tag);
-        bsp_move(ptr, sizeleft);
-
-        if (tag == 1)
-            chunk_size = *(int*)ptr;
-
-        sizeleft -= status;
-        ptr += status;
-    }
-
     int sum = 0;
-    int *ab = 0;
+    void* a = 0;
+    void* b = 0;
     int counter = 0;
 
-    do {
-        ebsp_message("getting chunk (%p)", ab);
-        ab = ebsp_get_in_chunk();
-        ebsp_message("counter: %d\t/\t%d (%p)", counter, chunk_size, ab);
-        for (int i = 0; i < IN_CHUNK_SIZE / sizeof(int) && counter < chunk_size; i += 2, counter += 2) {
-            ebsp_message("i: %d\t/\t%d", i, IN_CHUNK_SIZE /sizeof(int));
-            sum += (*ab) * (*(ab+1));
+    for (;;){
+        int a_size = get_next_chunk(&a, 0, 1);
+        int b_size = get_next_chunk(&b, 0, 1);
+       
+        if (a_size != b_size)
+            ebsp_message("mismatching chunks!");
+
+        if (a_size == 0)
+            break;
+
+        for (unsigned offset = 0; offset < a_size; offset += sizeof(int) )
+        {
+            int ai = *((int*)((unsigned)a + offset));
+            int bi = *((int*)((unsigned)b + offset));
+            counter += ai*bi;
         }
     }
-    while (ab != 0);
 
     ebsp_message("done counting!");
     // A sync is required between getting messages
     // from host and sending them back
     bsp_sync();
 
-    tag = p;
+    int tag = p;
     ebsp_send_up(&tag, &sum, sizeof(int));
 
     bsp_end();

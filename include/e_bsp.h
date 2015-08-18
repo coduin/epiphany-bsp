@@ -358,16 +358,17 @@ int bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
 void ebsp_send_up(const void *tag, const void *payload, int nbytes);
 
 /**
- * Get a pointer to a chunk of input data. This function actually does the following things:
- * 1) Wait for the previous DMA (from exmem to local memory) to finish
- * 2) Start a new DMA from exmem to local memory to fill the next chunk
- * 3) Return a pointer
+ * A pointer to a chunk of input data is written to *address,
+ * the size of this chunk is returned. stream_id is the index of the 
+ * input stream sent to this core, in the same order as ebsp_send_buffered().
+ * prealloc can be set to either 1 (true) or 0 (false), and determines whether double
+ * or single buffering is used.
+ *
  * @remarks
- * - Returns a NULL pointer if no chunk has to be loaded
- * - The size of this chunk is defined in common.h as IN_CHUNK_SIZE
- * - Uses DMA channel E_DMA_0
+ * - Sets *address=0 and returns 0 if the stream has ended
+ * - Uses the DMA engine
  */
-void* ebsp_get_in_chunk();
+int get_next_chunk(void** address, unsigned stream_id, int prealloc);
 
 /**
  * Get a pointer to a chunk of output data. This function actually does the following things:
