@@ -34,7 +34,7 @@ int main(int argc, char **argv)
     bsp_begin(bsp_nprocs());
 
     // allocate two random vectors of length 512 each
-    int l = 512;
+    int l = 128;
     int* a = (int*)malloc(sizeof(int) * l);
     int* b = (int*)malloc(sizeof(int) * l);
     for (int i = 0; i < l; ++i) {
@@ -43,20 +43,23 @@ int main(int argc, char **argv)
     }
 
     // partition and write to processors
-    int chunk_size = (l + bsp_nprocs() - 1) / bsp_nprocs();
-    int last_chunk_size = (l-1) % chunk_size + 1;
-    printf("chunk_size: %i\n", chunk_size);
+    int chunk_nints = (l + bsp_nprocs() - 1) / bsp_nprocs();
+    int last_chunk_nints = (l-1) % chunk_nints + 1;
+    printf("chunk_size: %d\n", chunk_nints);
 
-    int current_chunk_size = chunk_size;
+    int current_chunk_nints = chunk_nints;
     unsigned a_cursor = (unsigned) a;
     unsigned b_cursor = (unsigned) b;
     for (int pid = 0; pid < bsp_nprocs(); pid++)
     {
         if (pid == bsp_nprocs() - 1)
-            current_chunk_size = last_chunk_size;
+            current_chunk_nints = last_chunk_nints;
 
-        ebsp_send_buffered((void*) a_cursor, pid, current_chunk_size, 100);
-        ebsp_send_buffered((void*) b_cursor, pid, current_chunk_size, 100);
+        int current_chunk_size = sizeof(int) * current_chunk_nints;
+
+        printf("Sending chunk of size: %d\n", current_chunk_size);
+        ebsp_send_buffered((void*) a_cursor, pid, current_chunk_size, 20);
+        ebsp_send_buffered((void*) b_cursor, pid, current_chunk_size, 20);
         
         a_cursor += current_chunk_size;
         b_cursor += current_chunk_size;

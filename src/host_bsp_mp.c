@@ -179,7 +179,7 @@ void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int chunksize)
     int nchunks = (nbytes + chunksize - 1)/chunksize; // nbytes/chunksize rounded up
     int last_chunksize = ((nbytes-1) % chunksize) + 1; // ]0, chunk_size]
     
-    int nbytes_including_headers = nbytes + nchunks + sizeof(int); // the +sizeof(int) is the terminating header
+    int nbytes_including_headers = nbytes + nchunks*sizeof(int) + sizeof(int); // the +sizeof(int) is the terminating header
 
     // 1) malloc in extmem
     void* extmem_in_buffer = ebsp_ext_malloc(nbytes_including_headers);
@@ -208,7 +208,13 @@ void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int chunksize)
         src_cursor += current_chunksize;
     }
 
-    (*(int*)dst_cursor) = -1; // write terminating header
+    (*(int*)dst_cursor) = 0; // write terminating header
+
+    ///DEBUG
+    unsigned tmp = (unsigned)extmem_in_buffer;
+    for(int i=0; i<nbytes_including_headers; i+=sizeof(int))
+        printf("send_buffered %03d:\t%d\n",i/sizeof(int),*(int*)(tmp+i));
+    ///\DEBUG
 
     // 3) add stream to state
     _ebsp_add_stream(dst_core_id, extmem_in_buffer, nbytes_including_headers, chunksize);

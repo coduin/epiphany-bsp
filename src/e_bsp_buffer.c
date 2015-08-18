@@ -28,19 +28,27 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 int get_next_chunk(void** address, unsigned stream_id, int prealloc)
 {
+    ebsp_message("get_next_chunk");
     ebsp_in_stream_descriptor* in_stream = coredata.local_in_streams + stream_id;
     e_dma_desc_t* desc = (e_dma_desc_t*) &(in_stream->e_dma_desc);
 
     if (in_stream->next_in_buffer == NULL) // did not prealloc last time
     {
+        if (in_stream->current_in_buffer == NULL) // first time get_next_chunk is called!
+            in_stream->current_in_buffer = ebsp_malloc(in_stream->max_chunksize);
+
         size_t chunk_size = *(int*)(in_stream->in_cursor);  // read header from ext
         void* dst = in_stream->current_in_buffer;
         void* src = in_stream->in_cursor;
-        ebsp_dma_push(desc, dst, src, chunk_size);  // write to current
+        ebsp_message("NOW pushing dma %p <- %p, size %d", dst, src, chunk_size);
+        ebsp_dma_push(desc, dst, src, chunk_size + sizeof(int));  // write to current
 
         // jump over header+chunk
+
+        ebsp_message("NOW JUMP FR %p ", in_stream->in_cursor);
         in_stream->in_cursor = (void*) (((unsigned) (in_stream->in_cursor))
                                                  + sizeof(int) + chunk_size); 
+        ebsp_message("NOW JUMP TO %p ", in_stream->in_cursor);
     } 
     else // did prealloc last time
     { 
@@ -51,12 +59,23 @@ int get_next_chunk(void** address, unsigned stream_id, int prealloc)
 
     // *address points after the counter header
     (*address) = (void*) ((unsigned)in_stream->current_in_buffer+sizeof(int));
-
+    
+    ebsp_message("waiting for dma");
     ebsp_dma_wait(desc);
 
     // the counter header
     int current_chunk_size = *((int*)in_stream->current_in_buffer); 
-   
+  
+    if (coredata.pid >= 0)
+    { 
+        ebsp_message(">>>\t\t\t\t\t\t\t\t\t>>>>>>>> current_chunk_size = %d = %d * %d", current_chunk_size, sizeof(int), current_chunk_size/sizeof(int));
+        for (int i=0; i<current_chunk_size/(sizeof(int)); i++)
+        {
+            unsigned cursor = (unsigned)(*address) + i*sizeof(int);
+            ebsp_message(">>>\t\t\t\t\t\t\t\t\t>>>>>>>> %03d: %d", i, *((int*)cursor));
+        }
+    }
+        
     if (current_chunk_size == 0)    // stream has ended
     {
         (*address) = NULL;
@@ -71,11 +90,14 @@ int get_next_chunk(void** address, unsigned stream_id, int prealloc)
         size_t chunk_size = *(int*)(in_stream->in_cursor);  // read header from ext
         void* dst = in_stream->next_in_buffer;
         void* src = in_stream->in_cursor;
+        ebsp_message("PRE pushing dma %p <- %p, size %d", dst, src, chunk_size + sizeof(int));
         ebsp_dma_push(desc, dst, src, chunk_size);  // write to next
 
         // jump over header+chunk
+        ebsp_message("PRE JUMP FR %p ", in_stream->in_cursor);
         in_stream->in_cursor = (void*) (((unsigned) (in_stream->in_cursor))
                                                  + sizeof(int) + chunk_size); 
+        ebsp_message("PRE JUMP TO %p ", in_stream->in_cursor);
     }
     else
     {

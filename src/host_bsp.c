@@ -155,7 +155,13 @@ int bsp_begin(int nprocs)
     // Set initial buffer to zero so that it can be filled by messages
     // before calling ebsp_spmd
     memset(&state.combuf, 0, sizeof(ebsp_combuf));
-    
+      
+    return 1;
+}
+
+int ebsp_spmd()
+{
+ 
     // Write stream structs to combuf + extmem
     for( int p = 0; p < _NPROCS; p++ )
     {
@@ -167,12 +173,7 @@ int bsp_begin(int nprocs)
         //TODO void*               extmem_current_out_chunk[_NPROCS];
         //TODO int                 out_buffer_size[_NPROCS];
     }
-    
-    return 1;
-}
 
-int ebsp_spmd()
-{
     // Write communication buffer containing nprocs,
     // messages and tagsize
     state.combuf.nprocs = state.nprocs_used;
