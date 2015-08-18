@@ -41,9 +41,9 @@ int main(int argc, char **argv)
     }
 
 #ifdef BENCH_HOST
-    long long time_loop, time_memcpy, time_flops;
+    long long time_loop, time_memcpy_write, time_memcpy_read, time_flops, time_core_write, time_core_read;
 
-    const unsigned chunk_size = 4*1024*1024;
+    const unsigned chunk_size = 4*1024;
     void* ext_ptr = ebsp_ext_malloc(chunk_size);
     void* local_ptr = malloc(chunk_size);
 
@@ -72,7 +72,11 @@ int main(int argc, char **argv)
         {
             reset();
             memcpy(ext_ptr, local_ptr, chunk_size);
-            time_memcpy = getElapsedNanoSec();
+            time_memcpy_write = getElapsedNanoSec();
+
+            reset();
+            memcpy(local_ptr, ext_ptr, chunk_size);
+            time_memcpy_read = getElapsedNanoSec();
         }
 
         // Timing: floating point operations
@@ -91,14 +95,31 @@ int main(int argc, char **argv)
             time_flops = getElapsedNanoSec();
         }
 
+        // Timing: write to core memory
+        {
+            reset();
+            ebsp_write(0, local_ptr, 0x0000, chunk_size);
+            time_core_write = getElapsedNanoSec();
+        }
+
+        // Timing: read from core memory
+        {
+            reset();
+            ebsp_read(0, 0x0000, local_ptr, chunk_size);
+            time_core_read = getElapsedNanoSec();
+        }
+
         ebsp_free(ext_ptr);
         free(local_ptr);
     }
 
-    printf("Host timing info:\n");
-    printf("copy by loop:\t%lld ns\t%fms\n",time_loop,1e-6f*time_loop);
-    printf("copy by memcpy:\t%lld ns\t%fms\n",time_memcpy,1e-6f*time_memcpy);
-    printf("flops loop:\t%lld ns\t%fms\n",time_flops,1e-6f*time_flops);
+    printf("Host timing info for processing %d Bytes (%d KB):\n", chunk_size, chunk_size/1024);
+    printf("write by loop:   %lld ns \t%f ms \t%f MB/s\n", time_loop,        1e-6f*time_loop        ,((1e9f/1024.0f/1024.0f)*chunk_size)/((float)time_loop));
+    printf("write by memcpy: %lld ns \t%f ms \t%f MB/s\n", time_memcpy_write,1e-6f*time_memcpy_write,((1e9f/1024.0f/1024.0f)*chunk_size)/((float)time_memcpy_write));
+    printf("read by memcpy:  %lld ns \t%f ms \t%f MB/s\n", time_memcpy_read ,1e-6f*time_memcpy_read ,((1e9f/1024.0f/1024.0f)*chunk_size)/((float)time_memcpy_read));
+    printf("write to core:   %lld ns \t%f ms \t%f MB/s\n", time_core_write,1e-6f*time_core_write,((1e9f/1024.0f/1024.0f)*chunk_size)/((float)time_core_write));
+    printf("read from core:  %lld ns \t%f ms \t%f MB/s\n", time_core_read ,1e-6f*time_core_read ,((1e9f/1024.0f/1024.0f)*chunk_size)/((float)time_core_read));
+    printf("flops loop:      %lld ns \t%f ms \t%f MB/s\n", time_flops,       1e-6f*time_flops       ,((1e9f/1024.0f/1024.0f)*chunk_size)/((float)time_flops));
 #else
     ebsp_spmd();
 #endif
