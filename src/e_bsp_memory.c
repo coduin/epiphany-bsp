@@ -29,7 +29,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include "extmem_malloc_implementation.cpp"
 
 // This variable indicates end of global vars
-// So 'end' untill 'stack' can be used by malloc
+// So 'end' until 'stack' can be used by malloc
 extern int end;
 
 // Called in bsp_begin by every core

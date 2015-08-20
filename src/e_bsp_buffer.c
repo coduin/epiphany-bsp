@@ -39,17 +39,24 @@ int get_next_chunk(void** address, unsigned stream_id, int prealloc)
             in_stream->current_in_buffer = ebsp_malloc(in_stream->max_chunksize);
 
         size_t chunk_size = *(int*)(in_stream->in_cursor);  // read header from ext
-        void* dst = in_stream->current_in_buffer;
-        void* src = in_stream->in_cursor;
-        ebsp_message("NOW pushing dma %p <- %p, size %d", dst, src, chunk_size);
-        ebsp_dma_push(desc, dst, src, chunk_size + sizeof(int));  // write to current
 
-        // jump over header+chunk
+        if (chunk_size != 0)    // stream has not ended
+        {
+            void* dst = in_stream->current_in_buffer;
+            void* src = in_stream->in_cursor;
+            ebsp_message("NOW pushing dma %p <- %p, size %d", dst, src, chunk_size);
+            ebsp_dma_push(desc, dst, src, chunk_size + sizeof(int));  // write to current
 
-        ebsp_message("NOW JUMP FR %p ", in_stream->in_cursor);
-        in_stream->in_cursor = (void*) (((unsigned) (in_stream->in_cursor))
-                                                 + sizeof(int) + chunk_size); 
-        ebsp_message("NOW JUMP TO %p ", in_stream->in_cursor);
+            // jump over header+chunk
+
+            ebsp_message("NOW JUMP FR %p ", in_stream->in_cursor);
+            in_stream->in_cursor = (void*) (((unsigned) (in_stream->in_cursor))
+                                                     + sizeof(int) + chunk_size); 
+            ebsp_message("NOW JUMP TO %p ", in_stream->in_cursor);
+        } else {
+            *((int*)in_stream->current_in_buffer) = 0;
+            ebsp_message("STREAM HAS ENDED");
+        }
     } 
     else // did prealloc last time
     { 
@@ -90,16 +97,24 @@ int get_next_chunk(void** address, unsigned stream_id, int prealloc)
             in_stream->next_in_buffer = ebsp_malloc(in_stream->max_chunksize);
 
         size_t chunk_size = *(int*)(in_stream->in_cursor);  // read header from ext
-        void* dst = in_stream->next_in_buffer;
-        void* src = in_stream->in_cursor;
-        ebsp_message("PRE pushing dma %p <- %p, size %d", dst, src, chunk_size + sizeof(int));
-        ebsp_dma_push(desc, dst, src, chunk_size);  // write to next
 
-        // jump over header+chunk
-        ebsp_message("PRE JUMP FR %p ", in_stream->in_cursor);
-        in_stream->in_cursor = (void*) (((unsigned) (in_stream->in_cursor))
-                                                 + sizeof(int) + chunk_size); 
-        ebsp_message("PRE JUMP TO %p ", in_stream->in_cursor);
+        if (chunk_size != 0)    // stream has not ended
+        {
+            void* dst = in_stream->next_in_buffer;
+            void* src = in_stream->in_cursor;
+            ebsp_message("PRE pushing dma %p <- %p, size %d", dst, src, chunk_size + sizeof(int));
+            ebsp_dma_push(desc, dst, src, chunk_size);  // write to next
+
+            // jump over header+chunk
+            ebsp_message("PRE JUMP FR %p ", in_stream->in_cursor);
+            in_stream->in_cursor = (void*) (((unsigned) (in_stream->in_cursor))
+                                                     + sizeof(int) + chunk_size); 
+            ebsp_message("PRE JUMP TO %p ", in_stream->in_cursor);
+        } else {
+            *((int*)in_stream->next_in_buffer) = 0;
+            ebsp_message("STREAM HAS ENDED");
+        }
+
     }
     else
     {
