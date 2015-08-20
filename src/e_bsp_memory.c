@@ -77,3 +77,18 @@ void EXT_MEM_TEXT ebsp_free(void* ptr)
         _free(coredata.local_malloc_base, ptr);
     }
 }
+
+void ebsp_aligned_transfer(void* dest, const void *source, size_t nbytes)
+{
+    long long* dst = (long long*)dest;
+    const long long* src = (const long long*)source;
+    int count = nbytes >> 3;
+    while (count--)
+        *dst++ = *src++;
+
+    char* dst_b = (char*)dst;
+    const char* src_b = (const char*)src;
+    count = nbytes & 0x7;
+    while (count--)
+        *dst_b++ = *src_b++;
+}

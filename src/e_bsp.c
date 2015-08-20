@@ -153,6 +153,11 @@ void bsp_sync()
     e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
 }
 
+void ebsp_barrier()
+{
+    e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
+}
+
 void ebsp_host_sync()
 {
     _write_syncstate(STATE_SYNC);
