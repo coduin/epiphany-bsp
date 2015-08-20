@@ -34,7 +34,7 @@ int main(int argc, char **argv)
     bsp_begin(bsp_nprocs());
 
     // allocate two random vectors of length 512 each
-    int l = 510;
+    int l = 512;
     int* a = (int*)malloc(sizeof(int) * l);
     int* b = (int*)malloc(sizeof(int) * l);
     for (int i = 0; i < l; ++i) {
@@ -57,8 +57,8 @@ int main(int argc, char **argv)
 
         int current_chunk_size = sizeof(int) * current_chunk_nints;
 
-        ebsp_send_buffered((void*) a_cursor, pid, current_chunk_size, 100);
-        ebsp_send_buffered((void*) b_cursor, pid, current_chunk_size, 100);
+        ebsp_send_buffered((void*) a_cursor, pid, current_chunk_size, 8);
+        ebsp_send_buffered((void*) b_cursor, pid, current_chunk_size, 8);
         
         a_cursor += current_chunk_size;
         b_cursor += current_chunk_size;
