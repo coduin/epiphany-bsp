@@ -106,3 +106,7 @@ void ebsp_dma_push(e_dma_desc_t* desc, void *dst, const void *src, size_t nbytes
 
 void ebsp_dma_wait(e_dma_desc_t* desc);
 
+/* Faster alternative to memcpy that only works if src and dst are 8-byte aligned
+ */
+void ebsp_aligned_transfer(void* dst, const void *src, size_t nbytes);
+
