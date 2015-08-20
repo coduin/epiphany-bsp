@@ -119,6 +119,11 @@ float ebsp_host_time();
 void bsp_sync();
 
 /**
+ * Synchronizes threads without resolving outstanding communication
+ */
+void ebsp_barrier();
+
+/**
  * Register a variable as available for remote access.
  * @param variable A pointer to the variable (local)
  * @param nbytes The size in bytes of the variable
