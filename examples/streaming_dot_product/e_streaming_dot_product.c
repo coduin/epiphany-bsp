@@ -39,7 +39,7 @@ int main()
         int b_size = get_next_chunk(&b, 1, 0);
        
         if (a_size != b_size) {
-            ebsp_message("mismatching chunks!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            ebsp_message("mismatching chunks!");
             ebsp_message("b_size = %d", b_size);
         }
 

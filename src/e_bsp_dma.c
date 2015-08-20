@@ -73,7 +73,6 @@ void ebsp_dma_wait(e_dma_desc_t* desc)
     volatile unsigned* dmastatusreg = e_get_global_address(e_group_config.core_row, e_group_config.core_col, (void*)E_REG_DMA1STATUS);
 
     int task_in_queue = 1;
-    int counter = 0;
     while(task_in_queue)
     {
         unsigned dmastatus = *dmastatusreg;

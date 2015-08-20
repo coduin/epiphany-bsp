@@ -67,14 +67,6 @@ int get_next_chunk(void** address, unsigned stream_id, int prealloc)
     // the counter header
     int current_chunk_size = *((int*)in_stream->current_in_buffer); 
   
-    if (coredata.pid == 0)
-    { 
-        for (int i=0; i<current_chunk_size/(sizeof(int)); i++)
-        {
-            unsigned cursor = (unsigned)(*address) + i*sizeof(int);
-        }
-    }
-        
     if (current_chunk_size == 0)    // stream has ended
     {
         (*address) = NULL;
