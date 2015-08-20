@@ -4,26 +4,31 @@
 
 void print_matrix(float* A, int matrix_size);
 
+// N * N cores
+#define N 4
+
 int main(int argc, char **argv)
 {
-    // N * N cores
-    const int N = 4;
-
-    // block_size * block_size elements per matrix per core
-    const int block_size = 32; // max 32
+    const int core_block_size = 2; // max 32
+    const int core_block_bytes = core_block_size * core_block_size * sizeof(float);
+    const int block_size = N * core_block_size;
     const int block_bytes = block_size * block_size * sizeof(float);
 
-    // Total matrix size
-    const int matrix_size = N * block_size;
+    // Initial total matrix
+    const int n = 4;
+    const int matrix_size = 1 << n;
     const int matrix_bytes = matrix_size * matrix_size * sizeof(float);
 
-    printf("%d X %d cores\n", N, N);
-    printf("%d X %d matrix = %d bytes = 0x%x bytes\n", matrix_size, matrix_size, matrix_bytes, matrix_bytes);
-    printf("%d X %d blocks per core = %d bytes = 0x%x bytes\n", block_size, block_size, block_bytes, block_bytes);
+    const int block_count = matrix_size / block_size;
 
+    printf("%d X %d cores\n", N, N);
+    printf("core_blocks: %d X %d = %d bytes = 0x%x bytes\n", core_block_size, core_block_size, core_block_bytes, core_block_bytes);
+    printf("blocks: %d X %d = %d bytes = 0x%x bytes\n", block_size, block_size, block_bytes, block_bytes);
+    printf("full matrix: %d X %d = %d bytes = 0x%x bytes\n", matrix_size, matrix_size, matrix_bytes, matrix_bytes);
+
+    // Prepare full matrix
     float* A = malloc(matrix_bytes);
     float* B = malloc(matrix_bytes);
-    float* C = malloc(matrix_bytes);
 
     for (int i = 0; i < matrix_size; i++) {
         for (int j = 0; j < matrix_size; j++) {
@@ -32,97 +37,110 @@ int main(int argc, char **argv)
         }
     }
 
-    printf("Matrix A = \n");
+    printf("Initial matrix A:\n");
     print_matrix(A, matrix_size);
-    printf("Matrix B = \n");
+    printf("Initial matrix B:\n");
     print_matrix(B, matrix_size);
+    
+    //
+    // Partition into stream
+    //
+    float* stream_A[N * N];
+    float* stream_B[N * N];
+    int cur_index_A[N * N];
+    int cur_index_B[N * N];
+
+    for (int i = 0; i < N * N; i++) {
+        cur_index_A[i] = 0;
+        cur_index_B[i] = 0;
+        stream_A[i] = malloc(matrix_bytes / (N * N));
+        stream_B[i] = malloc(matrix_bytes / (N * N));
+    }
+
+    // Loop over blocks
+    for (int block_Y = 0; block_Y < block_count; block_Y++) {
+        for (int block_X = 0; block_X < block_count; block_X++) {
+            // When A is divided in block_size * block_size blocks
+            // we want the block at block_Y, block_X
+            // So that block's top-left element is
+            // (i,j) = (block_Y * block_size , block_X * block_size)
+            // Now loop i,j from 0 to block_size and use
+            // A[ (block_Y * block_size + j) * matrix_size + (block_X * block_size + j) ]
+            //
+            // Within this block, we want to partition into 16 * 16 smaller blocks
+
+            for (int i = 0; i < block_size; i++) {
+                for (int j = 0; j < block_size; j++) {
+                    float element_A = A[ (block_Y * block_size + i) * matrix_size + (block_X * block_size + j) ];
+                    float element_B = B[ (block_X * block_size + i) * matrix_size + (block_Y * block_size + j) ];
+                    // i,j are coordinates within the block
+                    int X = j / core_block_size;
+                    int Y = i / core_block_size;
+                    //
+                    // Target processor: P(i,j) gets block_A(i,i+j) and block_B(i+j,j)
+                    //
+                    // block_A(X,Y) goes to P(X,Y-X)
+                    // block_B(X,Y) goes to P(X-Y,Y)
+                    //
+                    // P(i,j) has PID 4*i + j
+                    int pidA = 4 * X + ((Y - X + N) % N);
+                    int pidB = 4 * ((X - Y + N) % N) + Y;
+
+                    stream_A[pidA][cur_index_A[pidA]++] = element_A;
+                    stream_B[pidB][cur_index_B[pidB]++] = element_B;
+                }
+            }
+        }
+    }
+
+    for (int p = 0; p < N * N; p++) {
+        printf("Stream_A[%d] = \n", p);
+        for (int i = 0; i < cur_index_A[p]; i++)
+            printf("%5.0f ", stream_A[p][i]);
+        printf("\nStream_B[%d] = \n", p);
+        for (int i = 0; i < cur_index_B[p]; i++)
+            printf("%5.0f ", stream_B[p][i]);
+        printf("\n------------\n");
+    }
+    exit(-1);
 
     // Initialize the BSP system
     bsp_init("e_cannon.srec", argc, argv);
     bsp_begin(bsp_nprocs());
 
-    int tagsize = 4;
-    int tag = 0;
-    ebsp_set_tagsize(&tagsize);
-
-    // Partition
-
-    float* matrix_block_A = malloc(block_bytes);
-    float* matrix_block_B = malloc(block_bytes);
-
-    for (int X = 0; X < N; X++) {
-        for (int Y = 0; Y < N; Y++) {
-            // Copy block X,Y to matrix_block
-            int cur_index = 0;
-            for (int i = Y * block_size; i < (Y + 1) * block_size; i++) {
-                for (int j = X * block_size; j < (X + 1) * block_size; j++) {
-                    matrix_block_A[cur_index] = A[i * matrix_size + j];
-                    matrix_block_B[cur_index] = B[i * matrix_size + j];
-                    cur_index++;
-                }
-            }
-
-            //printf("Block A (X,Y) = (%d,%d):\n", X, Y);
-            //print_matrix(matrix_block_A, block_size);
-            //printf("Block B (X,Y) = (%d,%d):\n", X, Y);
-            //print_matrix(matrix_block_B, block_size);
-
-            // Target processor: P(i,j) gets A(i,i+j) and B(i+j,j)
-            //
-            // A(X,Y) goes to P(X,Y-X)
-            // B(X,Y) goes to P(X-Y,Y)
-            //
-            // P(i,j) has PID 4*i + j
-
-            int pidA = 4 * X + ((Y - X + N) % N);
-            int pidB = 4 * ((X - Y + N) % N) + Y;
-
-            tag = 1;
-            ebsp_send_down(pidA, &tag, matrix_block_A, block_bytes);
-            tag = 2;
-            ebsp_send_down(pidB, &tag, matrix_block_B, block_bytes);
-        }
-    }
-
     ebsp_spmd();
 
-    int packets = 0;
-    int accum_bytes = 0;
-    int status = 0;
-
-    ebsp_qsize(&packets, &accum_bytes);
-    tagsize = ebsp_get_tagsize();
-
-    float * matrix_block_C = matrix_block_A;
-    for (int i = 0; i < packets; i++)
-    {
-        ebsp_get_tag(&status, &tag);
-
-        int X = tag / N;
-        int Y = tag % N;
-        ebsp_move(matrix_block_C, block_size * block_size * sizeof(float));
-
-        int cur_index = 0;
-        for (int i = Y * block_size; i < (Y + 1) * block_size; i++) {
-            for (int j = X * block_size; j < (X + 1) * block_size; j++) {
-                C[i * matrix_size + j] = matrix_block_C[cur_index++];
-            }
-        }
-    }
-
-    free(matrix_block_A);
-    free(matrix_block_B);
+//    int packets = 0;
+//    int accum_bytes = 0;
+//    int status = 0;
+//
+//    ebsp_qsize(&packets, &accum_bytes);
+//    tagsize = ebsp_get_tagsize();
+//
+//    float * matrix_block_C = matrix_block_A;
+//    for (int i = 0; i < packets; i++)
+//    {
+//        ebsp_get_tag(&status, &tag);
+//
+//        int X = tag / N;
+//        int Y = tag % N;
+//        ebsp_move(matrix_block_C, block_size * block_size * sizeof(float));
+//
+//        int cur_index = 0;
+//        for (int i = Y * block_size; i < (Y + 1) * block_size; i++) {
+//            for (int j = X * block_size; j < (X + 1) * block_size; j++) {
+//                C[i * matrix_size + j] = matrix_block_C[cur_index++];
+//            }
+//        }
+//    }
+//
+//    free(matrix_block_A);
+//    free(matrix_block_B);
 
     bsp_end();
 
-    // Print results
-
-    //printf("C = \n");
-    //print_matrix(C, matrix_size);
-
     free(A);
     free(B);
-    free(C);
 }
 
 void print_matrix(float* A, int matrix_size)
