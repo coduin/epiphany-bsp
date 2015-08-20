@@ -210,12 +210,6 @@ void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int chunksize)
 
     (*(int*)dst_cursor) = 0; // write terminating header
 
-    ///DEBUG
-    unsigned tmp = (unsigned)extmem_in_buffer;
-    for(int i=0; i<nbytes_including_headers; i+=sizeof(int))
-        printf("send_buffered %03d:\t%d\n",i/sizeof(int),*(int*)(tmp+i));
-    ///\DEBUG
-
     // 3) add stream to state
     _ebsp_add_stream(dst_core_id, extmem_in_buffer, nbytes_including_headers, chunksize);
 }

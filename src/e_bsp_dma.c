@@ -88,9 +88,6 @@ void ebsp_dma_wait(e_dma_desc_t* desc)
         // Follow path to see if 'desc' still has to be done
         task_in_queue = 0;
         for(;;) {
-            if (counter++ % 64 == 0)//!!!!!!!
-                ebsp_message("(%05d) dmastatus = %p", counter,dmastatus);
-
             if (cur == 0)
                 break;
             if (cur == desc) {

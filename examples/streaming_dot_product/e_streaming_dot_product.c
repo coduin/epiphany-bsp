@@ -35,7 +35,6 @@ int main()
     void* b = 0;
     int counter = 0;
 
-    ebsp_message("the loop");
     while (1){
         int a_size = get_next_chunk(&a, 0, 1);
         int b_size = get_next_chunk(&b, 1, 1);
@@ -44,8 +43,6 @@ int main()
             ebsp_message("mismatching chunks!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
             ebsp_message("b_size = %d", b_size);
         }
-
-        ebsp_message("a_size = %d", a_size);
 
         if (a_size == 0)
             break;
@@ -56,10 +53,8 @@ int main()
             int bi = *((int*)((unsigned)b + offset));
             counter += ai*bi;
         }
-        ebsp_message("counter = %d", counter);
     }
 
-    ebsp_message("done counting!");
     // A sync is required between getting messages
     // from host and sending them back
     bsp_sync();
