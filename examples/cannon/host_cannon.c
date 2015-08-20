@@ -1,29 +1,22 @@
 #include <host_bsp.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "common.h"
 
 void print_matrix(float* A, int matrix_size);
 
-// N * N cores
-#define N 4
-
 int main(int argc, char **argv)
 {
-    const int core_block_size = 2; // max 32
-    const int core_block_bytes = core_block_size * core_block_size * sizeof(float);
-    const int block_size = N * core_block_size;
-    const int block_bytes = block_size * block_size * sizeof(float);
-
     // Initial total matrix
     const int n = 4;
     const int matrix_size = 1 << n;
     const int matrix_bytes = matrix_size * matrix_size * sizeof(float);
 
-    const int block_count = matrix_size / block_size;
+    const int block_count = matrix_size / BLOCK_SIZE;
 
     printf("%d X %d cores\n", N, N);
-    printf("core_blocks: %d X %d = %d bytes = 0x%x bytes\n", core_block_size, core_block_size, core_block_bytes, core_block_bytes);
-    printf("blocks: %d X %d = %d bytes = 0x%x bytes\n", block_size, block_size, block_bytes, block_bytes);
+    printf("core_blocks: %d X %d = %d bytes = 0x%x bytes\n", CORE_BLOCK_SIZE, CORE_BLOCK_SIZE, CORE_BLOCK_BYTES, CORE_BLOCK_BYTES);
+    printf("blocks: %d X %d = %d bytes = 0x%x bytes\n", BLOCK_SIZE, BLOCK_SIZE, BLOCK_BYTES, BLOCK_BYTES);
     printf("full matrix: %d X %d = %d bytes = 0x%x bytes\n", matrix_size, matrix_size, matrix_bytes, matrix_bytes);
 
     // Prepare full matrix
@@ -60,22 +53,22 @@ int main(int argc, char **argv)
     // Loop over blocks
     for (int block_Y = 0; block_Y < block_count; block_Y++) {
         for (int block_X = 0; block_X < block_count; block_X++) {
-            // When A is divided in block_size * block_size blocks
+            // When A is divided in BLOCK_SIZE * BLOCK_SIZE blocks
             // we want the block at block_Y, block_X
             // So that block's top-left element is
-            // (i,j) = (block_Y * block_size , block_X * block_size)
-            // Now loop i,j from 0 to block_size and use
-            // A[ (block_Y * block_size + j) * matrix_size + (block_X * block_size + j) ]
+            // (i,j) = (block_Y * BLOCK_SIZE , block_X * BLOCK_SIZE)
+            // Now loop i,j from 0 to BLOCK_SIZE and use
+            // A[ (block_Y * BLOCK_SIZE + j) * matrix_size + (block_X * BLOCK_SIZE + j) ]
             //
             // Within this block, we want to partition into 16 * 16 smaller blocks
 
-            for (int i = 0; i < block_size; i++) {
-                for (int j = 0; j < block_size; j++) {
-                    float element_A = A[ (block_Y * block_size + i) * matrix_size + (block_X * block_size + j) ];
-                    float element_B = B[ (block_X * block_size + i) * matrix_size + (block_Y * block_size + j) ];
+            for (int i = 0; i < BLOCK_SIZE; i++) {
+                for (int j = 0; j < BLOCK_SIZE; j++) {
+                    float element_A = A[ (block_Y * BLOCK_SIZE + i) * matrix_size + (block_X * BLOCK_SIZE + j) ];
+                    float element_B = B[ (block_X * BLOCK_SIZE + i) * matrix_size + (block_Y * BLOCK_SIZE + j) ];
                     // i,j are coordinates within the block
-                    int X = j / core_block_size;
-                    int Y = i / core_block_size;
+                    int X = j / CORE_BLOCK_SIZE;
+                    int Y = i / CORE_BLOCK_SIZE;
                     //
                     // Target processor: P(i,j) gets block_A(i,i+j) and block_B(i+j,j)
                     //
@@ -102,42 +95,27 @@ int main(int argc, char **argv)
             printf("%5.0f ", stream_B[p][i]);
         printf("\n------------\n");
     }
-    exit(-1);
 
     // Initialize the BSP system
+    printf("\a\n");
     bsp_init("e_cannon.srec", argc, argv);
     bsp_begin(bsp_nprocs());
 
+    int tagsize = 4;
+    int tag = 1;
+    ebsp_set_tagsize(&tagsize);
+
+    for (int s = 0; s < N * N; s++) {
+        ebsp_send_buffered(stream_A[s], s, matrix_bytes / (N * N), CORE_BLOCK_BYTES);
+        ebsp_send_buffered(stream_B[s], s, matrix_bytes / (N * N), CORE_BLOCK_BYTES);
+        ebsp_send_down(s, &tag, &matrix_size, sizeof(int));
+    }
+
+    // TODO: callback with gather
     ebsp_spmd();
 
-//    int packets = 0;
-//    int accum_bytes = 0;
-//    int status = 0;
-//
-//    ebsp_qsize(&packets, &accum_bytes);
-//    tagsize = ebsp_get_tagsize();
-//
-//    float * matrix_block_C = matrix_block_A;
-//    for (int i = 0; i < packets; i++)
-//    {
-//        ebsp_get_tag(&status, &tag);
-//
-//        int X = tag / N;
-//        int Y = tag % N;
-//        ebsp_move(matrix_block_C, block_size * block_size * sizeof(float));
-//
-//        int cur_index = 0;
-//        for (int i = Y * block_size; i < (Y + 1) * block_size; i++) {
-//            for (int j = X * block_size; j < (X + 1) * block_size; j++) {
-//                C[i * matrix_size + j] = matrix_block_C[cur_index++];
-//            }
-//        }
-//    }
-//
-//    free(matrix_block_A);
-//    free(matrix_block_B);
-
     bsp_end();
+    printf("\a\n");
 
     free(A);
     free(B);
