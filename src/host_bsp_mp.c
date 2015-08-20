@@ -178,7 +178,6 @@ void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int max_chunksiz
 {
     int nchunks = (nbytes + max_chunksize - 1)/max_chunksize; // nbytes/chunksize rounded up
 
-    printf("nchunks: %d\n", nchunks);
     int nbytes_including_headers = nbytes + nchunks*sizeof(int) + sizeof(int); // the +sizeof(int) is the terminating header
 
     // 1) malloc in extmem
@@ -198,7 +197,6 @@ void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int max_chunksiz
     {
         if (nbytes_left < max_chunksize)
             current_chunksize = nbytes_left;
-        printf("chunksize: %d\n", current_chunksize);
 
         (*(int*)dst_cursor) = current_chunksize; // write header
         dst_cursor += sizeof(int);

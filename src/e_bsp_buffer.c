@@ -60,7 +60,7 @@ int get_next_chunk(void** address, unsigned stream_id, int prealloc)
     }
 
     // *address points after the counter header
-    (*address) = (void*) ((unsigned)in_stream->current_in_buffer+sizeof(int));
+    (*address) = (void*) ((unsigned)in_stream->current_in_buffer + sizeof(int));
     
     ebsp_dma_wait(desc);
 
