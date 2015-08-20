@@ -119,9 +119,15 @@ float ebsp_host_time();
 void bsp_sync();
 
 /**
- * Synchronizes threads without resolving outstanding communication
+ * Synchronizes cores without resolving outstanding communication
  */
 void ebsp_barrier();
+
+/**
+ * Synchronizes with the host processor without resolving outstanding
+ * communication.
+ */
+void ebsp_host_sync();
 
 /**
  * Register a variable as available for remote access.
@@ -424,6 +430,44 @@ void* ebsp_malloc(unsigned int nbytes);
  *            or by ebsp_malloc()
  */
 void ebsp_free(void* ptr);
+
+
+#define ALIGN(x)    __attribute__ ((aligned (x)))
+
+typedef struct
+{
+    unsigned config;
+    unsigned inner_stride;
+    unsigned count;
+    unsigned outer_stride;
+    void    *src_addr;
+    void    *dst_addr;
+} ALIGN(8) ebsp_dma_handle;
+
+/**
+ * Push a new task to the DMA engine
+ * @param desc   Used in combination with ebsp_dma_wait(). It is completely filled by this function
+ * @param dst    Destination address
+ * @param src    Source address
+ * @param nbytes Amount of bytes to be copied
+ *
+ * Assumes previous task in `desc` is completed (use ebsp_dma_wait())
+ */
+void ebsp_dma_push(ebsp_dma_handle* desc, void *dst, const void *src, size_t nbytes);
+
+/**
+ * Wait for the task to be completed.
+ */
+void ebsp_dma_wait(ebsp_dma_handle* desc);
+
+/**
+ * Get a raw remote memory address for a variable
+ * that was registered using bsp_push_reg()
+ * @param pid Remote core id
+ * @param variable An address that was registered using bsp_push_reg
+ * @return A pointer to the remote variable, or 0 if it was not registered
+ */
+void* ebsp_get_raw_address(int pid, const void* variable);
 
 /**
  * Output a debug message printf style.

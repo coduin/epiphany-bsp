@@ -163,3 +163,7 @@ void bsp_hpget(int pid, const void *src, int offset, void *dst, int nbytes)
     memcpy(dst, src_remote, nbytes);
 }
 
+void* ebsp_get_raw_address(int pid, const void* variable)
+{
+    return _get_remote_addr(pid, variable, 0);
+}

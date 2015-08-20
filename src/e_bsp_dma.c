@@ -44,9 +44,10 @@ void prepare_descriptor(e_dma_desc_t* desc, void *dst, const void *src, size_t n
 }
 
 
-void ebsp_dma_push(e_dma_desc_t* desc, void *dst, const void *src, size_t nbytes)
+void ebsp_dma_push(ebsp_dma_handle* descriptor, void *dst, const void *src, size_t nbytes)
 {
     if (nbytes == 0) return;
+    e_dma_desc_t* desc = (e_dma_desc_t*)descriptor;
 
     // Set the contents of the descriptor
     prepare_descriptor(desc, dst, src, nbytes);
@@ -66,8 +67,9 @@ void ebsp_dma_push(e_dma_desc_t* desc, void *dst, const void *src, size_t nbytes
     return;
 }
 
-void ebsp_dma_wait(e_dma_desc_t* desc)
+void ebsp_dma_wait(ebsp_dma_handle* descriptor)
 {
+    e_dma_desc_t* desc = (e_dma_desc_t*)descriptor;
     volatile unsigned* dmastatusreg = e_get_global_address(e_group_config.core_row, e_group_config.core_col, (void*)E_REG_DMA1STATUS);
 
     int task_in_queue = 1;

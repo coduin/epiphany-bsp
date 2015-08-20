@@ -10,15 +10,6 @@ void matrix_multiply_add(float* A, float* B, float* C);
 
 void ebsp_set_head(int, int);
 
-void ebsp_aligned_transfer(void* dest, const void* source, int nbytes)
-{
-    long long* dst = (long long*)dest;
-    const long long* src = (const long long*)source;
-    int count = nbytes >> 3;
-    while(count--)
-        *dst++ = *src++;
-}
-
 int main()
 {
     bsp_begin();
@@ -33,13 +24,18 @@ int main()
     float* a_data[2];
     float* b_data[2];
     float* c_data;
+    // neighbor buffer locations
+    void* neighbor_a_data[2];
+    void* neighbor_b_data[2];
 
+    // Allocate local buffers
     a_data[0] = ebsp_malloc(CORE_BLOCK_BYTES);
     a_data[1] = ebsp_malloc(CORE_BLOCK_BYTES);
     b_data[0] = ebsp_malloc(CORE_BLOCK_BYTES);
     b_data[1] = ebsp_malloc(CORE_BLOCK_BYTES);
-    c_data    = ebsp_malloc(CORE_BLOCK_BYTES);
+    c_data    = ebsp_open_out_stream(CORE_BLOCK_BYTES, 0);
 
+    // Register their locations
     bsp_push_reg(a_data[0], CORE_BLOCK_BYTES);
     bsp_sync();
     bsp_push_reg(a_data[1], CORE_BLOCK_BYTES);
@@ -48,10 +44,21 @@ int main()
     bsp_sync();
     bsp_push_reg(b_data[1], CORE_BLOCK_BYTES);
     bsp_sync();
+   
+    // Obtain neighbor locations
+    neighor_a_data[0] = ebsp_get_raw_address(a_neighbor, &a_data[0]);
+    neighor_a_data[1] = ebsp_get_raw_address(a_neighbor, &a_data[1]);
+    neighor_b_data[0] = ebsp_get_raw_address(a_neighbor, &b_data[0]);
+    neighor_b_data[1] = ebsp_get_raw_address(a_neighbor, &b_data[1]);
 
     int n = 0;
     get_matrix_size(&n);
     n /= BLOCK_SIZE;
+
+    ebsp_dma_handle dma_handle_a;
+    ebsp_dma_handle dma_handle_b;
+
+    ebsp_host_sync();
 
     ebsp_raw_time();
     
@@ -60,11 +67,14 @@ int main()
     {
         if (cur_block != 0) {
             if (cur_block % (n * n) == 0) {
-                ebsp_set_head(1, // stream id
+                ebsp_move_cursor(1, // stream id
                         -(n * n)); // relative chunk count
             } else if (cur_block % n == 0) {
-                ebsp_set_head(0, // stream id
+                ebsp_move_cursor(0, // stream id
                         -n); // relative chunk count
+                // Send result of C upwards
+                //TODO
+                //ebsp_send_out_chunk(c_data);
             }
         }
 
@@ -73,10 +83,10 @@ int main()
             c_data[i] = 0;
 
         // Obtain A, B
-        get_next_chunk(a_data[0], // address
+        ebsp_get_next_chunk(a_data[0], // address
            0, // stream id
            0);// unbuffered mode
-        get_next_chunk(b_data[0], // address
+        ebsp_get_next_chunk(b_data[0], // address
                 1, // stream id
                 0);// unbuffered mode
 
@@ -94,8 +104,10 @@ int main()
             // P(i,j) has PID 4*i + j
 
             // Send A,B to next core's "buffer"
-            bsp_hpput(a_neighbor, &a_data[cur], &a_data[cur_buffer], 0, CORE_BLOCK_BYTES);
-            bsp_hpput(b_neighbor, &b_data[cur], &b_data[cur_buffer], 0, CORE_BLOCK_BYTES);
+            if (i != N - 1) {
+                ebsp_dma_push(&dma_handle_a, neighor_a_data[cur_buffer], a_data[cur], CORE_BLOCK_BYTES);
+                ebsp_dma_push(&dma_handle_b, neighor_b_data[cur_buffer], b_data[cur], CORE_BLOCK_BYTES);
+            }
 
             // Perform C += A * B
             matrix_multiply_add(a_data[cur], b_data[cur], c_data);
@@ -107,13 +119,17 @@ int main()
             cur_buffer = (cur_buffer + 1) % 2;
             cur = (cur + 1) % 2;
 
-            bsp_sync();
+            ebsp_dma_wait(&dma_handle_a);
+            ebsp_dma_wait(&dma_handle_b);
+
+            ebsp_barrier();
         }
-        // TODO: Send result of C upwards
     }
     unsigned time = ebsp_raw_time();
 
     ebsp_message("cycles = %u, %f ms", time, time/600000.0f);
+
+    ebsp_close_out_stream(c_data);
 
     bsp_end();
 }

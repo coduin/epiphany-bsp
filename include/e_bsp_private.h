@@ -94,18 +94,6 @@ extern ebsp_core_data coredata;
 
 void _init_local_malloc();
 
-/* Push a new task to the DMA engine
- * @param desc   Is completely filled by this function
- * @param dst    Destination address
- * @param src    Source address
- * @param nbytes Amount of bytes to be copied
- *
- * Assumes previous task in `desc` is completed (use ebsp_dma_wait())
- */
-void ebsp_dma_push(e_dma_desc_t* desc, void *dst, const void *src, size_t nbytes);
-
-void ebsp_dma_wait(e_dma_desc_t* desc);
-
 /* Faster alternative to memcpy that only works if src and dst are 8-byte aligned
  */
 void ebsp_aligned_transfer(void* dst, const void *src, size_t nbytes);

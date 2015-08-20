@@ -5,28 +5,34 @@
 
 void print_matrix(float* A, int matrix_size);
 
+float* C;
+void* out_streams[N * N];
+
+void sync_callback();
+
+// Initial total matrix
+const int k = 4;
+const int matrix_size = 1 << k;
+const int matrix_bytes = matrix_size * matrix_size * sizeof(float);
+
+const int block_count = matrix_size / BLOCK_SIZE;
+
 int main(int argc, char **argv)
 {
-    // Initial total matrix
-    const int n = 4;
-    const int matrix_size = 1 << n;
-    const int matrix_bytes = matrix_size * matrix_size * sizeof(float);
-
-    const int block_count = matrix_size / BLOCK_SIZE;
-
     printf("%d X %d cores\n", N, N);
     printf("core_blocks: %d X %d = %d bytes = 0x%x bytes\n", CORE_BLOCK_SIZE, CORE_BLOCK_SIZE, CORE_BLOCK_BYTES, CORE_BLOCK_BYTES);
     printf("blocks: %d X %d = %d bytes = 0x%x bytes\n", BLOCK_SIZE, BLOCK_SIZE, BLOCK_BYTES, BLOCK_BYTES);
-    printf("full matrix: %d X %d = %d bytes = 0x%x bytes\n", matrix_size, matrix_size, matrix_bytes, matrix_bytes);
-
+    printf("full matrix: %d X %d = %d bytes = 0x%x bytes\n", matrix_size, matrix_size, matrix_bytes, matrix_bytes); 
     // Prepare full matrix
     float* A = malloc(matrix_bytes);
     float* B = malloc(matrix_bytes);
+    C = malloc(matrix_bytes);
 
     for (int i = 0; i < matrix_size; i++) {
         for (int j = 0; j < matrix_size; j++) {
             A[i * matrix_size + j] = (float)i;
             B[i * matrix_size + j] = (float)j;
+            C[i * matrix_size + j] = 0;
         }
     }
 
@@ -101,6 +107,8 @@ int main(int argc, char **argv)
     bsp_init("e_cannon.srec", argc, argv);
     bsp_begin(bsp_nprocs());
 
+    ebsp_set_sync_callback(sync_callback);
+
     int tagsize = 4;
     int tag = 1;
     ebsp_set_tagsize(&tagsize);
@@ -109,16 +117,50 @@ int main(int argc, char **argv)
         ebsp_send_buffered(stream_A[s], s, matrix_bytes / (N * N), CORE_BLOCK_BYTES);
         ebsp_send_buffered(stream_B[s], s, matrix_bytes / (N * N), CORE_BLOCK_BYTES);
         ebsp_send_down(s, &tag, &matrix_size, sizeof(int));
+        ebsp_open_out_stream(s, // core id
+                CORE_BLOCK_BYTES, // stream size
+                &out_streams[s] ); // pointer
     }
 
-    // TODO: callback with gather
     ebsp_spmd();
+
+    // Gather C
+    // Loop over blocks
+    for (int s = 0; s < N * N; s++)
+        cur_index[s] = 0;
+
+    for (int block_Y = 0; block_Y < block_count; block_Y++) {
+        for (int block_X = 0; block_X < block_count; block_X++) {
+            for (int s = 0; s < N * N; s++) {
+                int s_i = s / N;
+                int s_j = s % N;
+                int c_i = s_i * CORE_BLOCK_SIZE;
+                int c_j = s_j * CORE_BLOCK_SIZE;
+                for (int i = 0; i < CORE_BLOCK_SIZE; i++) {
+                    for (int j = 0; j < CORE_BLOCK_SIZE; j++) {
+                        C[ (block_Y * BLOCK_SIZE + c_i + i) * matrix_size + (block_X * BLOCK_SIZE + c_j + j) ] = out_streams[s][cur_index[s]++];
+                    }
+                }
+            }
+        }
+    }
 
     bsp_end();
     printf("\a\n");
 
     free(A);
     free(B);
+}
+
+void sync_callback()
+{
+    printf("Syncing");
+    for (int i = 0; i < 30; i++) {
+        printf(".");
+        fflush(stdout);
+        usleep(100000);
+    }
+    printf("\n");
 }
 
 void print_matrix(float* A, int matrix_size)
