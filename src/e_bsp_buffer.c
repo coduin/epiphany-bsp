@@ -34,7 +34,7 @@ int get_next_chunk(void** address, unsigned stream_id, int prealloc)
     if (in_stream->next_in_buffer == NULL) // did not prealloc last time
     {
         if (in_stream->current_in_buffer == NULL) // first time get_next_chunk is called!
-            in_stream->current_in_buffer = ebsp_malloc(in_stream->max_chunksize);
+            in_stream->current_in_buffer = ebsp_malloc(in_stream->max_chunksize + sizeof(int));
 
         size_t chunk_size = *(int*)(in_stream->in_cursor);  // read header from ext
 
@@ -84,7 +84,7 @@ int get_next_chunk(void** address, unsigned stream_id, int prealloc)
     if (prealloc)
     {
         if (in_stream->next_in_buffer == NULL)
-            in_stream->next_in_buffer = ebsp_malloc(in_stream->max_chunksize);
+            in_stream->next_in_buffer = ebsp_malloc(in_stream->max_chunksize + sizeof(int));
 
         size_t chunk_size = *(int*)(in_stream->in_cursor);  // read header from ext
 

@@ -33,11 +33,10 @@ int main()
     int sum = 0;
     void* a = 0;
     void* b = 0;
-    int counter = 0;
 
     while (1){
-        int a_size = get_next_chunk(&a, 0, 1);
-        int b_size = get_next_chunk(&b, 1, 1);
+        int a_size = get_next_chunk(&a, 0, 0);
+        int b_size = get_next_chunk(&b, 1, 0);
        
         if (a_size != b_size) {
             ebsp_message("mismatching chunks!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
@@ -51,7 +50,7 @@ int main()
         {
             int ai = *((int*)((unsigned)a + offset));
             int bi = *((int*)((unsigned)b + offset));
-            counter += ai*bi;
+            sum += ai*bi;
         }
     }
 

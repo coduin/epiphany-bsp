@@ -174,11 +174,11 @@ int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
 
 
 
-void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int chunksize)
+void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int max_chunksize)
 {
-    int nchunks = (nbytes + chunksize - 1)/chunksize; // nbytes/chunksize rounded up
-    int last_chunksize = ((nbytes-1) % chunksize) + 1; // ]0, chunk_size]
-    
+    int nchunks = (nbytes + max_chunksize - 1)/max_chunksize; // nbytes/chunksize rounded up
+
+    printf("nchunks: %d\n", nchunks);
     int nbytes_including_headers = nbytes + nchunks*sizeof(int) + sizeof(int); // the +sizeof(int) is the terminating header
 
     // 1) malloc in extmem
@@ -192,18 +192,19 @@ void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int chunksize)
     // 2) copy the data to extmem, inserting headers
     unsigned dst_cursor = (unsigned)extmem_in_buffer;
     unsigned src_cursor = (unsigned)src;
-    int current_chunksize = chunksize;
-
-    for (int chunki = 0; chunki < nchunks; chunki++)
+    
+    int current_chunksize = max_chunksize;
+    for (int nbytes_left = nbytes; nbytes_left > 0; nbytes_left -= max_chunksize)
     {
-        if (chunki == nchunks - 1) // last chunk can be smaller
-            current_chunksize = last_chunksize;
+        if (nbytes_left < max_chunksize)
+            current_chunksize = nbytes_left;
+        printf("chunksize: %d\n", current_chunksize);
 
         (*(int*)dst_cursor) = current_chunksize; // write header
         dst_cursor += sizeof(int);
         
         memcpy((void*) dst_cursor, (void*) src_cursor, current_chunksize);
-
+        
         dst_cursor += current_chunksize;
         src_cursor += current_chunksize;
     }
@@ -211,7 +212,7 @@ void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int chunksize)
     (*(int*)dst_cursor) = 0; // write terminating header
 
     // 3) add stream to state
-    _ebsp_add_stream(dst_core_id, extmem_in_buffer, nbytes_including_headers, chunksize);
+    _ebsp_add_stream(dst_core_id, extmem_in_buffer, nbytes_including_headers, max_chunksize);
 }
 
 void ebsp_send_buffered_raw(void* src, int dst_core_id, int nbytes, int max_chunksize)
