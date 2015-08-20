@@ -35,6 +35,9 @@ const char err_pushreg_overflow[] EXT_MEM_RO =
 const char err_var_not_found[]    EXT_MEM_RO =
     "BSP ERROR: could not find bsp var %p";
 
+const char err_pop_reg_not_implemented[]  EXT_MEM_RO =
+    "BSP ERROR: Function bsp_pop_reg not implemented";
+
 const char err_get_overflow[]     EXT_MEM_RO =
     "BSP ERROR: too many bsp_get requests per sync";
 
@@ -61,7 +64,7 @@ void* _get_remote_addr(int pid, const void *addr, int offset)
     return 0;
 }
 
-void bsp_push_reg(const void* variable, const int nbytes)
+void EXT_MEM_TEXT bsp_push_reg(const void* variable, const int nbytes)
 {
     if (coredata.var_pushed)
         return ebsp_message(err_pushreg_multiple);
@@ -75,12 +78,13 @@ void bsp_push_reg(const void* variable, const int nbytes)
     coredata.var_pushed = 1;
 }
 
-void bsp_pop_reg(const void* variable)
+void EXT_MEM_TEXT bsp_pop_reg(const void* variable)
 {
+    ebsp_message(err_pop_reg_not_implemented);
     return;
 }
 
-void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes)
+void EXT_MEM_TEXT bsp_put(int pid, const void *src, void *dst, int offset, int nbytes)
 {
     // Check if we can store the request
     if (coredata.request_counter >= MAX_DATA_REQUESTS)
@@ -137,7 +141,7 @@ void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
     memcpy(dst_remote, src, nbytes);
 }
 
-void bsp_get(int pid, const void *src, int offset, void *dst, int nbytes)
+void EXT_MEM_TEXT bsp_get(int pid, const void *src, int offset, void *dst, int nbytes)
 {
     if (coredata.request_counter >= MAX_DATA_REQUESTS)
         return ebsp_message(err_get_overflow);
