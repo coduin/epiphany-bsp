@@ -26,7 +26,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <string.h>
 
 
-int get_next_chunk(void** address, unsigned stream_id, int prealloc)
+int ebsp_get_next_chunk(void** address, unsigned stream_id, int prealloc)
 {
     ebsp_in_stream_descriptor* in_stream = coredata.local_in_streams + stream_id*sizeof(ebsp_in_stream_descriptor);
     e_dma_desc_t* desc = (e_dma_desc_t*) &(in_stream->e_dma_desc);
@@ -107,18 +107,16 @@ int get_next_chunk(void** address, unsigned stream_id, int prealloc)
     return current_chunk_size;
 }
 
+
+
+
+
+
+
+
+
+
 /*
-void* ebsp_get_in_chunk() {//TODO rewrite
-    coredata.exmem_next_in_chunk += IN_CHUNK_SIZE;
-
-    void* tmp = coredata.buffer_in_current;
-    coredata.buffer_in_current = coredata.buffer_in_next;
-    coredata.buffer_in_next    = tmp;
-
-    ebsp_dma_copy_parallel( E_DMA_0, coredata.buffer_in_next, coredata.exmem_next_in_chunk, (size_t) IN_CHUNK_SIZE );//REPLACE BY QUEUE
-    return coredata.buffer_in_current;
-}
-
 void* ebsp_get_out_chunk() {
     coredata.exmem_current_out_chunk += OUT_CHUNK_SIZE;//TODO Change OUT_CHUNK_SIZE to var passed down 
     //FIXME check for overflow

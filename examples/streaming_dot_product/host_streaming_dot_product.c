@@ -43,7 +43,6 @@ int main(int argc, char **argv)
     }
 
     // partition and write to processors
-    
     int big_chunk_nints = (l + bsp_nprocs() - 1) / bsp_nprocs();
     int small_chunk_nints = big_chunk_nints-1;
     int n_big = l + bsp_nprocs() * ( 1 - big_chunk_nints );
@@ -64,10 +63,7 @@ int main(int argc, char **argv)
         a_cursor += current_chunk_size;
         b_cursor += current_chunk_size;
     }
-    //TODO write client side
-    //TODO malloc the first time ebsp_get_chunk is used
 
-    // run dotproduct
     ebsp_spmd();
 
     // read output

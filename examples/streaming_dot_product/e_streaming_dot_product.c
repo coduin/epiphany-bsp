@@ -35,8 +35,8 @@ int main()
     void* b = 0;
 
     while (1){
-        int a_size = get_next_chunk(&a, 0, 0);
-        int b_size = get_next_chunk(&b, 1, 0);
+        int a_size = ebsp_get_next_chunk(&a, 0, 0);
+        int b_size = ebsp_get_next_chunk(&b, 1, 0);
        
         if (a_size != b_size) {
             ebsp_message("mismatching chunks!");
@@ -54,8 +54,6 @@ int main()
         }
     }
 
-    // A sync is required between getting messages
-    // from host and sending them back
     bsp_sync();
 
     int tag = p;
