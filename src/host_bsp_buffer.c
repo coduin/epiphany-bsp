@@ -95,35 +95,35 @@ void ebsp_send_buffered_raw(void* src, int dst_core_id, int nbytes, int max_chun
 }
 
 
-// add ebsp_stream_descriptor to state.buffered_in_streams, update state.n_in_streams
+// add ebsp_stream_descriptor to state.buffered_streams, update state.n_streams
 void _ebsp_add_stream(int dst_core_id, void* extmem_in_buffer, int nbytes, int max_chunksize)
 {
-    if (state.combuf.n_in_streams[dst_core_id] == MAX_N_IN_STREAMS)
+    if (state.combuf.n_streams[dst_core_id] == MAX_N_STREAMS)
     {
-        printf("ERROR: state.combuf.n_in_streams >= MAX_N_IN_STREAMS\n");
+        printf("ERROR: state.combuf.n_streams >= MAX_N_STREAMS\n");
         return;
     }
 
-    ebsp_in_stream_descriptor x;
+    ebsp_stream_descriptor x;
 
-    x.extmem_in_addr    = _arm_to_e_pointer(extmem_in_buffer);
-    x.in_cursor         = x.extmem_in_addr;
+    x.extmem_addr    = _arm_to_e_pointer(extmem_in_buffer);
+    x.cursor         = x.extmem_addr;
     x.nbytes            = nbytes;
     x.max_chunksize     = max_chunksize;
     memset(&x.e_dma_desc, 0, sizeof(e_dma_desc_host_t));
-    x.current_in_buffer = NULL;
-    x.next_in_buffer    = NULL;
+    x.current_buffer = NULL;
+    x.next_buffer    = NULL;
 
-    state.buffered_in_streams[dst_core_id][state.combuf.n_in_streams[dst_core_id]] = x;
-    state.combuf.n_in_streams[dst_core_id]++;
+    state.buffered_streams[dst_core_id][state.combuf.n_streams[dst_core_id]] = x;
+    state.combuf.n_streams[dst_core_id]++;
 }
 
-
+/*
 void ebsp_get_buffered(int nbytes)
 {
     // 1) malloc in extmem
     void* extmem_out_buffer = ebsp_ext_malloc(nbytes);
-    if (extmem_in_buffer == 0)
+    if (extmem_out_buffer == 0)
     {
         printf("ERROR: not enough memory in extmem for ebsp_get_buffered\n");
         return;
@@ -131,20 +131,6 @@ void ebsp_get_buffered(int nbytes)
 
     // 2) add stream to state
     _ebsp_add_stream(dst_core_id, extmem_in_buffer, nbytes_including_headers, max_chunksize);
-}
+}*/
 
-
-
-/*
-void ebsp_get_buffered(int dst_core_id, int max_nbytes, int chunksize)
-{   //TODO fix (must now pass chunksize down)
-    void* exmem_out_buffer = ebsp_ext_malloc(max_nbytes);
-    if (exmem_out_buffer == 0)
-    {
-        printf("ERROR: not enough memory in exmem for ebsp_get_buffered\n");
-        return;
-    }
-    state.combuf.exmem_current_out_chunk[dst_core_id] = _arm_to_e_pointer(exmem_out_buffer);
-}
-*/
 

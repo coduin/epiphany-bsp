@@ -29,7 +29,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #define __USE_POSIX199309 1
 #include <time.h>
 
-#define MAX_N_IN_STREAMS 1000
+#define MAX_N_STREAMS 1000
 
 /*
  *  Global BSP state
@@ -79,7 +79,7 @@ typedef struct
     struct timespec ts_start, ts_end;
 
     // Buffer
-    ebsp_in_stream_descriptor buffered_in_streams[_NPROCS][MAX_N_IN_STREAMS];
+    ebsp_stream_descriptor buffered_streams[_NPROCS][MAX_N_STREAMS];
 
 } bsp_state_t;
 
