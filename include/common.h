@@ -108,14 +108,16 @@ typedef struct
 } __attribute__((aligned (8))) e_dma_desc_host_t;
 
 typedef struct {
-    void*           extmem_in_addr;     // input data in extmem in e_core address space
-    void*           in_cursor;          // current position of the stream in extmem
-    int             nbytes;             // size of the stream including headers
-    int             max_chunksize;      // size of required buffer in e_core memory
-    e_dma_desc_host_t    e_dma_desc;         // descriptor of dma, used as dma_id as well
-    void*           current_in_buffer;  // pointer (in e_core_mem) to current input chunk
-    void*           next_in_buffer;     // pointer (in e_core_mem) to next input chunk
-} __attribute__((aligned (8))) ebsp_in_stream_descriptor;
+    void*               extmem_addr;    // extmem data in e_core address space
+    void*               cursor;         // current position of the stream in extmem
+    int                 nbytes;         // size of the stream including headers
+    int                 max_chunksize;  // size of required buffer in e_core memory
+    e_dma_desc_host_t   e_dma_desc;     // descriptor of dma, used as dma_id as well
+    void*               current_buffer; // pointer (in e_core_mem) to current chunk
+    void*               next_buffer;    // pointer (in e_core_mem) to next chunk
+    int                 is_instream;    // is 1 if it is an instream, 0 if it is an outstream
+    int                 _padding;        // make sure struct is 8 byte aligned when packed in arrays
+} __attribute__((aligned (8))) ebsp_stream_descriptor;
 
 
 // ebsp_combuf is a struct for epiphany <-> ARM communication

@@ -110,18 +110,18 @@ int ebsp_get_next_chunk(void** address, unsigned stream_id, int prealloc)
 
 
 void ebsp_move_in_cursor(int stream_id, int jump_n_chunks) {
-    ebsp_in_stream_descriptor* in_stream = coredata.local_in_streams + stream_id*sizeof(ebsp_in_stream_descriptor);
+    ebsp_stream_descriptor* in_stream = coredata.local_in_streams + stream_id*sizeof(ebsp_stream_descriptor);
     
     if (jump_n_chunks > 0) //jump forward
     {
         while (jump_n_chunks--)
         {
-            size_t chunk_size = *(int*)(in_stream->in_cursor + sizeof(int));  // read 2nd int in (next size) header from ext
+            size_t chunk_size = *(int*)(in_stream->cursor + sizeof(int));  // read 2nd int in (next size) header from ext
             if (chunk_size == 0) {
                 ebsp_message("ERROR: tried to jump to after the last chunk");
                 return;
             }
-            in_stream->in_cursor = (void*) (((unsigned) (in_stream->in_cursor))
+            in_stream->cursor = (void*) (((unsigned) (in_stream->cursor))
                                                  + 2*sizeof(int) + chunk_size); 
         }
     }
@@ -129,12 +129,12 @@ void ebsp_move_in_cursor(int stream_id, int jump_n_chunks) {
     {
         while (jump_n_chunks++)
         {
-            size_t chunk_size = *(int*)(in_stream->in_cursor);  // read 1st int in (prev size) header from ext
+            size_t chunk_size = *(int*)(in_stream->cursor);  // read 1st int in (prev size) header from ext
             if (chunk_size == 0) {
                 ebsp_message("ERROR: tried to jump to before the first chunk");
                 return;
             }
-            in_stream->in_cursor = (void*) (((unsigned) (in_stream->in_cursor))
+            in_stream->cursor = (void*) (((unsigned) (in_stream->cursor))
                                                  - 2*sizeof(int) - chunk_size);
         }
     }
