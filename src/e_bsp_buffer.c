@@ -29,7 +29,13 @@ see the files COPYING and COPYING.LESSER. If not, see
 int ebsp_get_next_chunk(void** address, unsigned stream_id, int prealloc)
 {
     ebsp_stream_descriptor* in_stream = coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+
     e_dma_desc_t* desc = (e_dma_desc_t*) &(in_stream->e_dma_desc);
+
+    if (! (in_stream->is_instream) ) 
+    {
+        ebsp_message("ERROR: tried reading from output stream");
+    }
 
     if (in_stream->next_buffer == NULL) // did not prealloc last time
     {
