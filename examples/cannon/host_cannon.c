@@ -5,20 +5,25 @@
 
 void print_matrix(float* A, int matrix_size);
 
-float* C;
-void* out_streams[N * N];
+float* C = 0;
+float* out_streams[N * N] = {0};
 
 void sync_callback();
 
 // Initial total matrix
-const int k = 4;
-const int matrix_size = 1 << k;
-const int matrix_bytes = matrix_size * matrix_size * sizeof(float);
+int k = 0;
+int matrix_size = 0;
+int matrix_bytes = 0;
 
-const int block_count = matrix_size / BLOCK_SIZE;
+int block_count = 0;
 
 int main(int argc, char **argv)
 {
+    k = 4;
+    matrix_size = 1 << 4;
+    matrix_bytes = matrix_size * matrix_size * sizeof(float);
+    block_count = matrix_size / BLOCK_SIZE;
+
     printf("%d X %d cores\n", N, N);
     printf("core_blocks: %d X %d = %d bytes = 0x%x bytes\n", CORE_BLOCK_SIZE, CORE_BLOCK_SIZE, CORE_BLOCK_BYTES, CORE_BLOCK_BYTES);
     printf("blocks: %d X %d = %d bytes = 0x%x bytes\n", BLOCK_SIZE, BLOCK_SIZE, BLOCK_BYTES, BLOCK_BYTES);
@@ -117,15 +122,17 @@ int main(int argc, char **argv)
         ebsp_send_buffered(stream_A[s], s, matrix_bytes / (N * N), CORE_BLOCK_BYTES);
         ebsp_send_buffered(stream_B[s], s, matrix_bytes / (N * N), CORE_BLOCK_BYTES);
         ebsp_send_down(s, &tag, &matrix_size, sizeof(int));
-        ebsp_open_out_stream(s, // core id
-                CORE_BLOCK_BYTES, // stream size
-                &out_streams[s] ); // pointer
+        //ebsp_open_out_stream(s, // core id
+        //        CORE_BLOCK_BYTES, // stream size
+        //        &out_streams[s] ); // pointer
     }
 
+    printf("Starting spmd\n");
     ebsp_spmd();
 
     // Gather C
     // Loop over blocks
+    int cur_index[N * N];
     for (int s = 0; s < N * N; s++)
         cur_index[s] = 0;
 
@@ -154,7 +161,7 @@ int main(int argc, char **argv)
 
 void sync_callback()
 {
-    printf("Syncing");
+    printf("Host syncing");
     for (int i = 0; i < 30; i++) {
         printf(".");
         fflush(stdout);

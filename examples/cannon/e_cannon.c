@@ -28,13 +28,26 @@ int main()
     void* neighbor_a_data[2];
     void* neighbor_b_data[2];
 
-    // Allocate local buffers
-    a_data[0] = ebsp_malloc(CORE_BLOCK_BYTES);
-    a_data[1] = ebsp_malloc(CORE_BLOCK_BYTES);
-    b_data[0] = ebsp_malloc(CORE_BLOCK_BYTES);
-    b_data[1] = ebsp_malloc(CORE_BLOCK_BYTES);
-    c_data    = ebsp_open_out_stream(CORE_BLOCK_BYTES, 0);
 
+    // Allocate local buffers
+    a_data[0] = 0; //ebsp_malloc(CORE_BLOCK_BYTES);
+    a_data[1] = ebsp_malloc(CORE_BLOCK_BYTES);
+    b_data[0] = 0; //ebsp_malloc(CORE_BLOCK_BYTES);
+    b_data[1] = ebsp_malloc(CORE_BLOCK_BYTES);
+    //TODO
+    c_data = ebsp_malloc(CORE_BLOCK_BYTES);
+    //c_data    = ebsp_open_out_stream(CORE_BLOCK_BYTES, 0);
+
+    ebsp_message("%i", __LINE__);
+    // Let ebsp malloc initial chunk
+    ebsp_get_next_chunk((void**)&a_data[0], // address
+            0, // stream id
+            0);// single buffered mode
+    ebsp_get_next_chunk((void**)&b_data[0], // address
+            1, // stream id
+            0);// single buffered mode
+
+    ebsp_message("%i", __LINE__);
     // Register their locations
     bsp_push_reg(a_data[0], CORE_BLOCK_BYTES);
     bsp_sync();
@@ -44,12 +57,14 @@ int main()
     bsp_sync();
     bsp_push_reg(b_data[1], CORE_BLOCK_BYTES);
     bsp_sync();
+    ebsp_message("%i", __LINE__);
    
     // Obtain neighbor locations
-    neighor_a_data[0] = ebsp_get_raw_address(a_neighbor, &a_data[0]);
-    neighor_a_data[1] = ebsp_get_raw_address(a_neighbor, &a_data[1]);
-    neighor_b_data[0] = ebsp_get_raw_address(a_neighbor, &b_data[0]);
-    neighor_b_data[1] = ebsp_get_raw_address(a_neighbor, &b_data[1]);
+    neighbor_a_data[0] = ebsp_get_raw_address(a_neighbor, a_data[0]);
+    neighbor_a_data[1] = ebsp_get_raw_address(a_neighbor, a_data[1]);
+    neighbor_b_data[0] = ebsp_get_raw_address(b_neighbor, b_data[0]);
+    neighbor_b_data[1] = ebsp_get_raw_address(b_neighbor, b_data[1]);
+    ebsp_message("%i", __LINE__);
 
     int n = 0;
     get_matrix_size(&n);
@@ -59,6 +74,7 @@ int main()
     ebsp_dma_handle dma_handle_b;
 
     ebsp_host_sync();
+    ebsp_message("%i", __LINE__);
 
     ebsp_raw_time();
     
@@ -66,16 +82,17 @@ int main()
     for (int cur_block = 0; cur_block < n * n * n; cur_block++)
     {
         if (cur_block != 0) {
-            if (cur_block % (n * n) == 0) {
-                ebsp_move_cursor(1, // stream id
-                        -(n * n)); // relative chunk count
-            } else if (cur_block % n == 0) {
-                ebsp_move_cursor(0, // stream id
-                        -n); // relative chunk count
-                // Send result of C upwards
-                //TODO
-                //ebsp_send_out_chunk(c_data);
-            }
+            //TODO: add sizeof(float)
+            //if (cur_block % (n * n) == 0) {
+            //    ebsp_move_cursor(1, // stream id
+            //            -(n * n)); // relative chunk count
+            //} else if (cur_block % n == 0) {
+            //    ebsp_move_cursor(0, // stream id
+            //            -n); // relative chunk count
+            //    // Send result of C upwards
+            //    //TODO
+            //    //ebsp_send_out_chunk(c_data);
+            //}
         }
 
         // Set C to zero
@@ -83,12 +100,14 @@ int main()
             c_data[i] = 0;
 
         // Obtain A, B
-        ebsp_get_next_chunk(a_data[0], // address
-           0, // stream id
-           0);// unbuffered mode
-        ebsp_get_next_chunk(b_data[0], // address
-                1, // stream id
-                0);// unbuffered mode
+        if (cur_block != 0) {
+            ebsp_get_next_chunk((void**)&a_data[0], // address
+                    0, // stream id
+                    0);// single buffered mode
+            ebsp_get_next_chunk((void**)&b_data[0], // address
+                    1, // stream id
+                    0);// single buffered mode
+        }
 
         int cur = 0; // computation
         int cur_buffer = 1; // data transfer
@@ -105,8 +124,8 @@ int main()
 
             // Send A,B to next core's "buffer"
             if (i != N - 1) {
-                ebsp_dma_push(&dma_handle_a, neighor_a_data[cur_buffer], a_data[cur], CORE_BLOCK_BYTES);
-                ebsp_dma_push(&dma_handle_b, neighor_b_data[cur_buffer], b_data[cur], CORE_BLOCK_BYTES);
+                ebsp_dma_push(&dma_handle_a, neighbor_a_data[cur_buffer], a_data[cur], CORE_BLOCK_BYTES);
+                ebsp_dma_push(&dma_handle_b, neighbor_b_data[cur_buffer], b_data[cur], CORE_BLOCK_BYTES);
             }
 
             // Perform C += A * B
@@ -129,7 +148,7 @@ int main()
 
     ebsp_message("cycles = %u, %f ms", time, time/600000.0f);
 
-    ebsp_close_out_stream(c_data);
+    //ebsp_close_out_stream(c_data);
 
     bsp_end();
 }

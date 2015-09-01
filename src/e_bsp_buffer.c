@@ -26,7 +26,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <string.h>
 
 
-int get_next_chunk(void** address, unsigned stream_id, int prealloc)
+int ebsp_get_next_chunk(void** address, unsigned stream_id, int prealloc)
 {
     ebsp_in_stream_descriptor* in_stream = coredata.local_in_streams + stream_id;
     e_dma_desc_t* desc = (e_dma_desc_t*) &(in_stream->e_dma_desc);

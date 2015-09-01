@@ -40,8 +40,9 @@ see the files COPYING and COPYING.LESSER. If not, see
  * They are invalidated after the first call to bsp_sync().
  */
 
-
 #pragma once
+
+#include <stddef.h>
 
 /**
  * Denotes the start of a BSP program.
@@ -379,7 +380,7 @@ void ebsp_send_up(const void *tag, const void *payload, int nbytes);
  * - Sets *address=0 and returns 0 if the stream has ended
  * - Uses the DMA engine
  */
-int get_next_chunk(void** address, unsigned stream_id, int prealloc);
+int ebsp_get_next_chunk(void** address, unsigned stream_id, int prealloc);
 
 /**
  * Get a pointer to a chunk of output data. This function actually does the following things:
