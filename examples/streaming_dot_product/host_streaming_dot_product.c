@@ -43,31 +43,28 @@ int main(int argc, char **argv)
     }
 
     // partition and write to processors
-    int chunk_size = (l + bsp_nprocs() - 1) / bsp_nprocs();
-    int last_chunk_size = (l-1) % chunk_size + 1;
-    printf("chunk_size: %i\n", chunk_size);
-
-    int current_chunk_size = chunk_size;
+    int big_chunk_nints = (l + bsp_nprocs() - 1) / bsp_nprocs();
+    int small_chunk_nints = big_chunk_nints-1;
+    int n_big = l + bsp_nprocs() * ( 1 - big_chunk_nints );
+    
+    int current_chunk_nints = big_chunk_nints;
     unsigned a_cursor = (unsigned) a;
     unsigned b_cursor = (unsigned) b;
     for (int pid = 0; pid < bsp_nprocs(); pid++)
     {
-        if (pid == bsp_nprocs() - 1)
-            current_chunk_size = last_chunk_size;
+        if (pid == n_big)
+            current_chunk_nints = small_chunk_nints;
 
-        ebsp_send_buffered((void*) a_cursor, pid, current_chunk_size, 100);
-        ebsp_send_buffered((void*) b_cursor, pid, current_chunk_size, 100);
+        int current_chunk_size = sizeof(int) * current_chunk_nints;
+
+        ebsp_send_buffered((void*) a_cursor, pid, current_chunk_size, 8);
+        ebsp_send_buffered((void*) b_cursor, pid, current_chunk_size, 8);
         
         a_cursor += current_chunk_size;
         b_cursor += current_chunk_size;
     }
-    //TODO write client side
-    //TODO malloc the first time ebsp_get_chunk is used
 
-    // run dotproduct
-    printf("StartPMD\n");
     ebsp_spmd();
-    printf("SPMDone\n");
 
     // read output
     int tag;

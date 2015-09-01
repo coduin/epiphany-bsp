@@ -55,10 +55,10 @@ void EXT_MEM_TEXT bsp_begin()
 
     _init_local_malloc();
 
-    // Copy in_stream descriptors to local memory
-    unsigned int nbytes = combuf->n_in_streams[coredata.pid] * sizeof(ebsp_in_stream_descriptor);
-    coredata.local_in_streams = ebsp_malloc(nbytes);
-    memcpy(coredata.local_in_streams, combuf->extmem_in_streams[coredata.pid], nbytes);
+    // Copy stream descriptors to local memory
+    unsigned int nbytes = combuf->n_streams[coredata.pid] * sizeof(ebsp_stream_descriptor);
+    coredata.local_streams = ebsp_malloc(nbytes);
+    memcpy(coredata.local_streams, combuf->extmem_streams[coredata.pid], nbytes);
 
     // Send &syncstate to ARM
     if (coredata.pid == 0)

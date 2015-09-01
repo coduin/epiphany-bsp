@@ -79,7 +79,7 @@ typedef struct {
     void*           local_malloc_base;
 
     // Location of local copy of combuf.extmem_in_streams
-    void*           local_in_streams;
+    void*           local_streams;
 
     // End of chain of DMA descriptors
     e_dma_desc_t*   last_dma_desc;

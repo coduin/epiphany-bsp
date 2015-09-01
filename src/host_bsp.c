@@ -81,7 +81,7 @@ int bsp_init(const char* _e_name,
 
     // Initialize buffering
     for (int p = 0; p < _NPROCS; p++) {
-        state.combuf.n_in_streams[p] = 0;
+        state.combuf.n_streams[p] = 0;
     }
     
     bsp_initialized = 1;
@@ -155,24 +155,25 @@ int bsp_begin(int nprocs)
     // Set initial buffer to zero so that it can be filled by messages
     // before calling ebsp_spmd
     memset(&state.combuf, 0, sizeof(ebsp_combuf));
-    
-    // Write stream structs to combuf + extmem
-    for( int p = 0; p < _NPROCS; p++ )
-    {
-        int nbytes = state.combuf.n_in_streams[p]*sizeof(ebsp_in_stream_descriptor);
-        void* in_stream_descriptors = ebsp_ext_malloc(nbytes);
-        memcpy(in_stream_descriptors, state.buffered_in_streams[p], nbytes);
-        state.combuf.extmem_in_streams[p] = _arm_to_e_pointer(in_stream_descriptors);
-
-        //TODO void*               extmem_current_out_chunk[_NPROCS];
-        //TODO int                 out_buffer_size[_NPROCS];
-    }
-    
+      
     return 1;
 }
 
 int ebsp_spmd()
 {
+ 
+    // Write stream structs to combuf + extmem
+    for( int p = 0; p < _NPROCS; p++ )
+    {
+        int nbytes = state.combuf.n_streams[p]*sizeof(ebsp_stream_descriptor);
+        void* in_stream_descriptors = ebsp_ext_malloc(nbytes);
+        memcpy(in_stream_descriptors, state.buffered_streams[p], nbytes);
+        state.combuf.extmem_streams[p] = _arm_to_e_pointer(in_stream_descriptors);
+
+        //TODO void*               extmem_current_out_chunk[_NPROCS];
+        //TODO int                 out_buffer_size[_NPROCS];
+    }
+
     // Write communication buffer containing nprocs,
     // messages and tagsize
     state.combuf.nprocs = state.nprocs_used;

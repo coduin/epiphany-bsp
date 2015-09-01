@@ -33,7 +33,7 @@ int main(int argc, char **argv)
     bsp_begin(bsp_nprocs());
 
     // allocate two random vectors of length 512
-    int l = 512;
+    int l = 16;
     int* a = (int*)malloc(sizeof(int) * l);
     int* b = (int*)malloc(sizeof(int) * l);
     for (int i = 0; i < l; ++i) {
