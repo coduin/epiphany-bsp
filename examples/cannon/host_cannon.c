@@ -11,7 +11,6 @@ float* out_streams[N * N] = {0};
 void sync_callback();
 
 // Initial total matrix
-int k = 0;
 int matrix_size = 0;
 int matrix_bytes = 0;
 
@@ -19,8 +18,8 @@ int block_count = 0;
 
 int main(int argc, char **argv)
 {
-    k = 4;
-    matrix_size = 1 << 4;
+    int n = 16;
+    matrix_size = BLOCK_SIZE * n;
     matrix_bytes = matrix_size * matrix_size * sizeof(float);
     block_count = matrix_size / BLOCK_SIZE;
 
@@ -35,16 +34,16 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < matrix_size; i++) {
         for (int j = 0; j < matrix_size; j++) {
-            A[i * matrix_size + j] = (float)i;
-            B[i * matrix_size + j] = (float)j;
+            A[i * matrix_size + j] = (float)i / 10.0f;
+            B[i * matrix_size + j] = (float)j / 10.0f;
             C[i * matrix_size + j] = 0;
         }
     }
 
-    printf("Initial matrix A:\n");
-    print_matrix(A, matrix_size);
-    printf("Initial matrix B:\n");
-    print_matrix(B, matrix_size);
+    //printf("Initial matrix A:\n");
+    //print_matrix(A, matrix_size);
+    //printf("Initial matrix B:\n");
+    //print_matrix(B, matrix_size);
     
     //
     // Partition into stream

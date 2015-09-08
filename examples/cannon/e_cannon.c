@@ -31,6 +31,7 @@ int main()
     int matrix_size = 0;
     get_matrix_size(&matrix_size);
     int n = matrix_size / BLOCK_SIZE;
+    //ebsp_message("n = %i", n);
 
     // Allocate local buffers
     a_data[0] = 0; //ebsp_malloc(CORE_BLOCK_BYTES);
@@ -106,11 +107,14 @@ int main()
                 // Send result of C upwards
                 //TODO
                 //ebsp_send_out_chunk(c_data);
-                ebsp_message("%i (%i, %i, %i, %i)", cur_block, (int)c_data[0], (int)c_data[1], (int)c_data[2], (int)c_data[3]);
-                ebsp_barrier();
-
                 // FIXME find more elegant way of accomplishing this.
                 if (cur_block == n * n * n) {
+                    ebsp_message("%i (%i, %i, %i, ..., %i)",
+                            cur_block, (int)c_data[0],
+                            (int)c_data[1],
+                            (int)c_data[2],
+                            (int)c_data[CORE_BLOCK_SIZE * CORE_BLOCK_SIZE - 1]);
+                    ebsp_barrier();
                     break;
                 }
 
