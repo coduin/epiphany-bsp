@@ -17,8 +17,8 @@ int main()
     int si = s / N;
     int sj = s % N;
 
-    int a_neighbor = ((si + 1) % N) * N + sj;
-    int b_neighbor = si * N + ((sj + 1) % N);
+    int a_neighbor = si * N + ((sj + 1) % N);
+    int b_neighbor = ((si + 1) % N) * N + sj;
 
     // 5 buffers
     float* a_data[2];
@@ -28,9 +28,9 @@ int main()
     float* neighbor_a_data[2];
     float* neighbor_b_data[2];
 
-    int n = 0;
-    get_matrix_size(&n);
-    n /= BLOCK_SIZE;
+    int matrix_size = 0;
+    get_matrix_size(&matrix_size);
+    int n = matrix_size / BLOCK_SIZE;
 
     // Allocate local buffers
     a_data[0] = 0; //ebsp_malloc(CORE_BLOCK_BYTES);
@@ -74,9 +74,6 @@ int main()
     //ebsp_barrier();
     //ebsp_message("c_data = %p", c_data);
     //ebsp_barrier();
-    //ebsp_message("a_data[0] = %p ; a_data[1] = %p ; n_a_data[0] = %p ; n_a_data[1] = %p", a_data[0], a_data[1], neighbor_a_data[0], neighbor_a_data[1]);
-    //ebsp_barrier();
-    //ebsp_message("b_data[0] = %p ; b_data[1] = %p ; n_b_data[0] = %p ; n_b_data[1] = %p", b_data[0], b_data[1], neighbor_b_data[0], neighbor_b_data[1]);
     //ebsp_barrier();
     //ebsp_message("a_data[0] = %i %i %i \t a_data[1] = %i %i %i", (int)a_data[0][0], (int)a_data[0][1], (int)a_data[0][2],
     //        (int)a_data[1][0], (int)a_data[1][1], (int)a_data[1][2]);
@@ -93,21 +90,29 @@ int main()
     ebsp_raw_time();
     
     // Loop over the blocks (chunks)
-    for (int cur_block = 0; cur_block < n * n * n; cur_block++)
+    // these are the *global blocks*
+    for (int cur_block = 0; cur_block <= n * n * n; cur_block++)
     {
         if (cur_block != 0) {
             if (cur_block % (n * n) == 0) {
                 ebsp_move_in_cursor(1, // stream id
                         -(n * n)); // relative chunk count
             }
-            if (cur_block % n == 0) {
+            else if (cur_block % n == 0) {
                 ebsp_move_in_cursor(0, // stream id
                         -n); // relative chunk count
+            }
+            if (cur_block % n == 0) {
                 // Send result of C upwards
                 //TODO
                 //ebsp_send_out_chunk(c_data);
                 ebsp_message("%i (%i, %i, %i, %i)", cur_block, (int)c_data[0], (int)c_data[1], (int)c_data[2], (int)c_data[3]);
                 ebsp_barrier();
+
+                // FIXME find more elegant way of accomplishing this.
+                if (cur_block == n * n * n) {
+                    break;
+                }
 
                 // Set C to zero
                 for (int i = 0; i < BLOCK_SIZE * BLOCK_SIZE; i++)
@@ -128,7 +133,7 @@ int main()
         int cur = 0; // computation
         int cur_buffer = 1; // data transfer
 
-        // Multiply this block, by looping over the core blocks
+        // Multiply this block, by looping over the *core blocks*
         for (int i = 0; i < N; i++)
         {
             // Target processor: P(i,j) gets A(i,i+j) and B(i+j,j)
@@ -137,27 +142,6 @@ int main()
             // B(X,Y) goes to P(X-Y,Y)
             //
             // P(i,j) has PID 4*i + j
-
-            // Send A,B to next core's "buffer"
-            //ebsp_barrier();
-            //ebsp_message("before_dma_push a_data[0] = %i %i %i \t a_data[1] = %i %i %i \t c_data = %i %i %i", (int)a_data[0][0], (int)a_data[0][1], (int)a_data[0][2],
-            //        (int)a_data[1][0], (int)a_data[1][1], (int)a_data[1][2],
-            //        (int)c_data[0], (int)c_data[1], (int)c_data[2]);
-//            if (s == 0 || s == 4 || s == 12) {
-//                ebsp_message("a_data[cur] = {%i %i %i %i}",
-//                        (int)a_data[cur][0],
-//                        (int)a_data[cur][1],
-//                        (int)a_data[cur][2],
-//                        (int)a_data[cur][3]);
-//                ebsp_message("a_data[cur_buffer] = {%i %i %i %i}",
-//                        (int)a_data[cur_buffer][0],
-//                        (int)a_data[cur_buffer][1],
-//                        (int)a_data[cur_buffer][2],
-//                        (int)a_data[cur_buffer][3]);
-//                ebsp_message("----");
-//            }
-//            ebsp_barrier();
-
             if (i != N - 1) {
                 ebsp_dma_push(&dma_handle_a, neighbor_a_data[cur_buffer], a_data[cur], CORE_BLOCK_BYTES);
                 ebsp_dma_push(&dma_handle_b, neighbor_b_data[cur_buffer], b_data[cur], CORE_BLOCK_BYTES);
@@ -176,16 +160,11 @@ int main()
             ebsp_dma_wait(&dma_handle_a);
             ebsp_dma_wait(&dma_handle_b);
             ebsp_barrier();
-
-            //ebsp_message("after_dma_push a_data[0] = %i %i %i \t a_data[1] = %i %i %i \t c_data = %i %i %i", (int)a_data[0][0], (int)a_data[0][1], (int)a_data[0][2],
-            //        (int)a_data[1][0], (int)a_data[1][1], (int)a_data[1][2],
-            //        (int)c_data[0], (int)c_data[1], (int)c_data[2]);
         }
     }
     unsigned time = ebsp_raw_time();
 
-    ebsp_message("cycles = %u, %f ms", time, time/600000.0f);
-
+    //ebsp_message("cycles = %u, %f ms", time, time/600000.0f);
     //ebsp_close_out_stream(c_data);
 
     bsp_end();

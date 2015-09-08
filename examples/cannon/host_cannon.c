@@ -78,8 +78,8 @@ int main(int argc, char **argv)
                     float element_A = A[ (block_Y * BLOCK_SIZE + i) * matrix_size + (block_X * BLOCK_SIZE + j) ];
                     float element_B = B[ (block_X * BLOCK_SIZE + i) * matrix_size + (block_Y * BLOCK_SIZE + j) ];
                     // i,j are coordinates within the block
-                    int X = j / CORE_BLOCK_SIZE;
-                    int Y = i / CORE_BLOCK_SIZE;
+                    int X = i / CORE_BLOCK_SIZE;
+                    int Y = j / CORE_BLOCK_SIZE;
                     //
                     // Target processor: P(i,j) gets block_A(i,i+j) and block_B(i+j,j)
                     //
@@ -95,16 +95,6 @@ int main(int argc, char **argv)
                 }
             }
         }
-    }
-
-    for (int p = 0; p < N * N; p++) {
-        printf("Stream_A[%d] = \n", p);
-        for (int i = 0; i < cur_index_A[p]; i++)
-            printf("%5.0f ", stream_A[p][i]);
-        printf("\nStream_B[%d] = \n", p);
-        for (int i = 0; i < cur_index_B[p]; i++)
-            printf("%5.0f ", stream_B[p][i]);
-        printf("\n------------\n");
     }
 
     // Initialize the BSP system
@@ -163,7 +153,7 @@ int main(int argc, char **argv)
 void sync_callback()
 {
     printf("Host syncing");
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 5; i++) {
         printf(".");
         fflush(stdout);
         usleep(100000);
