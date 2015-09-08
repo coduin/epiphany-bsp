@@ -129,6 +129,7 @@ int main(int argc, char **argv)
 
     printf("Starting spmd\n");
     ebsp_spmd();
+    printf("Finished spmd\n");
 
     // Gather C
     // Loop over blocks
@@ -136,21 +137,21 @@ int main(int argc, char **argv)
     for (int s = 0; s < N * N; s++)
         cur_index[s] = 0;
 
-    for (int block_Y = 0; block_Y < block_count; block_Y++) {
-        for (int block_X = 0; block_X < block_count; block_X++) {
-            for (int s = 0; s < N * N; s++) {
-                int s_i = s / N;
-                int s_j = s % N;
-                int c_i = s_i * CORE_BLOCK_SIZE;
-                int c_j = s_j * CORE_BLOCK_SIZE;
-                for (int i = 0; i < CORE_BLOCK_SIZE; i++) {
-                    for (int j = 0; j < CORE_BLOCK_SIZE; j++) {
-                        C[ (block_Y * BLOCK_SIZE + c_i + i) * matrix_size + (block_X * BLOCK_SIZE + c_j + j) ] = out_streams[s][cur_index[s]++];
-                    }
-                }
-            }
-        }
-    }
+    //for (int block_Y = 0; block_Y < block_count; block_Y++) {
+    //    for (int block_X = 0; block_X < block_count; block_X++) {
+    //        for (int s = 0; s < N * N; s++) {
+    //            int s_i = s / N;
+    //            int s_j = s % N;
+    //            int c_i = s_i * CORE_BLOCK_SIZE;
+    //            int c_j = s_j * CORE_BLOCK_SIZE;
+    //            for (int i = 0; i < CORE_BLOCK_SIZE; i++) {
+    //                for (int j = 0; j < CORE_BLOCK_SIZE; j++) {
+    //                    C[ (block_Y * BLOCK_SIZE + c_i + i) * matrix_size + (block_X * BLOCK_SIZE + c_j + j) ] = out_streams[s][cur_index[s]++];
+    //                }
+    //            }
+    //        }
+    //    }
+    //}
 
     bsp_end();
     printf("\a\n");
@@ -162,7 +163,7 @@ int main(int argc, char **argv)
 void sync_callback()
 {
     printf("Host syncing");
-    for (int i = 0; i < 30; i++) {
+    for (int i = 0; i < 10; i++) {
         printf(".");
         fflush(stdout);
         usleep(100000);

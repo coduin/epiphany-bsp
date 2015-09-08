@@ -25,9 +25,12 @@ int main()
     float* b_data[2];
     float* c_data;
     // neighbor buffer locations
-    void* neighbor_a_data[2];
-    void* neighbor_b_data[2];
+    float* neighbor_a_data[2];
+    float* neighbor_b_data[2];
 
+    int n = 0;
+    get_matrix_size(&n);
+    n /= BLOCK_SIZE;
 
     // Allocate local buffers
     a_data[0] = 0; //ebsp_malloc(CORE_BLOCK_BYTES);
@@ -38,7 +41,10 @@ int main()
     c_data = ebsp_malloc(CORE_BLOCK_BYTES);
     //c_data    = ebsp_open_out_stream(CORE_BLOCK_BYTES, 0);
 
-    ebsp_message("%i", __LINE__);
+    // Set C to zero
+    for (int i = 0; i < BLOCK_SIZE * BLOCK_SIZE; i++)
+        c_data[i] = 0;
+
     // Let ebsp malloc initial chunk
     ebsp_get_next_chunk((void**)&a_data[0], // address
             0, // stream id
@@ -47,7 +53,6 @@ int main()
             1, // stream id
             0);// single buffered mode
 
-    ebsp_message("%i", __LINE__);
     // Register their locations
     bsp_push_reg(a_data[0], CORE_BLOCK_BYTES);
     bsp_sync();
@@ -57,24 +62,33 @@ int main()
     bsp_sync();
     bsp_push_reg(b_data[1], CORE_BLOCK_BYTES);
     bsp_sync();
-    ebsp_message("%i", __LINE__);
    
     // Obtain neighbor locations
     neighbor_a_data[0] = ebsp_get_raw_address(a_neighbor, a_data[0]);
     neighbor_a_data[1] = ebsp_get_raw_address(a_neighbor, a_data[1]);
     neighbor_b_data[0] = ebsp_get_raw_address(b_neighbor, b_data[0]);
     neighbor_b_data[1] = ebsp_get_raw_address(b_neighbor, b_data[1]);
-    ebsp_message("%i", __LINE__);
 
-    int n = 0;
-    get_matrix_size(&n);
-    n /= BLOCK_SIZE;
+    //ebsp_barrier();
+    //ebsp_message("a_neighbor = %i ; b_neighbor = %i", a_neighbor, b_neighbor);
+    //ebsp_barrier();
+    //ebsp_message("c_data = %p", c_data);
+    //ebsp_barrier();
+    //ebsp_message("a_data[0] = %p ; a_data[1] = %p ; n_a_data[0] = %p ; n_a_data[1] = %p", a_data[0], a_data[1], neighbor_a_data[0], neighbor_a_data[1]);
+    //ebsp_barrier();
+    //ebsp_message("b_data[0] = %p ; b_data[1] = %p ; n_b_data[0] = %p ; n_b_data[1] = %p", b_data[0], b_data[1], neighbor_b_data[0], neighbor_b_data[1]);
+    //ebsp_barrier();
+    //ebsp_message("a_data[0] = %i %i %i \t a_data[1] = %i %i %i", (int)a_data[0][0], (int)a_data[0][1], (int)a_data[0][2],
+    //        (int)a_data[1][0], (int)a_data[1][1], (int)a_data[1][2]);
+    //ebsp_barrier();
+    //ebsp_message("n_a_data[0] = %i %i %i \t n_a_data[1] = %i %i %i", (int)neighbor_a_data[0][0], (int)neighbor_a_data[0][1], (int)neighbor_a_data[0][2],
+    //        (int)neighbor_a_data[1][0], (int)neighbor_a_data[1][1], (int)neighbor_a_data[1][2]);
 
     ebsp_dma_handle dma_handle_a;
     ebsp_dma_handle dma_handle_b;
 
     ebsp_host_sync();
-    ebsp_message("%i", __LINE__);
+    ebsp_barrier();
 
     ebsp_raw_time();
     
@@ -82,22 +96,24 @@ int main()
     for (int cur_block = 0; cur_block < n * n * n; cur_block++)
     {
         if (cur_block != 0) {
-            //TODO: add sizeof(float)
-            //if (cur_block % (n * n) == 0) {
-            //    ebsp_move_cursor(1, // stream id
-            //            -(n * n)); // relative chunk count
-            //} else if (cur_block % n == 0) {
-            //    ebsp_move_cursor(0, // stream id
-            //            -n); // relative chunk count
-            //    // Send result of C upwards
-            //    //TODO
-            //    //ebsp_send_out_chunk(c_data);
-            //}
-        }
+            if (cur_block % (n * n) == 0) {
+                ebsp_move_in_cursor(1, // stream id
+                        -(n * n)); // relative chunk count
+            }
+            if (cur_block % n == 0) {
+                ebsp_move_in_cursor(0, // stream id
+                        -n); // relative chunk count
+                // Send result of C upwards
+                //TODO
+                //ebsp_send_out_chunk(c_data);
+                ebsp_message("%i (%i, %i, %i, %i)", cur_block, (int)c_data[0], (int)c_data[1], (int)c_data[2], (int)c_data[3]);
+                ebsp_barrier();
 
-        // Set C to zero
-        for (int i = 0; i < BLOCK_SIZE * BLOCK_SIZE; i++)
-            c_data[i] = 0;
+                // Set C to zero
+                for (int i = 0; i < BLOCK_SIZE * BLOCK_SIZE; i++)
+                    c_data[i] = 0;
+            }
+        }
 
         // Obtain A, B
         if (cur_block != 0) {
@@ -123,6 +139,25 @@ int main()
             // P(i,j) has PID 4*i + j
 
             // Send A,B to next core's "buffer"
+            //ebsp_barrier();
+            //ebsp_message("before_dma_push a_data[0] = %i %i %i \t a_data[1] = %i %i %i \t c_data = %i %i %i", (int)a_data[0][0], (int)a_data[0][1], (int)a_data[0][2],
+            //        (int)a_data[1][0], (int)a_data[1][1], (int)a_data[1][2],
+            //        (int)c_data[0], (int)c_data[1], (int)c_data[2]);
+//            if (s == 0 || s == 4 || s == 12) {
+//                ebsp_message("a_data[cur] = {%i %i %i %i}",
+//                        (int)a_data[cur][0],
+//                        (int)a_data[cur][1],
+//                        (int)a_data[cur][2],
+//                        (int)a_data[cur][3]);
+//                ebsp_message("a_data[cur_buffer] = {%i %i %i %i}",
+//                        (int)a_data[cur_buffer][0],
+//                        (int)a_data[cur_buffer][1],
+//                        (int)a_data[cur_buffer][2],
+//                        (int)a_data[cur_buffer][3]);
+//                ebsp_message("----");
+//            }
+//            ebsp_barrier();
+
             if (i != N - 1) {
                 ebsp_dma_push(&dma_handle_a, neighbor_a_data[cur_buffer], a_data[cur], CORE_BLOCK_BYTES);
                 ebsp_dma_push(&dma_handle_b, neighbor_b_data[cur_buffer], b_data[cur], CORE_BLOCK_BYTES);
@@ -140,8 +175,11 @@ int main()
 
             ebsp_dma_wait(&dma_handle_a);
             ebsp_dma_wait(&dma_handle_b);
-
             ebsp_barrier();
+
+            //ebsp_message("after_dma_push a_data[0] = %i %i %i \t a_data[1] = %i %i %i \t c_data = %i %i %i", (int)a_data[0][0], (int)a_data[0][1], (int)a_data[0][2],
+            //        (int)a_data[1][0], (int)a_data[1][1], (int)a_data[1][2],
+            //        (int)c_data[0], (int)c_data[1], (int)c_data[2]);
         }
     }
     unsigned time = ebsp_raw_time();
@@ -172,8 +210,13 @@ void get_matrix_size(int* n)
 // TODO: assembly
 void matrix_multiply_add(float* A, float* B, float* C)
 {
-    for (int i = 0; i < BLOCK_SIZE; i++)
-        for (int j = 0; j < BLOCK_SIZE; j++)
-            for (int k = 0; k < BLOCK_SIZE; k++)
-                C[i * BLOCK_SIZE + j] += A[i * BLOCK_SIZE + k] * B[k * BLOCK_SIZE + j];
+//            ebsp_message("a[0] = %i", (int)A[0]);
+//            ebsp_message("b[0] = %i", (int)B[0]);
+//            ebsp_message("c[0] = %i", (int)C[0]);
+
+
+    for (int i = 0; i < CORE_BLOCK_SIZE; i++)
+        for (int j = 0; j < CORE_BLOCK_SIZE; j++)
+            for (int k = 0; k < CORE_BLOCK_SIZE; k++)
+                C[i * CORE_BLOCK_SIZE + j] += A[i * CORE_BLOCK_SIZE + k] * B[k * CORE_BLOCK_SIZE + j];
 }
