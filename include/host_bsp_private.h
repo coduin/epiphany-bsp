@@ -117,9 +117,9 @@ int _write_extmem(void* src, off_t offset, int size);
  *  host_bsp_buffer
  */
 
-void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int max_chunksize)
-void ebsp_send_buffered_raw(void* src, int dst_core_id, int nbytes, int max_chunksize)
-void ebsp_get_buffered(int src_core_id, int nbytes, int max_chunksize)
+void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int max_chunksize);
+void ebsp_send_buffered_raw(void* src, int dst_core_id, int nbytes, int max_chunksize);
+void ebsp_get_buffered(int src_core_id, int nbytes, int max_chunksize);
 void _ebsp_add_stream(int dst_core_id, void* extmem_in_buffer, int nbytes, int max_chunksize, int is_instream);
 
 

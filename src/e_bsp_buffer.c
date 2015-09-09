@@ -26,6 +26,74 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <string.h>
 
 
+void ebsp_set_out_size(unsigned stream_id, int nbytes)
+{
+    ebsp_stream_descriptor* out_stream = coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+    int* header = out_stream->current_buffer-2*sizeof(int);
+    *header = nbytes;
+}
+
+
+void ebsp_write_out(void** address, unsigned stream_id, int prealloc)
+{
+    ebsp_stream_descriptor* out_stream = coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+
+    if (out_stream->current_buffer == NULL)
+    {
+        out_stream->current_buffer = ebsp_malloc(out_stream->max_chunksize + 2*sizeof(int));
+        (*address) = (void*) ((unsigned)out_stream->current_buffer + 2*sizeof(int));
+        return;
+    }
+
+    e_dma_desc_t* desc = (e_dma_desc_t*) &(out_stream->e_dma_desc);
+
+    size_t chunk_size = *(int*)(out_stream->current_buffer); // read int header from current_buffer (next size)
+
+    if (out_stream->is_instream) 
+    {
+        ebsp_message("ERROR: tried writing out input stream");
+    }
+
+    if (out_stream->next_buffer != NULL) // did prealloc last time
+    {
+        ebsp_dma_wait(desc);
+    }
+
+    if (prealloc)
+    {
+        if (out_stream->next_buffer == NULL)
+        {
+            out_stream->next_buffer = ebsp_malloc(out_stream->max_chunksize + 2*sizeof(int));
+        }
+        
+        void* tmp = out_stream->current_buffer; //swap buffers
+        out_stream->current_buffer = out_stream->next_buffer;
+        out_stream->next_buffer = tmp;
+
+        void* src = out_stream->next_buffer;
+        void* dst = out_stream->cursor;
+        ebsp_dma_push(desc, dst, src, chunk_size);  // start dma
+        out_stream->cursor += sizeof(int)*chunk_size; // move pointer in extmem
+    }
+    else //no prealloc
+    {
+        if (out_stream->next_buffer != NULL)
+        {
+            ebsp_free(out_stream->next_buffer);
+        }
+        
+        void* src = out_stream->current_buffer;
+        void* dst = out_stream->cursor;
+        ebsp_dma_push(desc, dst, src, chunk_size);  // start dma
+        out_stream->cursor += sizeof(int)*chunk_size; // move pointer in extmem
+        ebsp_dma_wait(desc);
+    }
+
+    (*address) = (void*) ((unsigned)out_stream->current_buffer + 2*sizeof(int));
+}
+
+
+
 int ebsp_get_next_chunk(void** address, unsigned stream_id, int prealloc)
 {
     ebsp_stream_descriptor* in_stream = coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
@@ -65,7 +133,7 @@ int ebsp_get_next_chunk(void** address, unsigned stream_id, int prealloc)
         in_stream->next_buffer = tmp;
     }
 
-    // *address points after the counter header
+    // *address must point after the counter header
     (*address) = (void*) ((unsigned)in_stream->current_buffer + 2*sizeof(int));
     
     ebsp_dma_wait(desc);

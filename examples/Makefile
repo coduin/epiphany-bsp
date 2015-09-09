@@ -38,7 +38,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: hello e_hello primitives dot_product streaming_dot_product memtest bspbench lu_decomposition memorybench
+all: hello e_hello primitives dot_product streaming_dot_product memtest bspbench lu_decomposition memorybench primes
 
 ########################################################
 
@@ -124,5 +124,12 @@ bin/primitives:
 
 ########################################################
 
-clean:
+primes: bin/primes bin/primes/host_primes bin/primes/e_primes.elf bin/primes/e_primes.srec
+
+bin/primes:
+	@mkdir -p bin/primes
+
+########################################################
+
+lean:
 	rm -r bin
