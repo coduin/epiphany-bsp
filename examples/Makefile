@@ -38,7 +38,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: hello e_hello primitives dot_product streaming_dot_product memtest bspbench lu_decomposition memorybench primes out_stream
+all: hello e_hello primitives dot_product streaming_dot_product memtest bspbench lu_decomposition memorybench primes
 
 ########################################################
 
@@ -130,14 +130,6 @@ bin/primes:
 	@mkdir -p bin/primes
 
 ########################################################
-
-out_stream: bin/out_stream bin/out_stream/host_out_stream bin/out_stream/e_out_stream.elf bin/out_stream/e_out_stream.srec
-
-bin/out_stream:
-	@mkdir -p bin/out_stream
-
-########################################################
-
 
 clean:
 	rm -r bin

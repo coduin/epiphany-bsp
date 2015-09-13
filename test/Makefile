@@ -38,7 +38,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: bsp_time bsp_nprocs bsp_pid bsp_init bsp_memtest bsp_hpput pointer_conversion
+all: bsp_time bsp_nprocs bsp_pid bsp_init bsp_memtest bsp_hpput pointer_conversion out_stream
 
 dirs:
 	mkdir -p bin
@@ -73,6 +73,7 @@ bsp_init:           bin/e_bsp_init.elf           bin/e_bsp_init.srec            
 bsp_memtest:        bin/e_bsp_memtest.elf        bin/e_bsp_memtest.srec          bin/host_bsp_memtest
 bsp_hpput:          bin/e_bsp_hpput.elf          bin/e_bsp_hpput.srec            bin/host_bsp_hpput
 pointer_conversion: bin/e_pointer_conversion.elf bin/e_pointer_conversion.srec   bin/host_pointer_conversion
+out_stream: 		bin/e_out_stream.elf 		 bin/e_out_stream.srec   		 bin/host_out_stream
 
 ########################################################
 
