@@ -46,9 +46,18 @@ int main(int argc, char **argv)
     }
 
     // Get the number of processors available
-    nprocs = bsp_nprocs();
+    int nprocs_available = bsp_nprocs();
 
-    printf("bsp_nprocs(): %i\n", nprocs);
+    printf("Amount of cores available: %i\n", nprocs_available);
+    for (;;) {
+        printf("Enter the amount of cores to use: ");
+        nprocs = 0;
+        scanf("%d", &nprocs);
+        if (nprocs <= 0 || nprocs > nprocs_available)
+            printf("Invalid. Enter a number between 1 and %d\n", nprocs_available);
+        else
+            break;
+    }
 
     // Initialize the epiphany system, and load the e-program
     if (!bsp_begin(nprocs))
