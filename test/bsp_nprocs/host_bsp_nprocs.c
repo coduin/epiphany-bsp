@@ -36,18 +36,5 @@ int main(int argc, char **argv)
     ebsp_spmd();
     bsp_end();
 
-    int packets, accum_bytes;
-    ebsp_qsize(&packets, &accum_bytes);
-
-    int tag;
-    int status;
-    int result;
-    for (int i = 0; i < packets; i++)
-    {
-        ebsp_get_tag(&status, &tag);
-        ebsp_move(&result, sizeof(int));
-        printf("%i: %i", tag, result);
-    }
-
     printf("Done"); // expect: (Done)
 }

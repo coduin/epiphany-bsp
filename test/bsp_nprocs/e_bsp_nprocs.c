@@ -27,7 +27,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 int main()
 {
     bsp_begin();
-    for(int i=0; i<bsp_nprocs(); i++) {
+    for(int i = 0; i < bsp_nprocs(); ++i) {
         if(i == bsp_pid())
             ebsp_message("%d", bsp_nprocs());
             // expect: ($00: 16)
