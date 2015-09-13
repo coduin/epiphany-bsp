@@ -1,6 +1,4 @@
 /*
-File: e_bsp_nprocs.c
-
 This file is part of the Epiphany BSP library.
 
 Copyright (C) 2014 Buurlage Wits
@@ -22,16 +20,18 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
-#include <e_bsp.h>
-#include "../common.h"
+#include <host_bsp.h>
 
-int main()
+int main(int argc, char **argv)
 {
-    bsp_begin();
+    bsp_init("e_bsp_local_mp.srec", argc, argv);
+    bsp_begin(bsp_nprocs());
 
-    EBSP_MSG_ORDERED("%d", bsp_nprocs());
-    // expect_for_pid: (16)
+    int tagsz = sizeof(int);
+    ebsp_set_tagsize(&tagsz);
 
+    ebsp_spmd();
     bsp_end();
+
     return 0;
 }
