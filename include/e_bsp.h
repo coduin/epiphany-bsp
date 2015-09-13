@@ -358,6 +358,7 @@ int bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
 void ebsp_send_up(const void *tag, const void *payload, int nbytes);
 
 /**
+ * Wait for any input-DMAs to finish.
  * A pointer to a chunk of input data is written to *address,
  * the size of this chunk is returned. stream_id is the index of the 
  * input stream sent to this core, in the same order as ebsp_send_buffered().
@@ -371,16 +372,25 @@ void ebsp_send_up(const void *tag, const void *payload, int nbytes);
 int ebsp_get_next_chunk(void** address, unsigned stream_id, int prealloc);
 
 /**
- * Get a pointer to a chunk of output data. This function actually does the following things:
- * 1) Wait for the previous DMA (from local memory to exmem) to finish
- * 2) Start a new DMA from local memory to exmem to read the next chunk
- * 3) Return a pointer
+ * Wait for any output-DMAs to finish.
+ * A pointer to a chunk of empty memory is written to *address,
+ * the size of this chunk is returned. stream_id is the index of the 
+ * output stream, in the same order as ebsp_send_buffered().
+ * prealloc can be set to either 1 (true) or 0 (false), and determines whether double
+ * or single buffering is used.
+ *
  * @remarks
- * - There are no guarantees on the initial contents of the output chunk
- * - The size of this chunk is defined in common.h as OUT_CHUNK_SIZE
- * - Uses DMA channel E_DMA_1
+ * - Uses the DMA engine
  */
-void* ebsp_get_out_chunk();
+int ebsp_write_out(void** address, unsigned stream_id, int prealloc);
+
+
+/**
+ * Sets the number of bytes that has to be written from the current output chunk to extmem.
+ * The default value is max_chunk_size
+ */
+void ebsp_set_out_size(unsigned stream_id, int nbytes);
+
 
 /**
  * Aborts the program after outputting a message.

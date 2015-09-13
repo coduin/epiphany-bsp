@@ -293,5 +293,5 @@ void ebsp_send_buffered_raw(void* src, int dst_core_id, int nbytes, int max_chun
  * Initialize streaming of at most max_nbytes from core dst_core_id
  * to an buffer in extmem.
  */
-void ebsp_get_buffered(int dst_core_id, int max_nbytes, int chunksize);
+void* ebsp_get_buffered(int dst_core_id, int max_nbytes, int chunksize);
 

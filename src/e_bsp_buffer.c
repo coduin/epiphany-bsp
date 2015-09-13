@@ -29,30 +29,34 @@ see the files COPYING and COPYING.LESSER. If not, see
 void ebsp_set_out_size(unsigned stream_id, int nbytes)
 {
     ebsp_stream_descriptor* out_stream = coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
-    int* header = out_stream->current_buffer-2*sizeof(int);
+    int* header = out_stream->current_buffer;
     *header = nbytes;
 }
 
 
-void ebsp_write_out(void** address, unsigned stream_id, int prealloc)
+int ebsp_write_out(void** address, unsigned stream_id, int prealloc)
 {
     ebsp_stream_descriptor* out_stream = coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+
+    if (out_stream->is_instream)
+    {
+        ebsp_message("ERROR: tried writing out input stream");
+        return 0;
+    }
 
     if (out_stream->current_buffer == NULL)
     {
         out_stream->current_buffer = ebsp_malloc(out_stream->max_chunksize + 2*sizeof(int));
-        (*address) = (void*) ((unsigned)out_stream->current_buffer + 2*sizeof(int));
-        return;
+        (*address) = (void*) (out_stream->current_buffer + 2*sizeof(int));
+
+        //Set the out_size to max_chunksize
+        *((int*)(out_stream->current_buffer)) = out_stream->max_chunksize;
+
+        return out_stream->max_chunksize;
     }
 
     e_dma_desc_t* desc = (e_dma_desc_t*) &(out_stream->e_dma_desc);
 
-    size_t chunk_size = *(int*)(out_stream->current_buffer); // read int header from current_buffer (next size)
-
-    if (out_stream->is_instream) 
-    {
-        ebsp_message("ERROR: tried writing out input stream");
-    }
 
     if (out_stream->next_buffer != NULL) // did prealloc last time
     {
@@ -66,14 +70,17 @@ void ebsp_write_out(void** address, unsigned stream_id, int prealloc)
             out_stream->next_buffer = ebsp_malloc(out_stream->max_chunksize + 2*sizeof(int));
         }
         
+        size_t chunk_size = *((int*)(out_stream->current_buffer)); // read int header from current_buffer (next size)
+
         void* tmp = out_stream->current_buffer; //swap buffers
         out_stream->current_buffer = out_stream->next_buffer;
         out_stream->next_buffer = tmp;
 
-        void* src = out_stream->next_buffer;
+        void* src = (out_stream->next_buffer + 2*sizeof(int));
         void* dst = out_stream->cursor;
+
         ebsp_dma_push(desc, dst, src, chunk_size);  // start dma
-        out_stream->cursor += sizeof(int)*chunk_size; // move pointer in extmem
+        out_stream->cursor += chunk_size; // move pointer in extmem
     }
     else //no prealloc
     {
@@ -81,15 +88,23 @@ void ebsp_write_out(void** address, unsigned stream_id, int prealloc)
         {
             ebsp_free(out_stream->next_buffer);
         }
+
+        size_t chunk_size = *((int*)(out_stream->current_buffer)); // read int header from current_buffer (next size)
         
-        void* src = out_stream->current_buffer;
+        void* src = (out_stream->current_buffer + 2*sizeof(int));
         void* dst = out_stream->cursor;
+
         ebsp_dma_push(desc, dst, src, chunk_size);  // start dma
-        out_stream->cursor += sizeof(int)*chunk_size; // move pointer in extmem
+        out_stream->cursor += chunk_size; // move pointer in extmem
         ebsp_dma_wait(desc);
     }
 
-    (*address) = (void*) ((unsigned)out_stream->current_buffer + 2*sizeof(int));
+    (*address) = (void*) (out_stream->current_buffer + 2*sizeof(int));
+
+    //Set the out_size to max_chunksize
+    *((int*)(out_stream->current_buffer)) = out_stream->max_chunksize;
+
+    return out_stream->max_chunksize;
 }
 
 
@@ -215,20 +230,3 @@ void ebsp_move_in_cursor(int stream_id, int jump_n_chunks) {
 
 
 
-
-
-
-/*
-void* ebsp_get_out_chunk() {
-    coredata.exmem_current_out_chunk += OUT_CHUNK_SIZE;//TODO Change OUT_CHUNK_SIZE to var passed down 
-    //FIXME check for overflow
-
-    void* tmp = coredata.buffer_out_current;//TODO support slow mode?
-    coredata.buffer_out_current  = coredata.buffer_out_previous;
-    coredata.buffer_out_previous = tmp;
-
-    ebsp_dma_copy_parallel( E_DMA_1, coredata.exmem_current_out_chunk, coredata.buffer_out_previous, (size_t) OUT_CHUNK_SIZE );//TODO REPLACE BY QUEUE
-
-    return coredata.buffer_out_current;
-}
-*/
