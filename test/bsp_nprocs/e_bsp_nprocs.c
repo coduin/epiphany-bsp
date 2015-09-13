@@ -23,31 +23,15 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include <e_bsp.h>
+#include "../common.h"
 
 int main()
 {
     bsp_begin();
-    for(int i=0; i<bsp_nprocs(); i++) {
-        if(i == bsp_pid())
-            ebsp_message("%d", bsp_nprocs());
-            // expect: ($00: 16)
-            // expect: ($01: 16)
-            // expect: ($02: 16)
-            // expect: ($03: 16)
-            // expect: ($04: 16)
-            // expect: ($05: 16)
-            // expect: ($06: 16)
-            // expect: ($07: 16)
-            // expect: ($08: 16)
-            // expect: ($09: 16)
-            // expect: ($10: 16)
-            // expect: ($11: 16)
-            // expect: ($12: 16)
-            // expect: ($13: 16)
-            // expect: ($14: 16)
-            // expect: ($15: 16)
-        bsp_sync();
-    }
+
+    EBSP_MSG_ORDERED("%d", bsp_nprocs());
+    // expect_for_pid: (16)
+
     bsp_end();
     return 0;
 }

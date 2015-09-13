@@ -38,10 +38,12 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: bsp_time bsp_nprocs bsp_pid bsp_init bsp_memtest bsp_hpput pointer_conversion
+all: dirs tests
+
+tests: bsp_time bsp_nprocs bsp_pid bsp_init bsp_memtest bsp_hpput bsp_local_mp bsp_vertical_mp bsp_variables bsp_hp_variables pointer_conversion
 
 dirs:
-	mkdir -p bin
+	@mkdir -p bin
 
 ########################################################
 
@@ -72,6 +74,10 @@ bsp_pid:            bin/e_bsp_pid.elf            bin/e_bsp_pid.srec             
 bsp_init:           bin/e_bsp_init.elf           bin/e_bsp_init.srec             bin/host_bsp_init
 bsp_memtest:        bin/e_bsp_memtest.elf        bin/e_bsp_memtest.srec          bin/host_bsp_memtest
 bsp_hpput:          bin/e_bsp_hpput.elf          bin/e_bsp_hpput.srec            bin/host_bsp_hpput
+bsp_local_mp: 		bin/e_bsp_local_mp.elf		 bin/e_bsp_local_mp.srec		 bin/host_bsp_local_mp
+bsp_vertical_mp: 	bin/e_bsp_vertical_mp.elf	 bin/e_bsp_vertical_mp.srec		 bin/host_bsp_vertical_mp
+bsp_variables: 		bin/e_bsp_variables.elf		 bin/e_bsp_variables.srec		 bin/host_bsp_variables
+bsp_hp_variables: 	bin/e_bsp_hp_variables.elf	 bin/e_bsp_hp_variables.srec	 bin/host_bsp_hp_variables
 pointer_conversion: bin/e_pointer_conversion.elf bin/e_pointer_conversion.srec   bin/host_pointer_conversion
 
 ########################################################
