@@ -34,11 +34,9 @@ see the files COPYING and COPYING.LESSER. If not, see
 #define EXT_MEM_TEXT __attribute__((section("EBSP_TEXT")))
 #define EXT_MEM_RO   __attribute__((section("EBSP_RO")))
 
-//
 // All internal bsp variables for this core
 // 8-bit variables (mutexes) are grouped together
 // to avoid unnecesary padding
-//
 typedef struct {
     // ARM core will set this, epiphany will poll this
     volatile int8_t syncstate;
@@ -56,7 +54,7 @@ typedef struct {
     // when it reached the end, it is an index into the arm->epiphany queue
     uint32_t        tagsize;
     uint32_t        tagsize_next;  // next superstep
-    uint32_t        queue_index;
+    uint32_t        read_queue_index;
     uint32_t        message_index;
 
     // bsp_sync barrier

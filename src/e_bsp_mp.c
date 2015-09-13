@@ -46,7 +46,7 @@ void EXT_MEM_TEXT bsp_send(int pid, const void *tag, const void *payload, int nb
     unsigned int payload_offset;
     unsigned int total_nbytes = coredata.tagsize + nbytes;
 
-    ebsp_message_queue* q = &combuf->message_queue[coredata.queue_index];
+    ebsp_message_queue* q = &combuf->message_queue[coredata.read_queue_index ^ 1];
 
     e_mutex_lock(0, 0, &coredata.payload_mutex);
 
@@ -85,7 +85,7 @@ void EXT_MEM_TEXT bsp_send(int pid, const void *tag, const void *payload, int nb
 // Returns 0 if no message
 ebsp_message_header* EXT_MEM_TEXT _next_queue_message()
 {
-    ebsp_message_queue* q = &combuf->message_queue[coredata.queue_index];
+    ebsp_message_queue* q = &combuf->message_queue[coredata.read_queue_index];
     int qsize = q->count;
 
     // currently searching at message_index
@@ -107,7 +107,7 @@ void EXT_MEM_TEXT bsp_qsize(int *packets, int *accum_bytes)
     *packets = 0;
     *accum_bytes = 0;
 
-    ebsp_message_queue* q = &combuf->message_queue[coredata.queue_index];
+    ebsp_message_queue* q = &combuf->message_queue[coredata.read_queue_index];
     int mindex = coredata.message_index;
     int qsize = q->count;
 
@@ -163,6 +163,6 @@ int EXT_MEM_TEXT bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
 
 void EXT_MEM_TEXT ebsp_send_up(const void *tag, const void *payload, int nbytes)
 {
-    coredata.queue_index = 0;
+    coredata.read_queue_index = 0;
     return bsp_send(-1, tag, payload, nbytes);
 }
