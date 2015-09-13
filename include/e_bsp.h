@@ -385,6 +385,13 @@ int ebsp_get_next_chunk(void** address, unsigned stream_id, int prealloc);
 int ebsp_write_out(void** address, unsigned stream_id, int prealloc);
 
 
+//!!!!
+void ebsp_move_in_cursor(int stream_id, int jump_n_chunks);
+
+//!!!!
+void ebsp_reset_in_cursor(int stream_id);
+
+
 /**
  * Sets the number of bytes that has to be written from the current output chunk to extmem.
  * The default value is max_chunk_size

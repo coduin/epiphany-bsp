@@ -196,6 +196,18 @@ int ebsp_get_next_chunk(void** address, unsigned stream_id, int prealloc)
 }
 
 
+void ebsp_reset_in_cursor(int stream_id)
+{
+    ebsp_stream_descriptor* in_stream = coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+    size_t chunk_size = -1;
+    
+    while(chunk_size != 0) { // break when previous block has size 0 (begin of stream)
+        chunk_size = *(int*)(in_stream->cursor);  // read 1st int in (prev size) header from ext
+        in_stream->cursor = (void*) (((unsigned) (in_stream->cursor))
+                - 2*sizeof(int) - chunk_size);
+    }
+}
+
 
 void ebsp_move_in_cursor(int stream_id, int jump_n_chunks) {
     ebsp_stream_descriptor* in_stream = coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
