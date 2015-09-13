@@ -44,7 +44,7 @@ void EXT_MEM_TEXT bsp_begin()
     coredata.var_pushed = 0;
     coredata.tagsize = combuf->tagsize;
     coredata.tagsize_next = coredata.tagsize;
-    coredata.queue_index = 0;
+    coredata.read_queue_index = 0;
     coredata.message_index = 0;
 
     // Initialize the barrier and mutexes
@@ -135,10 +135,10 @@ void bsp_sync()
     // so all cores are syncing) and only one core needs to set this, but
     // letting all cores set it produces smaller code (binary size)
     combuf->data_payloads.buffer_size = 0;
-    combuf->message_queue[coredata.queue_index].count = 0;
+    combuf->message_queue[coredata.read_queue_index].count = 0;
     // Switch queue between 0 and 1
     // xor seems to produce the shortest assembly
-    coredata.queue_index ^= 1;
+    coredata.read_queue_index ^= 1;
 
     if (coredata.var_pushed)
     {
