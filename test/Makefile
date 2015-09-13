@@ -38,7 +38,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: bsp_time bsp_nprocs bsp_pid bsp_init bsp_memtest bsp_hpput pointer_conversion
+all: dirs bsp_time bsp_nprocs bsp_pid bsp_init bsp_memtest bsp_hpput pointer_conversion
 
 dirs:
 	mkdir -p bin
