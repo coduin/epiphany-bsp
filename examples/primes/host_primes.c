@@ -98,6 +98,7 @@ int main(int argc, char **argv)
 
     ebsp_spmd();
 
+/*
     for (int pid = 0; pid < bsp_nprocs(); pid++)
     {
         int teller = 0;
@@ -108,6 +109,7 @@ int main(int argc, char **argv)
             printf("core %02d: output[%02d] = %d\n", pid, i, teller);
         }
     }
+*/
     
     // read output
     int packets, accum_bytes;
