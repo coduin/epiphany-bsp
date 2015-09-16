@@ -369,7 +369,7 @@ void ebsp_send_up(const void *tag, const void *payload, int nbytes);
  * - Sets *address=0 and returns 0 if the stream has ended
  * - Uses the DMA engine
  */
-int ebsp_get_next_chunk(void** address, unsigned stream_id, int prealloc);
+int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc);
 
 /**
  * Wait for any output-DMAs to finish.
@@ -382,22 +382,26 @@ int ebsp_get_next_chunk(void** address, unsigned stream_id, int prealloc);
  * @remarks
  * - Uses the DMA engine
  */
-int ebsp_write_out(void** address, unsigned stream_id, int prealloc);
+int ebsp_move_chunk_up(void** address, unsigned stream_id, int prealloc);
 
 
-//!!!!
-void ebsp_move_in_cursor(int stream_id, int jump_n_chunks);
+// TODO: write abstract
+void ebsp_move_down_cursor(int stream_id, int jump_n_chunks);
 
-//!!!!
-void ebsp_reset_in_cursor(int stream_id);
+// TODO: write abstract
+void ebsp_reset_down_cursor(int stream_id);
 
+
+int  ebsp_open_up_stream    (void** address, unsigned stream_id);
+void ebsp_close_up_stream   (unsigned stream_id);
+int  ebsp_open_down_stream  (unsigned stream_id);
+void ebsp_close_down_stream (unsigned stream_id);
 
 /**
  * Sets the number of bytes that has to be written from the current output chunk to extmem.
  * The default value is max_chunk_size
  */
-void ebsp_set_out_size(unsigned stream_id, int nbytes);
-
+void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes);
 
 /**
  * Aborts the program after outputting a message.

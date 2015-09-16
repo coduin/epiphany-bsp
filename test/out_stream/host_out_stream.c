@@ -1,5 +1,5 @@
 /*
-File: host_streaming_dot_product.c
+File: host_out_stream.c
 
 This file is part of the Epiphany BSP library.
 
@@ -36,7 +36,7 @@ int main(int argc, char **argv)
     void** outputs = (void**)malloc(sizeof(void*)*bsp_nprocs());
     for (int pid = 0; pid < bsp_nprocs(); pid++)
     {
-        outputs[pid] = ebsp_get_buffered(pid, 21*sizeof(int), 7*sizeof(int));
+        outputs[pid] = ebsp_create_up_stream(pid, 21*sizeof(int), 7*sizeof(int));
         *(((int*)outputs[pid])+20)=0xdeadbeaf;  // should not be overwritten
     }
 

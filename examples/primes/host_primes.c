@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 
     for (int pid = 0; pid < bsp_nprocs(); pid++)
     {
-        ebsp_send_buffered((void*) pre_primes, pid, n_pre_primes*sizeof(int), 100*sizeof(int));
+        ebsp_create_down_stream((void*) pre_primes, pid, n_pre_primes*sizeof(int), 100*sizeof(int));
 
         int prime_end = prime_begin + range_per_core;
         if (prime_end >= max_prime)
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
     void** outputs = (void**)malloc(sizeof(void*)*bsp_nprocs()); //TODO handle output & test current code
     for (int pid = 0; pid < bsp_nprocs(); pid++)
     {
-        outputs[pid] = ebsp_get_buffered(pid, sizeof(int)*(max_prime/bsp_nprocs()+1), 100*sizeof(int));
+        outputs[pid] = ebsp_create_up_stream(pid, sizeof(int)*(max_prime/bsp_nprocs()+1), 100*sizeof(int));
     }
 
     ebsp_spmd();
