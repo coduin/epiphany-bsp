@@ -27,6 +27,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 int main()
 {
+
     bsp_begin();
 
     int p = bsp_pid();

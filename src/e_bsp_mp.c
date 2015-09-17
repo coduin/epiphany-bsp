@@ -163,6 +163,6 @@ int EXT_MEM_TEXT bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
 
 void EXT_MEM_TEXT ebsp_send_up(const void *tag, const void *payload, int nbytes)
 {
-    coredata.read_queue_index = 1;
+    coredata.read_queue_index = 0;
     return bsp_send(-1, tag, payload, nbytes);
 }

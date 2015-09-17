@@ -74,6 +74,11 @@ void EXT_MEM_TEXT bsp_begin()
     // Initialize epiphany timer
     coredata.time_passed = 0.0f;
     ebsp_raw_time();
+
+    // If this core is not supposed to be used, make sure the workgroup barrier works
+    if (coredata.pid >= coredata.nprocs)
+        for (;;)
+            e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
 }
 
 void bsp_end()
@@ -222,47 +227,4 @@ void EXT_MEM_TEXT ebsp_message(const char* format, ... )
     // Unlock mutex
     e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
 }
-
-// This is e_dma_copy from the epiphany libs, but without waiting for dma to finish before returning
-//int ebsp_dma_copy_parallel(e_dma_id_t chan, void *dst, void *src, size_t n)
-//{
-//    unsigned   index;
-//    unsigned   shift;
-//    unsigned   stride;
-//    unsigned   config;
-//    e_dma_desc_t* _dma_copy_descriptor_;
-//
-//    unsigned dma_data_size[8] =
-//    {
-//        E_DMA_DWORD,
-//        E_DMA_BYTE,
-//        E_DMA_HWORD,
-//        E_DMA_BYTE,
-//        E_DMA_WORD,
-//        E_DMA_BYTE,
-//        E_DMA_HWORD,
-//        E_DMA_BYTE,
-//    };
-//
-//    _dma_copy_descriptor_ = &(coredata._dma_copy_descriptor_0);
-//    if( chan  == E_DMA_1 )
-//        _dma_copy_descriptor_ = &(coredata._dma_copy_descriptor_1);
-//
-//    index = (((unsigned) dst) | ((unsigned) src) | ((unsigned) n)) & 7;
-//
-//    config = E_DMA_MASTER | E_DMA_ENABLE | dma_data_size[index];
-//    if ((((unsigned) dst) & (0xfff00000)) == 0)
-//        config = config | E_DMA_MSGMODE;
-//    shift = dma_data_size[index] >> 5;
-//    stride = 0x10001 << shift;
-//
-//    _dma_copy_descriptor_ -> config       = config;
-//    _dma_copy_descriptor_ -> inner_stride = stride;
-//    _dma_copy_descriptor_ -> count        = 0x10000 | (n >> shift);
-//    _dma_copy_descriptor_ -> outer_stride = stride;
-//    _dma_copy_descriptor_ -> src_addr     = src;
-//    _dma_copy_descriptor_ -> dst_addr     = dst;
-//
-//    return e_dma_start(_dma_copy_descriptor_, chan);
-//}
 

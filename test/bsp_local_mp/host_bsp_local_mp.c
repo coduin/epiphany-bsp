@@ -1,6 +1,4 @@
 /*
-File: host_bsp_nprocs.c
-
 This file is part of the Epiphany BSP library.
 
 Copyright (C) 2014 Buurlage Wits
@@ -22,19 +20,18 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
 #include <host_bsp.h>
 
 int main(int argc, char **argv)
 {
-    bsp_init("e_bsp_nprocs.srec", argc, argv);
-
-    int tagsize = sizeof(int);
-    ebsp_set_tagsize(&tagsize);
-
+    bsp_init("e_bsp_local_mp.srec", argc, argv);
     bsp_begin(bsp_nprocs());
+
+    int tagsz = sizeof(int);
+    ebsp_set_tagsize(&tagsz);
+
     ebsp_spmd();
     bsp_end();
 
-    printf("Done"); // expect: (Done)
+    return 0;
 }
