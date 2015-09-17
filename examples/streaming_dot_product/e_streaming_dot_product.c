@@ -34,6 +34,7 @@ int main()
     int sum = 0;
     void* a = 0;
     void* b = 0;
+
     int a_size;
     int b_size;
 
@@ -42,8 +43,8 @@ int main()
 
     while (1){
 
-        a_size = ebsp_move_chunk_down(&a, 0, 0);
-        b_size = ebsp_move_chunk_down(&b, 1, 0);
+        a_size = ebsp_move_chunk_down(&a, 0, 1);
+        b_size = ebsp_move_chunk_down(&b, 1, 1);
 
         if (a_size != b_size) {
             ebsp_message("mismatching chunks!");
@@ -65,6 +66,9 @@ int main()
 
     int tag = p;
     ebsp_send_up(&tag, &sum, sizeof(int));
+
+    ebsp_close_down_stream(0);
+    ebsp_close_down_stream(1);
 
     bsp_end();
 
