@@ -101,20 +101,6 @@ int bsp_nprocs();
 
 
 /*
- *  host_bsp_utility
- */
-
-void ebsp_set_sync_callback(void (*cb)());
-void ebsp_set_end_callback(void (*cb)());
-void* _arm_to_e_pointer(void* ptr);
-void* _e_to_arm_pointer(void* ptr);
-void _update_remote_timer();
-void _microsleep(int microseconds);
-void _get_p_coords(int pid, int* row, int* col);
-void init_application_path();
-
-
-/*
  *  host_bsp_memory
  */
 
@@ -125,6 +111,16 @@ int ebsp_write(int pid, void* src, off_t dst, int size);
 int ebsp_read(int pid, off_t src, void* dst, int size);
 int _write_core_syncstate(int pid, int syncstate);
 int _write_extmem(void* src, off_t offset, int size);
+
+
+/*
+ *  host_bsp_buffer
+ */
+
+void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int max_chunksize);
+void ebsp_send_buffered_raw(void* src, int dst_core_id, int nbytes, int max_chunksize);
+void* ebsp_get_buffered(int src_core_id, int nbytes, int max_chunksize);
+void _ebsp_add_stream(int dst_core_id, void* extmem_in_buffer, int nbytes, int max_chunksize, int is_instream);
 
 
 /*
@@ -140,7 +136,20 @@ void _pop_queue_message();
 void ebsp_get_tag(int *status, void *tag);
 void ebsp_move(void *payload, int buffer_size);
 int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
-void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int chunksize);
-void ebsp_get_buffered(int dst_core_id, int max_nbytes, int chunksize);
-void _ebsp_add_stream(int dst_core_id, void* extmem_in_buffer, int nbytes, int max_chunksize);
+
+
+/*
+ *  host_bsp_utility
+ */
+
+void ebsp_set_sync_callback(void (*cb)());
+void ebsp_set_end_callback(void (*cb)());
+void* _arm_to_e_pointer(void* ptr);
+void* _e_to_arm_pointer(void* ptr);
+void _update_remote_timer();
+void _microsleep(int microseconds);
+void _get_p_coords(int pid, int* row, int* col);
+void init_application_path();
+
+
 

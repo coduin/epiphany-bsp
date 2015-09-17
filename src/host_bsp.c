@@ -168,9 +168,9 @@ int ebsp_spmd()
     for( int p = 0; p < _NPROCS; p++ )
     {
         int nbytes = state.combuf.n_streams[p]*sizeof(ebsp_stream_descriptor);
-        void* in_stream_descriptors = ebsp_ext_malloc(nbytes);
-        memcpy(in_stream_descriptors, state.buffered_streams[p], nbytes);
-        state.combuf.extmem_streams[p] = _arm_to_e_pointer(in_stream_descriptors);
+        void* stream_descriptors = ebsp_ext_malloc(nbytes);
+        memcpy(stream_descriptors, state.buffered_streams[p], nbytes);
+        state.combuf.extmem_streams[p] = _arm_to_e_pointer(stream_descriptors);
 
         //TODO void*               extmem_current_out_chunk[_NPROCS];
         //TODO int                 out_buffer_size[_NPROCS];
