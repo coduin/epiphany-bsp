@@ -37,18 +37,18 @@ int main(int argc, char **argv)
     for (int pid = 0; pid < bsp_nprocs(); pid++)
     {
         outputs[pid] = ebsp_create_up_stream(pid, 21*sizeof(int), 7*sizeof(int));
-        *(((int*)outputs[pid])+20)=0xdeadbeaf;  // should not be overwritten
+        *(((int*)outputs[pid])+20)=0xdeadbeef;  // should not be overwritten
     }
 
     ebsp_spmd();
 
     int errorcount = 0;
-    int deadbeaferrorcount = 0;
+    int deadbeeferrorcount = 0;
     for (int pid = 0; pid < bsp_nprocs(); pid++)
     {
-        if( *(((int*)outputs[pid])+20) != 0xdeadbeaf ) {
-            printf("%d has deadbeaf error\n", pid);      
-            deadbeaferrorcount++;
+        if( *(((int*)outputs[pid])+20) != 0xdeadbeef ) {
+            printf("%d has deadbeef error\n", pid);      
+            deadbeeferrorcount++;
         }
         for (int i=0; i<20; i++)
         {
@@ -59,7 +59,7 @@ int main(int argc, char **argv)
             }
         }
     }
-    printf("Only %d cores wrote too many bytes", deadbeaferrorcount); // expect: (Only 0 cores wrote too many bytes)
+    printf("Only %d cores wrote too many bytes", deadbeeferrorcount); // expect: (Only 0 cores wrote too many bytes)
     printf("Only %d values where wrong", errorcount); // expect: (Only 0 values where wrong)
     
     // finalize

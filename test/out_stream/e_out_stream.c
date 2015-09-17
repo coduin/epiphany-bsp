@@ -34,8 +34,7 @@ int main()
     int fast_mode = 1;
     void* out_stream = 0;
     int out_stream_size = ebsp_open_up_stream(&out_stream, 0);
-    void* out_stream_end = out_stream_size;
-    
+    void* out_stream_end = out_stream + out_stream_size;
 
     for(int i=20*p; i<20*(p+1); i++) {
         if(out_stream == out_stream_end) {
@@ -46,12 +45,11 @@ int main()
         out_stream += sizeof(int);
     }
 
-    int nbytes_left = out_stream_size-(out_stream_end-out_stream);
+    int nbytes_left = out_stream_size - (out_stream_end - out_stream);
     ebsp_set_up_chunk_size(0, nbytes_left);
     ebsp_move_chunk_up(&out_stream, 0, fast_mode);
 
     ebsp_close_up_stream(0);
-    
     bsp_end();
 
     return 0;

@@ -28,7 +28,9 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes)
 {
-    ebsp_stream_descriptor* out_stream = coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+    ebsp_stream_descriptor* out_stream =
+            coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+
     int* header = out_stream->current_buffer;
     *header = nbytes;
 }
@@ -36,7 +38,8 @@ void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes)
 
 int ebsp_open_up_stream(void** address, unsigned stream_id)
 {
-    ebsp_stream_descriptor* out_stream = coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+    ebsp_stream_descriptor* out_stream =
+            coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
 
     if (out_stream->is_instream)
     {
@@ -50,12 +53,13 @@ int ebsp_open_up_stream(void** address, unsigned stream_id)
         return 0;
     }
 
-    out_stream->current_buffer = ebsp_malloc(out_stream->max_chunksize + 2*sizeof(int));
+    out_stream->current_buffer =
+                        ebsp_malloc(out_stream->max_chunksize + 2*sizeof(int));
     (*address) = (void*) (out_stream->current_buffer + 2*sizeof(int));
 
     //Set the out_size to max_chunksize
     *((int*)(out_stream->current_buffer)) = out_stream->max_chunksize;
-    
+
     out_stream->cursor = out_stream->extmem_addr;
 
     return out_stream->max_chunksize;
@@ -64,7 +68,8 @@ int ebsp_open_up_stream(void** address, unsigned stream_id)
 
 void ebsp_close_up_stream(unsigned stream_id)
 {
-    ebsp_stream_descriptor* out_stream = coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+    ebsp_stream_descriptor* out_stream =
+            coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
 
     if (out_stream->is_instream)
     {
@@ -96,7 +101,8 @@ void ebsp_close_up_stream(unsigned stream_id)
 
 int ebsp_move_chunk_up(void** address, unsigned stream_id, int prealloc)
 {
-    ebsp_stream_descriptor* out_stream = coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+    ebsp_stream_descriptor* out_stream =
+            coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
 
     if (out_stream->is_instream)
     {
@@ -115,10 +121,12 @@ int ebsp_move_chunk_up(void** address, unsigned stream_id, int prealloc)
     {
         if (out_stream->next_buffer == NULL)
         {
-            out_stream->next_buffer = ebsp_malloc(out_stream->max_chunksize + 2*sizeof(int));
+            out_stream->next_buffer =
+                        ebsp_malloc(out_stream->max_chunksize + 2*sizeof(int));
         }
-        
-        size_t chunk_size = *((int*)(out_stream->current_buffer)); // read int header from current_buffer (next size)
+
+        // read int header from current_buffer (next size)
+        size_t chunk_size = *((int*)(out_stream->current_buffer)); 
 
         void* tmp = out_stream->current_buffer; //swap buffers
         out_stream->current_buffer = out_stream->next_buffer;
@@ -137,7 +145,8 @@ int ebsp_move_chunk_up(void** address, unsigned stream_id, int prealloc)
             ebsp_free(out_stream->next_buffer);
         }
 
-        size_t chunk_size = *((int*)(out_stream->current_buffer)); // read int header from current_buffer (next size)
+        // read int header from current_buffer (next size)
+        size_t chunk_size = *((int*)(out_stream->current_buffer)); 
         
         void* src = (out_stream->current_buffer + 2*sizeof(int));
         void* dst = out_stream->cursor;
@@ -157,9 +166,10 @@ int ebsp_move_chunk_up(void** address, unsigned stream_id, int prealloc)
 
 
 
-int ebsp_open_down_stream(unsigned stream_id)
+void ebsp_open_down_stream(unsigned stream_id)
 {
-    ebsp_stream_descriptor* in_stream = coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+    ebsp_stream_descriptor* in_stream =
+            coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
 
     e_dma_desc_t* desc = (e_dma_desc_t*) &(in_stream->e_dma_desc);
 
@@ -176,8 +186,11 @@ int ebsp_open_down_stream(unsigned stream_id)
 
     in_stream->cursor = in_stream->extmem_addr;
 
-    in_stream->current_buffer = ebsp_malloc(in_stream->max_chunksize + 2*sizeof(int));
-    size_t chunk_size = *(int*)(in_stream->cursor + sizeof(int)); // read 2nd int in header from ext (next size)
+    in_stream->current_buffer =
+                         ebsp_malloc(in_stream->max_chunksize + 2*sizeof(int));
+
+    // read 2nd int in header from ext (next size)
+    size_t chunk_size = *(int*)(in_stream->cursor + sizeof(int));
 
     if (chunk_size == 0)    // stream has ended???
     {
@@ -187,19 +200,19 @@ int ebsp_open_down_stream(unsigned stream_id)
 
     void* dst = in_stream->current_buffer;
     void* src = in_stream->cursor;
-    ebsp_dma_push(desc, dst, src, chunk_size + 2*sizeof(int));  // write to current
+
+    // write to current
+    ebsp_dma_push(desc, dst, src, chunk_size + 2*sizeof(int));
 
     // jump over header+chunk
-
     in_stream->cursor = (void*) (((unsigned) (in_stream->cursor))
             + 2*sizeof(int) + chunk_size); 
-    
-    return chunk_size;
 }
 
 void ebsp_close_down_stream(unsigned stream_id)
 {
-    ebsp_stream_descriptor* in_stream = coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+    ebsp_stream_descriptor* in_stream = 
+            coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
 
     e_dma_desc_t* desc = (e_dma_desc_t*) &(in_stream->e_dma_desc);
 
@@ -228,7 +241,8 @@ void ebsp_close_down_stream(unsigned stream_id)
 
 int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc)
 {
-    ebsp_stream_descriptor* in_stream = coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+    ebsp_stream_descriptor* in_stream =
+             coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
 
     e_dma_desc_t* desc = (e_dma_desc_t*) &(in_stream->e_dma_desc);
 
@@ -240,20 +254,23 @@ int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc)
 
     if (in_stream->next_buffer == NULL) // did not prealloc last time
     {
-        size_t chunk_size = *(int*)(in_stream->cursor + sizeof(int)); // read 2nd int in header from ext (next size)
+        // read 2nd int in header from ext (next size)
+        size_t chunk_size = *(int*)(in_stream->cursor + sizeof(int)); 
 
         if (chunk_size != 0)    // stream has not ended
         {
             void* dst = in_stream->current_buffer;
             void* src = in_stream->cursor;
-            ebsp_dma_push(desc, dst, src, chunk_size + 2*sizeof(int));  // write to current
+
+            // write to current
+            ebsp_dma_push(desc, dst, src, chunk_size + 2*sizeof(int));
 
             // jump over header+chunk
-
             in_stream->cursor = (void*) (((unsigned) (in_stream->cursor))
-                                                     + 2*sizeof(int) + chunk_size); 
+                                                 + 2*sizeof(int) + chunk_size); 
         } else {
-            *((int*)(in_stream->current_buffer + sizeof(int))) = 0; // set next size to 0
+            // set next size to 0
+            *((int*)(in_stream->current_buffer + sizeof(int))) = 0;
         }
     } 
     else // did prealloc last time
@@ -280,9 +297,11 @@ int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc)
     if (prealloc)
     {
         if (in_stream->next_buffer == NULL)
-            in_stream->next_buffer = ebsp_malloc(in_stream->max_chunksize + 2*sizeof(int));
+            in_stream->next_buffer =
+                         ebsp_malloc(in_stream->max_chunksize + 2*sizeof(int));
 
-        size_t chunk_size = *(int*)(in_stream->cursor + sizeof(int));  // read 2nd int in (next size) header from ext
+        // read 2nd int in (next size) header from ext
+        size_t chunk_size = *(int*)(in_stream->cursor + sizeof(int));
 
         if (chunk_size != 0)    // stream has not ended
         {
@@ -292,7 +311,7 @@ int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc)
 
             // jump over header+chunk
             in_stream->cursor = (void*) (((unsigned) (in_stream->cursor))
-                                                     + 2*sizeof(int) + chunk_size); 
+                                                 + 2*sizeof(int) + chunk_size); 
         } else {
             *((int*)(in_stream->next_buffer + sizeof(int))) = 0;
         }
@@ -313,11 +332,14 @@ int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc)
 
 void ebsp_reset_down_cursor(int stream_id)
 {
-    ebsp_stream_descriptor* in_stream = coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+    ebsp_stream_descriptor* in_stream = 
+            coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
     size_t chunk_size = -1;
-    
-    while(chunk_size != 0) { // break when previous block has size 0 (begin of stream)
-        chunk_size = *(int*)(in_stream->cursor);  // read 1st int in (prev size) header from ext
+
+    // break when previous block has size 0 (begin of stream)
+    while(chunk_size != 0) {
+        // read 1st int in (prev size) header from ext
+        chunk_size = *(int*)(in_stream->cursor);  
         in_stream->cursor = (void*) (((unsigned) (in_stream->cursor))
                 - 2*sizeof(int) - chunk_size);
     }
@@ -325,13 +347,15 @@ void ebsp_reset_down_cursor(int stream_id)
 
 
 void ebsp_move_down_cursor(int stream_id, int jump_n_chunks) {
-    ebsp_stream_descriptor* in_stream = coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+    ebsp_stream_descriptor* in_stream =
+             coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
     
     if (jump_n_chunks > 0) //jump forward
     {
         while (jump_n_chunks--)
         {
-            size_t chunk_size = *(int*)(in_stream->cursor + sizeof(int));  // read 2nd int in (next size) header from ext
+            // read 2nd int in (next size) header from ext
+            size_t chunk_size = *(int*)(in_stream->cursor + sizeof(int));  
             if (chunk_size == 0) {
                 ebsp_message("ERROR: tried to jump to after the last chunk");
                 return;
@@ -344,7 +368,8 @@ void ebsp_move_down_cursor(int stream_id, int jump_n_chunks) {
     {
         while (jump_n_chunks++)
         {
-            size_t chunk_size = *(int*)(in_stream->cursor);  // read 1st int in (prev size) header from ext
+            // read 1st int in (prev size) header from ext
+            size_t chunk_size = *(int*)(in_stream->cursor);  
             if (chunk_size == 0) {
                 ebsp_message("ERROR: tried to jump to before the first chunk");
                 return;

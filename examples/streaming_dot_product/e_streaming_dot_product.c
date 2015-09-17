@@ -33,11 +33,17 @@ int main()
     int sum = 0;
     void* a = 0;
     void* b = 0;
+    int a_size;
+    int b_size;
+
+    ebsp_open_down_stream(0);
+    ebsp_open_down_stream(1);
 
     while (1){
-        int a_size = ebsp_get_next_chunk(&a, 0, 0);
-        int b_size = ebsp_get_next_chunk(&b, 1, 0);
-       
+
+        a_size = ebsp_move_chunk_down(&a, 0, 0);
+        b_size = ebsp_move_chunk_down(&b, 1, 0);
+
         if (a_size != b_size) {
             ebsp_message("mismatching chunks!");
             ebsp_message("b_size = %d", b_size);
