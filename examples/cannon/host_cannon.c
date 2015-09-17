@@ -42,6 +42,8 @@ int main(int argc, char **argv)
         }
     }
 
+    print_matrix_to_file(A, matrix_size, "A_out.mtx");
+
     // Partition into stream
     float* stream_A[N * N];
     float* stream_B[N * N];
@@ -178,7 +180,7 @@ void print_matrix_to_file(float* A, int matrix_size, const char* filename)
 
     for (int i = 0; i < matrix_size; i++) {
         for (int j = 0; j < matrix_size; j++) {
-            printf("%5.2f\n", A[i * matrix_size + j]);
+            fprintf(fp, "%f\n", A[i * matrix_size + j]);
         }
     }
 

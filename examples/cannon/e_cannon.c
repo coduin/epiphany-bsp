@@ -24,6 +24,11 @@ int main()
     float* a_data[2];
     float* b_data[2];
     float* c_data;
+
+    // Let ebsp malloc initial chunk
+    ebsp_open_down_stream(0);
+    ebsp_open_down_stream(1);
+
     // neighbor buffer locations
     float* neighbor_a_data[2];
     float* neighbor_b_data[2];
@@ -40,15 +45,11 @@ int main()
     b_data[0] = 0;
     b_data[1] = ebsp_malloc(CORE_BLOCK_BYTES);
     //TODO
-    int out_stream_size = ebsp_open_up_stream(&c_data, 0);
+    ebsp_open_up_stream((void**)&c_data, 2);
 
     // Set C to zero
     for (int i = 0; i < BLOCK_SIZE * BLOCK_SIZE; i++)
         c_data[i] = 0;
-
-    // Let ebsp malloc initial chunk
-    ebsp_open_down_stream(0);
-    ebsp_open_down_stream(1);
 
     // Register their locations
     bsp_push_reg(a_data[0], CORE_BLOCK_BYTES);
@@ -76,6 +77,8 @@ int main()
     // these are the *global blocks*
     for (int cur_block = 0; cur_block <= M * M * M; cur_block++)
     {
+        if (s == 0) ebsp_message("%i", __LINE__);
+
         if (cur_block != 0) {
             if (cur_block % (M * M) == 0) {
                 ebsp_move_down_cursor(1, // stream id
@@ -106,6 +109,8 @@ int main()
             }
         }
 
+        if (s == 0) ebsp_message("%i", __LINE__);
+
         // Obtain A, B
         ebsp_move_chunk_down((void**)&a_data[0], // address
                 0, // stream id
@@ -114,22 +119,23 @@ int main()
                 1, // stream id
                 0);// double buffered mode
 
+        if (s == 0) ebsp_message("%i", __LINE__);
+
         int cur = 0; // computation
         int cur_buffer = 1; // data transfer
 
         // Multiply this block, by looping over the *core blocks*
         for (int i = 0; i < N; i++)
         {
-            // Target processor: P(i,j) gets A(i,i+j) and B(i+j,j)
-            //
-            // A(X,Y) goes to P(X,Y-X)
-            // B(X,Y) goes to P(X-Y,Y)
-            //
-            // P(i,j) has PID 4*i + j
+            if (s == 0) ebsp_message("%i", __LINE__);
+
             if (i != N - 1) {
                 ebsp_dma_push(&dma_handle_a, neighbor_a_data[cur_buffer], a_data[cur], CORE_BLOCK_BYTES);
                 ebsp_dma_push(&dma_handle_b, neighbor_b_data[cur_buffer], b_data[cur], CORE_BLOCK_BYTES);
             }
+
+            if (s == 0) ebsp_message("%i", __LINE__);
+            if (s == 0) ebsp_message("%i", __LINE__);
 
             // Perform C += A * B
             matrix_multiply_add(a_data[cur], b_data[cur], c_data);
@@ -141,15 +147,20 @@ int main()
             cur_buffer = (cur_buffer + 1) % 2;
             cur = (cur + 1) % 2;
 
+            if (s == 0) ebsp_message("%i", __LINE__);
+
             ebsp_dma_wait(&dma_handle_a);
             ebsp_dma_wait(&dma_handle_b);
             ebsp_barrier();
+
+            if (s == 0) ebsp_message("%i", __LINE__);
+
         }
     }
 
-    ebsp_close_up_stream(0);
     ebsp_close_down_stream(0);
     ebsp_close_down_stream(1);
+    ebsp_close_up_stream(2);
 
     bsp_end();
 }
