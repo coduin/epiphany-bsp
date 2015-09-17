@@ -6,7 +6,7 @@
 void print_matrix(float* A, int matrix_size);
 
 float* C = 0;
-float* out_streams[N * N] = {0};
+float* up_streams[N * N] = {0};
 
 void sync_callback();
 
@@ -36,18 +36,11 @@ int main(int argc, char **argv)
         for (int j = 0; j < matrix_size; j++) {
             A[i * matrix_size + j] = (float)i / 10.0f;
             B[i * matrix_size + j] = (float)j / 10.0f;
-            C[i * matrix_size + j] = 0;
+            C[i * matrix_size + j] = 0.0f;
         }
     }
 
-    //printf("Initial matrix A:\n");
-    //print_matrix(A, matrix_size);
-    //printf("Initial matrix B:\n");
-    //print_matrix(B, matrix_size);
-    
-    //
     // Partition into stream
-    //
     float* stream_A[N * N];
     float* stream_B[N * N];
     int cur_index_A[N * N];
@@ -108,12 +101,12 @@ int main(int argc, char **argv)
     ebsp_set_tagsize(&tagsize);
 
     for (int s = 0; s < N * N; s++) {
-        ebsp_send_buffered(stream_A[s], s, matrix_bytes / (N * N), CORE_BLOCK_BYTES);
-        ebsp_send_buffered(stream_B[s], s, matrix_bytes / (N * N), CORE_BLOCK_BYTES);
+        ebsp_create_down_stream(stream_A[s], s, matrix_bytes / (N * N), CORE_BLOCK_BYTES);
+        ebsp_create_down_stream(stream_B[s], s, matrix_bytes / (N * N), CORE_BLOCK_BYTES);
         ebsp_send_down(s, &tag, &matrix_size, sizeof(int));
-        //ebsp_open_out_stream(s, // core id
-        //        CORE_BLOCK_BYTES, // stream size
-        //        &out_streams[s] ); // pointer
+        up_streams[s] = ebsp_create_up_stream(s,              // core id
+                block_count * block_count * CORE_BLOCK_BYTES, // total size
+                CORE_BLOCK_BYTES);                            // stream size
     }
 
     printf("Starting spmd\n");
@@ -122,25 +115,28 @@ int main(int argc, char **argv)
 
     // Gather C
     // Loop over blocks
-    int cur_index[N * N];
-    for (int s = 0; s < N * N; s++)
-        cur_index[s] = 0;
+    // everything in row-major order
+    int cur_index[N * N] = { 0 };
+    for (int block = 0; block < block_count * block_count; ++block) {
+        int blockI = bloc / block_count;
+        int blockJ = bloc % block_count;
+        int baseColumn = blockJ * BLOCK_SIZE;
+        int baseRow = blockI * BLOCK_SIZE;
+        for (int proc = 0; s < proc * N; ++proc) {
+            int s = proc / N;
+            int t = proc % N;
+            int coreBlockColumn = baseColumn + t * CORE_BLOCK_SIZE;
+            int coreBlockRow = baseRow + s * CORE_BLOCK_SIZE;
+            for (int i = 0; i < CORE_BLOCK_SIZE; ++i) {
+                for (int j = 0; j < CORE_BLOCK_SIZE; ++j) {
+                    C[(coreBlockRow + i) * matrix_size + coreBlockColumn + j] =
+                        up_streams[cur_index[proc]++];
+                }
+            }
+        }
+    }
 
-    //for (int block_Y = 0; block_Y < block_count; block_Y++) {
-    //    for (int block_X = 0; block_X < block_count; block_X++) {
-    //        for (int s = 0; s < N * N; s++) {
-    //            int s_i = s / N;
-    //            int s_j = s % N;
-    //            int c_i = s_i * CORE_BLOCK_SIZE;
-    //            int c_j = s_j * CORE_BLOCK_SIZE;
-    //            for (int i = 0; i < CORE_BLOCK_SIZE; i++) {
-    //                for (int j = 0; j < CORE_BLOCK_SIZE; j++) {
-    //                    C[ (block_Y * BLOCK_SIZE + c_i + i) * matrix_size + (block_X * BLOCK_SIZE + c_j + j) ] = out_streams[s][cur_index[s]++];
-    //                }
-    //            }
-    //        }
-    //    }
-    //}
+    print_matrix_to_file(C, matrix_size);
 
     bsp_end();
     printf("\a\n");
@@ -171,3 +167,18 @@ void print_matrix(float* A, int matrix_size)
     printf("\n");
 }
 
+void print_matrix_to_file(float* A, int matrix_size, const char* filename)
+{
+    FILE *fp;
+    fp = fopen(filename,"w");
+    fprintf(fp, "%%MatrixMarket matrix real general\n");
+    fprintf(fp, "%i %i\n", matrix_size, matrix_size);
+
+    for (int i = 0; i < matrix_size; i++) {
+        for (int j = 0; j < matrix_size; j++) {
+            printf("%5.2f\n", A[i * matrix_size + j]);
+        }
+    }
+
+    fclose(fp);
+}

@@ -32,26 +32,23 @@ int main()
     get_matrix_size(&matrix_size);
     int n = matrix_size / BLOCK_SIZE;
 
+    int fastmode = 0;
+
     // Allocate local buffers
-    a_data[0] = 0; //ebsp_malloc(CORE_BLOCK_BYTES);
+    a_data[0] = 0;
     a_data[1] = ebsp_malloc(CORE_BLOCK_BYTES);
-    b_data[0] = 0; //ebsp_malloc(CORE_BLOCK_BYTES);
+    b_data[0] = 0;
     b_data[1] = ebsp_malloc(CORE_BLOCK_BYTES);
     //TODO
-    c_data = ebsp_malloc(CORE_BLOCK_BYTES);
-    //c_data    = ebsp_open_out_stream(CORE_BLOCK_BYTES, 0);
+    int out_stream_size = ebsp_open_up_stream(&c_data, 0);
 
     // Set C to zero
     for (int i = 0; i < BLOCK_SIZE * BLOCK_SIZE; i++)
         c_data[i] = 0;
 
     // Let ebsp malloc initial chunk
-    ebsp_get_next_chunk((void**)&a_data[0], // address
-            0, // stream id
-            0);// single buffered mode
-    ebsp_get_next_chunk((void**)&b_data[0], // address
-            1, // stream id
-            0);// single buffered mode
+    ebsp_open_down_stream(0);
+    ebsp_open_down_stream(1);
 
     // Register their locations
     bsp_push_reg(a_data[0], CORE_BLOCK_BYTES);
@@ -75,25 +72,22 @@ int main()
     ebsp_host_sync();
     ebsp_barrier();
 
-    ebsp_raw_time();
-    
     // Loop over the blocks (chunks)
     // these are the *global blocks*
     for (int cur_block = 0; cur_block <= n * n * n; cur_block++)
     {
         if (cur_block != 0) {
             if (cur_block % (n * n) == 0) {
-                ebsp_move_in_cursor(1, // stream id
+                ebsp_move_down_cursor(1, // stream id
                         -(n * n)); // relative chunk count
             }
             else if (cur_block % n == 0) {
-                ebsp_move_in_cursor(0, // stream id
+                ebsp_move_down_cursor(0, // stream id
                         -n); // relative chunk count
             }
             if (cur_block % n == 0) {
                 // Send result of C upwards
-                //TODO
-                //ebsp_send_out_chunk(c_data);
+                ebsp_move_chunk_up((void*)&c_data, 0, fastmode);
                 ebsp_message("%i (%i, %i, %i, ..., %i)",
                         cur_block, (int)c_data[0],
                         (int)c_data[1],
@@ -107,20 +101,18 @@ int main()
                 }
 
                 // Set C to zero
-                for (int i = 0; i < BLOCK_SIZE * BLOCK_SIZE; i++)
+                for (int i = 0; i < BLOCK_SIZE * BLOCK_SIZE; ++i)
                     c_data[i] = 0;
             }
         }
 
         // Obtain A, B
-        if (cur_block != 0) {
-            ebsp_get_next_chunk((void**)&a_data[0], // address
-                    0, // stream id
-                    0);// single buffered mode
-            ebsp_get_next_chunk((void**)&b_data[0], // address
-                    1, // stream id
-                    0);// single buffered mode
-        }
+        ebsp_move_chunk_down((void**)&a_data[0], // address
+                0, // stream id
+                0);// double buffered mode
+        ebsp_move_chunk_down((void**)&b_data[0], // address
+                1, // stream id
+                0);// double buffered mode
 
         int cur = 0; // computation
         int cur_buffer = 1; // data transfer
@@ -154,10 +146,10 @@ int main()
             ebsp_barrier();
         }
     }
-    unsigned time = ebsp_raw_time();
 
-    //ebsp_message("cycles = %u, %f ms", time, time/600000.0f);
-    //ebsp_close_out_stream(c_data);
+    ebsp_close_up_stream(0);
+    ebsp_close_down_stream(0);
+    ebsp_close_down_stream(1);
 
     bsp_end();
 }
@@ -181,11 +173,6 @@ void get_matrix_size(int* n)
 // TODO: assembly
 void matrix_multiply_add(float* A, float* B, float* C)
 {
-//            ebsp_message("a[0] = %i", (int)A[0]);
-//            ebsp_message("b[0] = %i", (int)B[0]);
-//            ebsp_message("c[0] = %i", (int)C[0]);
-
-
     for (int i = 0; i < CORE_BLOCK_SIZE; i++)
         for (int j = 0; j < CORE_BLOCK_SIZE; j++)
             for (int k = 0; k < CORE_BLOCK_SIZE; k++)
