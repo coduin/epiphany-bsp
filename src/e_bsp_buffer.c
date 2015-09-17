@@ -26,6 +26,26 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <string.h>
 
 
+const char err_mixed_up_down[] EXT_MEM_RO =
+    "BSP ERROR: mixed up and down streams";
+
+const char err_close_closed[] EXT_MEM_RO =
+    "BSP ERROR: tried to close closed stream";
+
+const char err_open_opened[] EXT_MEM_RO =
+    "BSP ERROR: tried to open opened stream";
+
+const char err_jump_out_of_bounds[] EXT_MEM_RO =
+    "BSP ERROR: tried jumping past bounds of stream";
+
+const char err_open_empty[] EXT_MEM_RO =
+    "BSP ERROR: tried opening empty stream";
+
+const char err_create_opened[] EXT_MEM_RO =
+    "BSP ERROR: tried creating opened stream";
+
+
+
 void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes)
 {
     ebsp_stream_descriptor* out_stream =
@@ -43,13 +63,13 @@ int ebsp_open_up_stream(void** address, unsigned stream_id)
 
     if (out_stream->is_instream)
     {
-        ebsp_message("ERROR: tried writing out input stream");
+        ebsp_message(err_mixed_up_down);
         return 0;
     }
 
     if (out_stream->current_buffer != NULL)
     {
-        ebsp_message("ERROR: tried creating opened stream");
+        ebsp_message(err_create_opened);
         return 0;
     }
 
@@ -73,7 +93,7 @@ void ebsp_close_up_stream(unsigned stream_id)
 
     if (out_stream->is_instream)
     {
-        ebsp_message("ERROR: tried writing out input stream");
+        ebsp_message(err_mixed_up_down);
         return;
     }
 
@@ -82,7 +102,7 @@ void ebsp_close_up_stream(unsigned stream_id)
 
     if (out_stream->current_buffer == NULL)
     {
-        ebsp_message("ERROR: tried closing closed stream");
+        ebsp_message(err_close_closed);
         return;
     }
 
@@ -106,7 +126,7 @@ int ebsp_move_chunk_up(void** address, unsigned stream_id, int prealloc)
 
     if (out_stream->is_instream)
     {
-        ebsp_message("ERROR: tried writing out input stream");
+        ebsp_message(err_mixed_up_down);
         return 0;
     }
 
@@ -175,12 +195,12 @@ void ebsp_open_down_stream(unsigned stream_id)
 
     if (! (in_stream->is_instream) ) 
     {
-        ebsp_message("ERROR: tried reading from output stream");
+        ebsp_message(err_mixed_up_down);
         return;
     }
     if (in_stream->current_buffer != NULL || in_stream->next_buffer != NULL)
     {
-        ebsp_message("ERROR: tried opening from opened stream");
+        ebsp_message(err_open_opened);
         return;
     }
 
@@ -194,7 +214,7 @@ void ebsp_open_down_stream(unsigned stream_id)
 
     if (chunk_size == 0)    // stream has ended???
     {
-        ebsp_message("ERROR: tried opening empty stream");
+        ebsp_message(err_open_empty);
         return;
     }
 
@@ -220,15 +240,15 @@ void ebsp_close_down_stream(unsigned stream_id)
 
     if (! (in_stream->is_instream) ) 
     {
-        ebsp_message("ERROR: tried reading from output stream");
+        ebsp_message(err_mixed_up_down);
         return;
     }
     if (in_stream->current_buffer == NULL)
     {
-        ebsp_message("ERROR: tried closing closed stream");
+        ebsp_message(err_close_closed);
         return;
     }
- 
+
     ebsp_free(in_stream->current_buffer);
     in_stream->current_buffer = NULL;
 
@@ -253,7 +273,7 @@ int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc)
 
     if (! (in_stream->is_instream) ) 
     {
-        ebsp_message("ERROR: tried reading from output stream");
+        ebsp_message(err_mixed_up_down);
         return 0;
     }
 
@@ -362,7 +382,7 @@ void ebsp_move_down_cursor(int stream_id, int jump_n_chunks) {
             // read 2nd int in (next size) header from ext
             size_t chunk_size = *(int*)(in_stream->cursor + sizeof(int));  
             if (chunk_size == 0) {
-                ebsp_message("ERROR: tried to jump to after the last chunk");
+                ebsp_message(err_jump_out_of_bounds);
                 return;
             }
             in_stream->cursor = (void*) (((unsigned) (in_stream->cursor))
@@ -376,7 +396,7 @@ void ebsp_move_down_cursor(int stream_id, int jump_n_chunks) {
             // read 1st int in (prev size) header from ext
             size_t chunk_size = *(int*)(in_stream->cursor);  
             if (chunk_size == 0) {
-                ebsp_message("ERROR: tried to jump to before the first chunk");
+                ebsp_message(err_jump_out_of_bounds);
                 return;
             }
             in_stream->cursor = (void*) (((unsigned) (in_stream->cursor))
