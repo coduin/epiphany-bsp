@@ -30,7 +30,7 @@ int main()
 
     int matrix_size = 0;
     get_matrix_size(&matrix_size);
-    int n = matrix_size / BLOCK_SIZE;
+    int M = matrix_size / BLOCK_SIZE;
 
     int fastmode = 0;
 
@@ -74,18 +74,18 @@ int main()
 
     // Loop over the blocks (chunks)
     // these are the *global blocks*
-    for (int cur_block = 0; cur_block <= n * n * n; cur_block++)
+    for (int cur_block = 0; cur_block <= M * M * M; cur_block++)
     {
         if (cur_block != 0) {
-            if (cur_block % (n * n) == 0) {
+            if (cur_block % (M * M) == 0) {
                 ebsp_move_down_cursor(1, // stream id
-                        -(n * n)); // relative chunk count
+                        -(M * M)); // relative chunk count
             }
-            else if (cur_block % n == 0) {
+            else if (cur_block % M == 0) {
                 ebsp_move_down_cursor(0, // stream id
-                        -n); // relative chunk count
+                        -M); // relative chunk count
             }
-            if (cur_block % n == 0) {
+            if (cur_block % M == 0) {
                 // Send result of C upwards
                 ebsp_move_chunk_up((void*)&c_data, 0, fastmode);
                 ebsp_message("%i (%i, %i, %i, ..., %i)",
@@ -96,7 +96,7 @@ int main()
                 ebsp_barrier();
 
                 // FIXME find more elegant way of accomplishing this.
-                if (cur_block == n * n * n) {
+                if (cur_block == M * M * M) {
                     break;
                 }
 

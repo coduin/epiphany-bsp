@@ -4,6 +4,7 @@
 #include "common.h"
 
 void print_matrix(float* A, int matrix_size);
+void print_matrix_to_file(float* A, int matrix_size, const char* filename);
 
 float* C = 0;
 float* up_streams[N * N] = {0};
@@ -18,8 +19,8 @@ int block_count = 0;
 
 int main(int argc, char **argv)
 {
-    int n = 16;
-    matrix_size = BLOCK_SIZE * n;
+    int M = 16;
+    matrix_size = BLOCK_SIZE * M;
     matrix_bytes = matrix_size * matrix_size * sizeof(float);
     block_count = matrix_size / BLOCK_SIZE;
 
@@ -27,6 +28,7 @@ int main(int argc, char **argv)
     printf("core_blocks: %d X %d = %d bytes = 0x%x bytes\n", CORE_BLOCK_SIZE, CORE_BLOCK_SIZE, CORE_BLOCK_BYTES, CORE_BLOCK_BYTES);
     printf("blocks: %d X %d = %d bytes = 0x%x bytes\n", BLOCK_SIZE, BLOCK_SIZE, BLOCK_BYTES, BLOCK_BYTES);
     printf("full matrix: %d X %d = %d bytes = 0x%x bytes\n", matrix_size, matrix_size, matrix_bytes, matrix_bytes); 
+
     // Prepare full matrix
     float* A = malloc(matrix_bytes);
     float* B = malloc(matrix_bytes);
@@ -118,11 +120,11 @@ int main(int argc, char **argv)
     // everything in row-major order
     int cur_index[N * N] = { 0 };
     for (int block = 0; block < block_count * block_count; ++block) {
-        int blockI = bloc / block_count;
-        int blockJ = bloc % block_count;
+        int blockI = block / block_count;
+        int blockJ = block % block_count;
         int baseColumn = blockJ * BLOCK_SIZE;
         int baseRow = blockI * BLOCK_SIZE;
-        for (int proc = 0; s < proc * N; ++proc) {
+        for (int proc = 0; proc < N * N; ++proc) {
             int s = proc / N;
             int t = proc % N;
             int coreBlockColumn = baseColumn + t * CORE_BLOCK_SIZE;
@@ -130,13 +132,13 @@ int main(int argc, char **argv)
             for (int i = 0; i < CORE_BLOCK_SIZE; ++i) {
                 for (int j = 0; j < CORE_BLOCK_SIZE; ++j) {
                     C[(coreBlockRow + i) * matrix_size + coreBlockColumn + j] =
-                        up_streams[cur_index[proc]++];
+                        up_streams[proc][cur_index[proc]++];
                 }
             }
         }
     }
 
-    print_matrix_to_file(C, matrix_size);
+    print_matrix_to_file(C, matrix_size, "C_out.mtx");
 
     bsp_end();
     printf("\a\n");
