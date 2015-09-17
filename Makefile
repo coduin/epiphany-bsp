@@ -95,8 +95,8 @@ lint:
 unit_test:
 	@make -B; cd test; make -B; ./test.py
 
-doxygen: $(E_HEADERS) $(HOST_HEADERS)
-	@cd doc; doxygen Doxyfile
+docs: $(E_HEADERS) $(HOST_HEADERS)
+	@cd docs; doxygen Doxyfile
 
 host_dirs:
 	@mkdir -p bin/host lib
