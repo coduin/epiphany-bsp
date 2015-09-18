@@ -38,7 +38,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: hello e_hello primitives dot_product streaming_dot_product memtest bspbench lu_decomposition memorybench primes
+all: hello e_hello primitives streaming dot_product streaming_dot_product memtest bspbench lu_decomposition memorybench primes
 
 ########################################################
 
@@ -88,7 +88,6 @@ bin/streaming_dot_product:
 
 ########################################################
 
-
 lu_decomposition: bin/lu_decomposition bin/lu_decomposition/host_lu_decomposition bin/lu_decomposition/e_lu_decomposition.elf bin/lu_decomposition/e_lu_decomposition.srec
 
 bin/lu_decomposition:
@@ -117,10 +116,25 @@ bin/memorybench:
 
 ########################################################
 
+cannon: bin/cannon bin/cannon/host_cannon bin/cannon/e_cannon.elf bin/cannon/e_cannon.srec cannon/common.h
+
+bin/cannon:
+	@mkdir -p bin/cannon
+
+########################################################
+
 primitives: bin/primitives bin/primitives/host_primitives bin/primitives/e_primitives.elf bin/primitives/e_primitives.srec
 
 bin/primitives:
 	@mkdir -p bin/primitives
+
+########################################################
+
+streaming: bin/streaming bin/streaming/host_streaming bin/streaming/e_streaming.elf bin/streaming/e_streaming.srec
+
+bin/streaming:
+	@mkdir -p bin/streaming
+
 
 ########################################################
 

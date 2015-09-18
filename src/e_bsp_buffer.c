@@ -45,11 +45,9 @@ const char err_create_opened[] EXT_MEM_RO =
     "BSP ERROR: tried creating opened stream";
 
 
-
 void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes)
 {
-    ebsp_stream_descriptor* out_stream =
-            coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+    ebsp_stream_descriptor* out_stream = &coredata.local_streams[stream_id];
 
     int* header = out_stream->current_buffer;
     *header = nbytes;
@@ -58,10 +56,9 @@ void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes)
 
 int ebsp_open_up_stream(void** address, unsigned stream_id)
 {
-    ebsp_stream_descriptor* out_stream =
-            coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+    ebsp_stream_descriptor* out_stream = &coredata.local_streams[stream_id];
 
-    if (out_stream->is_instream)
+    if (out_stream->is_down_stream)
     {
         ebsp_message(err_mixed_up_down);
         return 0;
@@ -88,16 +85,15 @@ int ebsp_open_up_stream(void** address, unsigned stream_id)
 
 void ebsp_close_up_stream(unsigned stream_id)
 {
-    ebsp_stream_descriptor* out_stream =
-            coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+    ebsp_stream_descriptor* out_stream = &coredata.local_streams[stream_id];
 
-    if (out_stream->is_instream)
+    if (out_stream->is_down_stream)
     {
         ebsp_message(err_mixed_up_down);
         return;
     }
 
-    e_dma_desc_t* desc = (e_dma_desc_t*) &(out_stream->e_dma_desc);
+    ebsp_dma_handle* desc = (ebsp_dma_handle*)&out_stream->e_dma_desc;
     ebsp_dma_wait(desc);
 
     if (out_stream->current_buffer == NULL)
@@ -118,19 +114,17 @@ void ebsp_close_up_stream(unsigned stream_id)
 }
 
 
-
 int ebsp_move_chunk_up(void** address, unsigned stream_id, int prealloc)
 {
-    ebsp_stream_descriptor* out_stream =
-            coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+    ebsp_stream_descriptor* out_stream = &coredata.local_streams[stream_id];
 
-    if (out_stream->is_instream)
+    if (out_stream->is_down_stream)
     {
         ebsp_message(err_mixed_up_down);
         return 0;
     }
 
-    e_dma_desc_t* desc = (e_dma_desc_t*) &(out_stream->e_dma_desc);
+    ebsp_dma_handle* desc = (ebsp_dma_handle*)&out_stream->e_dma_desc;
 
     if (out_stream->next_buffer != NULL) // did prealloc last time
     {
@@ -184,61 +178,68 @@ int ebsp_move_chunk_up(void** address, unsigned stream_id, int prealloc)
     return out_stream->max_chunksize;
 }
 
-
-
-void ebsp_open_down_stream(unsigned stream_id)
+void _ebsp_write_chunk(ebsp_stream_descriptor* stream, void* target)
 {
-    ebsp_stream_descriptor* in_stream =
-            coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+    // read 2nd int in header from ext (next size)
+    size_t chunk_size = *(int*)(stream->cursor + sizeof(int)); 
+    ebsp_dma_handle* desc = (ebsp_dma_handle*) &(stream->e_dma_desc);
 
-    e_dma_desc_t* desc = (e_dma_desc_t*) &(in_stream->e_dma_desc);
+    if (chunk_size != 0)    // stream has not ended
+    {
+        void* dst = target;
+        void* src = stream->cursor;
 
-    if (! (in_stream->is_instream) ) 
+        // write to current
+        ebsp_dma_push(desc, dst, src, chunk_size + 2 * sizeof(int));
+
+        // jump over header+chunk
+        stream->cursor = (void*) (((unsigned) (stream->cursor))
+                                             + 2 * sizeof(int) + chunk_size); 
+    } else {
+        // set next size to 0
+        *((int*)(target + sizeof(int))) = 0;
+    }
+}
+
+
+int ebsp_open_down_stream(void** address, unsigned stream_id)
+{
+    ebsp_stream_descriptor* stream = &coredata.local_streams[stream_id];
+
+    if (!stream->is_down_stream) 
     {
         ebsp_message(err_mixed_up_down);
-        return;
+        return 0;
     }
-    if (in_stream->current_buffer != NULL || in_stream->next_buffer != NULL)
+    if (stream->current_buffer != NULL || stream->next_buffer != NULL)
     {
         ebsp_message(err_open_opened);
-        return;
+        return 0;
     }
 
-    in_stream->cursor = in_stream->extmem_addr;
+    stream->cursor = stream->extmem_addr;
 
-    in_stream->next_buffer =
-                         ebsp_malloc(in_stream->max_chunksize + 2*sizeof(int));
+    // this will be the current buffer when move_chunk_down gets called for
+    // the first time
+    stream->next_buffer = ebsp_malloc(stream->max_chunksize + 2*sizeof(int));
 
-    // read 2nd int in header from ext (next size)
-    size_t chunk_size = *(int*)(in_stream->cursor + sizeof(int));
+    _ebsp_write_chunk(stream, stream->next_buffer);
 
-    if (chunk_size == 0)    // stream has ended???
-    {
-        ebsp_message(err_open_empty);
-        return;
-    }
+    *address = (void*)((unsigned)stream->next_buffer + 2 * sizeof(int));
 
-    void* dst = in_stream->next_buffer;
-    void* src = in_stream->cursor;
-
-    // write to current
-    ebsp_dma_push(desc, dst, src, chunk_size + 2*sizeof(int));
-
-    // jump over header+chunk
-    in_stream->cursor = (void*) (((unsigned) (in_stream->cursor))
-            + 2*sizeof(int) + chunk_size); 
+    return stream->max_chunksize;
 }
+
 
 void ebsp_close_down_stream(unsigned stream_id)
 {
-    ebsp_stream_descriptor* in_stream = 
-            coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+    ebsp_stream_descriptor* in_stream = &coredata.local_streams[stream_id];
 
-    e_dma_desc_t* desc = (e_dma_desc_t*) &(in_stream->e_dma_desc);
+    ebsp_dma_handle* desc = (ebsp_dma_handle*)&in_stream->e_dma_desc;
 
     ebsp_dma_wait(desc);
 
-    if (! (in_stream->is_instream) ) 
+    if (! (in_stream->is_down_stream) ) 
     {
         ebsp_message(err_mixed_up_down);
         return;
@@ -258,60 +259,48 @@ void ebsp_close_down_stream(unsigned stream_id)
     }
 }
 
-
 int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc)
 {
+    ebsp_stream_descriptor* stream = &coredata.local_streams[stream_id];
 
-    ebsp_stream_descriptor* in_stream =
-             coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+    ebsp_dma_handle* desc = (ebsp_dma_handle*) &(stream->e_dma_desc);
 
-    e_dma_desc_t* desc = (e_dma_desc_t*) &(in_stream->e_dma_desc);
+    //if(stream->current_buffer == NULL)
+    //    stream->current_buffer =
+    //                     ebsp_malloc(stream->max_chunksize + 2*sizeof(int));
 
-    if(in_stream -> current_buffer == NULL)
-        in_stream -> current_buffer =
-                         ebsp_malloc(in_stream->max_chunksize + 2*sizeof(int));
+    // Here: current_buffer contains data from previous chunk
+    // this can be null the first time ebsp_move_chunk_down is called
 
-    if (! (in_stream->is_instream) ) 
+    if (!(stream->is_down_stream)) 
     {
         ebsp_message(err_mixed_up_down);
         return 0;
     }
 
-    if (in_stream->next_buffer == NULL) // did not prealloc last time
+    if (stream->next_buffer == NULL) // did not prealloc last time
     {
-        // read 2nd int in header from ext (next size)
-        size_t chunk_size = *(int*)(in_stream->cursor + sizeof(int)); 
-
-        if (chunk_size != 0)    // stream has not ended
-        {
-            void* dst = in_stream->current_buffer;
-            void* src = in_stream->cursor;
-
-            // write to current
-            ebsp_dma_push(desc, dst, src, chunk_size + 2*sizeof(int));
-
-            // jump over header+chunk
-            in_stream->cursor = (void*) (((unsigned) (in_stream->cursor))
-                                                 + 2*sizeof(int) + chunk_size); 
-        } else {
-            // set next size to 0
-            *((int*)(in_stream->current_buffer + sizeof(int))) = 0;
-        }
+        // overwrite current buffer
+        _ebsp_write_chunk(stream, stream->current_buffer);
     } 
     else // did prealloc last time
     { 
-        void* tmp = in_stream->current_buffer;
-        in_stream->current_buffer = in_stream->next_buffer;
-        in_stream->next_buffer = tmp;
+        void* tmp = stream->current_buffer;
+        stream->current_buffer = stream->next_buffer;
+        stream->next_buffer = tmp;
     }
 
-    // *address must point after the counter header
-    (*address) = (void*) ((unsigned)in_stream->current_buffer + 2*sizeof(int));
-    
+    // either wait for dma_push from last prealloc (else)
+    // or the one we just started (if)
     ebsp_dma_wait(desc);
 
+    // Here: current_buffer contains data from THIS chunk
+
+    // *address must point after the counter header
+    (*address) = (void*) ((unsigned)stream->current_buffer + 2*sizeof(int));
+
     // the counter header
-    int current_chunk_size = *((int*)(in_stream->current_buffer + sizeof(int))); 
+    int current_chunk_size = *((int*)(stream->current_buffer + sizeof(int))); 
   
     if (current_chunk_size == 0)    // stream has ended
     {
@@ -321,35 +310,26 @@ int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc)
      
     if (prealloc)
     {
-        if (in_stream->next_buffer == NULL)
-            in_stream->next_buffer =
-                         ebsp_malloc(in_stream->max_chunksize + 2*sizeof(int));
-
-        // read 2nd int in (next size) header from ext
-        size_t chunk_size = *(int*)(in_stream->cursor + sizeof(int));
-
-        if (chunk_size != 0)    // stream has not ended
-        {
-            void* dst = in_stream->next_buffer;
-            void* src = in_stream->cursor;
-            ebsp_dma_push(desc, dst, src, chunk_size);  // write to next
-
-            // jump over header+chunk
-            in_stream->cursor = (void*) (((unsigned) (in_stream->cursor))
-                                                 + 2*sizeof(int) + chunk_size); 
-        } else {
-            *((int*)(in_stream->next_buffer + sizeof(int))) = 0;
+        if (stream->next_buffer == NULL) {
+            // no next buffer available, malloc it
+            stream->next_buffer =
+                ebsp_malloc(stream->max_chunksize + 2*sizeof(int));
         }
+        _ebsp_write_chunk(stream, stream->next_buffer);
     }
     else
     {
-        if (in_stream->next_buffer != NULL)
+        // free malloced next buffer
+        if (stream->next_buffer != NULL)
         {
-            ebsp_free(in_stream->next_buffer);
-            in_stream->next_buffer = NULL;
+            ebsp_free(stream->next_buffer);
+            stream->next_buffer = NULL;
         }
 
     }
+
+    // Here: next_buffer should (possibly) point to data of NEXT
+    // chunk (begin written to) or be zero
 
     return current_chunk_size;
 }
@@ -357,8 +337,8 @@ int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc)
 
 void ebsp_reset_down_cursor(int stream_id)
 {
-    ebsp_stream_descriptor* in_stream = 
-            coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+    ebsp_stream_descriptor* in_stream = &coredata.local_streams[stream_id];
+
     size_t chunk_size = -1;
 
     // break when previous block has size 0 (begin of stream)
@@ -372,8 +352,7 @@ void ebsp_reset_down_cursor(int stream_id)
 
 
 void ebsp_move_down_cursor(int stream_id, int jump_n_chunks) {
-    ebsp_stream_descriptor* in_stream =
-             coredata.local_streams + stream_id*sizeof(ebsp_stream_descriptor);
+    ebsp_stream_descriptor* in_stream = &coredata.local_streams[stream_id];
     
     if (jump_n_chunks > 0) //jump forward
     {

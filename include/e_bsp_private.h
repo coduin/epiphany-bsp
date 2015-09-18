@@ -34,11 +34,9 @@ see the files COPYING and COPYING.LESSER. If not, see
 #define EXT_MEM_TEXT __attribute__((section("EBSP_TEXT")))
 #define EXT_MEM_RO   __attribute__((section("EBSP_RO")))
 
-//
 // All internal bsp variables for this core
 // 8-bit variables (mutexes) are grouped together
 // to avoid unnecesary padding
-//
 typedef struct {
     // ARM core will set this, epiphany will poll this
     volatile int8_t syncstate;
@@ -56,7 +54,7 @@ typedef struct {
     // when it reached the end, it is an index into the arm->epiphany queue
     uint32_t        tagsize;
     uint32_t        tagsize_next;  // next superstep
-    uint32_t        queue_index;
+    uint32_t        read_queue_index;
     uint32_t        message_index;
 
     // bsp_sync barrier
@@ -79,10 +77,10 @@ typedef struct {
     void*           local_malloc_base;
 
     // Location of local copy of combuf.extmem_in_streams
-    void*           local_streams;
+    ebsp_stream_descriptor* local_streams;
 
     // End of chain of DMA descriptors
-    e_dma_desc_t*   last_dma_desc;
+    ebsp_dma_handle*   last_dma_desc;
 
 } ebsp_core_data;
 
@@ -94,15 +92,6 @@ extern ebsp_core_data coredata;
 
 void _init_local_malloc();
 
-/* Push a new task to the DMA engine
- * @param desc   Is completely filled by this function
- * @param dst    Destination address
- * @param src    Source address
- * @param nbytes Amount of bytes to be copied
- *
- * Assumes previous task in `desc` is completed (use ebsp_dma_wait())
+/* Faster alternative to memcpy that only works if src and dst are 8-byte aligned
  */
-void ebsp_dma_push(e_dma_desc_t* desc, void *dst, const void *src, size_t nbytes);
-
-void ebsp_dma_wait(e_dma_desc_t* desc);
-
+void ebsp_aligned_transfer(void* dst, const void *src, size_t nbytes);

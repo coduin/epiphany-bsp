@@ -1,5 +1,5 @@
 /*
-File: host_bsp_nprocs.c
+File: e_out_stream.c
 
 This file is part of the Epiphany BSP library.
 
@@ -22,19 +22,40 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
-#include <host_bsp.h>
+#include <e_bsp.h>
+#include <common.h>
 
-int main(int argc, char **argv)
+int main()
 {
-    bsp_init("e_bsp_nprocs.srec", argc, argv);
+    bsp_begin();
 
-    int tagsize = sizeof(int);
-    ebsp_set_tagsize(&tagsize);
+    //int s = bsp_pid();
 
-    bsp_begin(bsp_nprocs());
-    ebsp_spmd();
+    float* upstream = 0;
+    int chunk_size = ebsp_open_up_stream((void**)&upstream, 0);
+    int chunks = 4;
+
+    float* downchunk;
+    float* downchunkB;
+
+    ebsp_open_down_stream(1);
+    ebsp_open_down_stream(2);
+
+    for (int i = 0; i < chunks; ++i) {
+        ebsp_move_chunk_down((void**)&downchunk, 1, 0);
+        ebsp_move_chunk_down((void**)&downchunkB, 2, 0);
+        for (int j = 0; j < chunk_size / sizeof(float); ++j) {
+            upstream[j] = (i % 2 == 1) ? downchunk[j] : downchunkB[j];
+        }
+        ebsp_move_chunk_up((void**)&upstream, 0, 0);
+    }
+
+    ebsp_close_up_stream(0);
+    ebsp_close_down_stream(1);
+    ebsp_close_down_stream(2);
+
     bsp_end();
 
-    printf("Done"); // expect: (Done)
+    return 0;
 }
+
