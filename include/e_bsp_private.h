@@ -77,7 +77,7 @@ typedef struct {
     void*           local_malloc_base;
 
     // Location of local copy of combuf.extmem_in_streams
-    void*           local_streams;
+    ebsp_stream_descriptor* local_streams;
 
     // End of chain of DMA descriptors
     e_dma_desc_t*   last_dma_desc;
@@ -96,3 +96,6 @@ void _init_local_malloc();
  */
 void ebsp_aligned_transfer(void* dst, const void *src, size_t nbytes);
 
+void ebsp_dma_push(e_dma_desc_t* desc, void *dst, const void *src, size_t nbytes);
+
+void ebsp_dma_wait(e_dma_desc_t* desc);

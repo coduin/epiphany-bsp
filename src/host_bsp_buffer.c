@@ -94,8 +94,6 @@ void ebsp_create_down_stream_raw(void* src, int dst_core_id, int nbytes, int max
     _ebsp_add_stream(dst_core_id, extmem_in_buffer, nbytes, max_chunksize, 1);
 }
 
-
-
 void* ebsp_create_up_stream(int src_core_id, int nbytes, int max_chunksize)
 {
     // 1) malloc in extmem
@@ -112,9 +110,8 @@ void* ebsp_create_up_stream(int src_core_id, int nbytes, int max_chunksize)
     return extmem_out_buffer;
 }
 
-
 // add ebsp_stream_descriptor to state.buffered_streams, update state.n_streams
-void _ebsp_add_stream(int core_id, void* extmem_buffer, int nbytes, int max_chunksize, int is_instream)
+void _ebsp_add_stream(int core_id, void* extmem_buffer, int nbytes, int max_chunksize, int is_down_stream)
 {
     if (state.combuf.n_streams[core_id] == MAX_N_STREAMS)
     {
@@ -131,7 +128,7 @@ void _ebsp_add_stream(int core_id, void* extmem_buffer, int nbytes, int max_chun
     memset(&x.e_dma_desc, 0, sizeof(e_dma_desc_host_t));
     x.current_buffer = NULL;
     x.next_buffer    = NULL;
-    x.is_instream    = is_instream;
+    x.is_down_stream = is_down_stream;
 
     state.buffered_streams[core_id][state.combuf.n_streams[core_id]] = x;
     state.combuf.n_streams[core_id]++;
