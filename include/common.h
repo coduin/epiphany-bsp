@@ -115,8 +115,8 @@ typedef struct {
     e_dma_desc_host_t   e_dma_desc;     // descriptor of dma, used as dma_id as well
     void*               current_buffer; // pointer (in e_core_mem) to current chunk
     void*               next_buffer;    // pointer (in e_core_mem) to next chunk
-    int                 is_instream;    // is 1 if it is an instream, 0 if it is an outstream
-    int                 _padding;        // make sure struct is 8 byte aligned when packed in arrays
+    int                 is_down_stream;  // is 1 if it is a down-stream, 0 if it is an up-stream
+    int                 _padding;       // make sure struct is 8 byte aligned when packed in arrays
 } __attribute__((aligned (8))) ebsp_stream_descriptor;
 
 
