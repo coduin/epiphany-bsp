@@ -404,10 +404,10 @@ void ebsp_move_down_cursor(int stream_id, int jump_n_chunks);
 void ebsp_reset_down_cursor(int stream_id);
 
 
-int  ebsp_open_up_stream    (void** address, unsigned stream_id);
-void ebsp_close_up_stream   (unsigned stream_id);
-void ebsp_open_down_stream  (unsigned stream_id);
-void ebsp_close_down_stream (unsigned stream_id);
+int ebsp_open_up_stream(void** address, unsigned stream_id);
+void ebsp_close_up_stream(unsigned stream_id);
+int ebsp_open_down_stream(void** address, unsigned stream_id);
+void ebsp_close_down_stream(unsigned stream_id);
 
 /**
  * Sets the number of bytes that has to be written from the current output chunk to extmem.
