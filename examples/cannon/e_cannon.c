@@ -2,11 +2,9 @@
 #include <stdint.h>
 #include "common.h"
 
-#define TEST if (s == 0) ebsp_message("%i", __LINE__);
-
 void get_initial_data(void* A, void* B);
 
-void get_matrix_size(int* n);
+void get_block_count(int* n);
 
 void matrix_multiply_add(float* A, float* B, float* C);
 
@@ -27,35 +25,26 @@ int main()
     float* b_data[2];
     float* c_data;
 
-    // Let ebsp malloc initial chunk
-    ebsp_open_down_stream(0);
-    ebsp_open_down_stream(1);
-
     // neighbor buffer locations
     float* neighbor_a_data[2];
     float* neighbor_b_data[2];
 
-    int matrix_size = 0;
-    get_matrix_size(&matrix_size);
-    int M = matrix_size / BLOCK_SIZE;
+    int M = 0;
+    get_block_count(&M);
 
     int fastmode = 0;
 
     // Allocate local buffers
-    //a_data[0] = 0;
-    a_data[0] = ebsp_malloc(CORE_BLOCK_BYTES);
+    ebsp_open_down_stream((void**)&a_data[0], 0);
     a_data[1] = ebsp_malloc(CORE_BLOCK_BYTES);
-    //b_data[0] = 0;
-    b_data[0] = ebsp_malloc(CORE_BLOCK_BYTES);
+    ebsp_open_down_stream((void**)&b_data[0], 1);
     b_data[1] = ebsp_malloc(CORE_BLOCK_BYTES);
-    //TODO
+
     ebsp_open_up_stream((void**)&c_data, 2);
 
     // Set C to zero
     for (int i = 0; i < CORE_BLOCK_SIZE * CORE_BLOCK_SIZE; i++) {
         c_data[i] = 0;
-        a_data[0][i] = i;
-        b_data[0][i] = i;
     }
 
     // Register their locations
@@ -67,7 +56,7 @@ int main()
     bsp_sync();
     bsp_push_reg(b_data[1], CORE_BLOCK_BYTES);
     bsp_sync();
-   
+
     // Obtain neighbor locations
     neighbor_a_data[0] = ebsp_get_raw_address(a_neighbor, a_data[0]);
     neighbor_a_data[1] = ebsp_get_raw_address(a_neighbor, a_data[1]);
@@ -87,12 +76,12 @@ int main()
         
         if (cur_block != 0) {
             if (cur_block % (M * M) == 0) {
-                //ebsp_move_down_cursor(1, // stream id
-                //        -(M * M)); // relative chunk count
+                ebsp_move_down_cursor(1, // stream id
+                        -(M * M)); // relative chunk count
             }
             else if (cur_block % M == 0) {
-                //ebsp_move_down_cursor(0, // stream id
-                //        -M); // relative chunk count
+                ebsp_move_down_cursor(0, // stream id
+                        -M); // relative chunk count
             }
             if (cur_block % M == 0) {
                 // Send result of C upwards
@@ -116,12 +105,12 @@ int main()
         }
 
         // Obtain A, B
-        //ebsp_move_chunk_down((void**)&a_data[0], // address
-        //        0, // stream id
-        //        0);// double buffered mode
-        //ebsp_move_chunk_down((void**)&b_data[0], // address
-        //        1, // stream id
-        //        0);// double buffered mode
+        ebsp_move_chunk_down((void**)&a_data[0], // address
+                0, // stream id
+                0);// double buffered mode
+        ebsp_move_chunk_down((void**)&b_data[0], // address
+                1, // stream id
+                0);// double buffered mode
 
         int cur = 0; // computation
         int cur_buffer = 1; // data transfer
@@ -129,7 +118,6 @@ int main()
         // Multiply this block, by looping over the *core blocks*
         for (int i = 0; i < N; i++)
         {
-
             if (i != N - 1) {
                 ebsp_dma_push(&dma_handle_a, neighbor_a_data[cur_buffer], a_data[cur], CORE_BLOCK_BYTES);
                 ebsp_dma_push(&dma_handle_b, neighbor_b_data[cur_buffer], b_data[cur], CORE_BLOCK_BYTES);
@@ -158,7 +146,7 @@ int main()
     bsp_end();
 }
 
-void get_matrix_size(int* n)
+void get_block_count(int* M)
 {
     int packets = 0;
     int accum_bytes = 0;
@@ -170,7 +158,7 @@ void get_matrix_size(int* n)
     {
         bsp_get_tag(&status, &tag);
         if (tag == 1)
-            bsp_move(n, sizeof(int));
+            bsp_move(M, sizeof(int));
     }
 }
  

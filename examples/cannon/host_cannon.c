@@ -19,8 +19,8 @@ int block_count = 0;
 
 int main(int argc, char **argv)
 {
-    int M = 16;
-    matrix_size = BLOCK_SIZE * M;
+    matrix_size = 512;
+    int M = matrix_size / BLOCK_SIZE;
     matrix_bytes = matrix_size * matrix_size * sizeof(float);
     block_count = matrix_size / BLOCK_SIZE;
 
@@ -107,7 +107,7 @@ int main(int argc, char **argv)
     for (int s = 0; s < N * N; s++) {
         ebsp_create_down_stream(stream_A[s], s, matrix_bytes / (N * N), CORE_BLOCK_BYTES);
         ebsp_create_down_stream(stream_B[s], s, matrix_bytes / (N * N), CORE_BLOCK_BYTES);
-        ebsp_send_down(s, &tag, &matrix_size, sizeof(int));
+        ebsp_send_down(s, &tag, &M, sizeof(int));
         up_streams[s] = ebsp_create_up_stream(s,              // core id
                 block_count * block_count * CORE_BLOCK_BYTES, // total size
                 CORE_BLOCK_BYTES);                            // stream size

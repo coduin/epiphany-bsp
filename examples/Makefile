@@ -116,7 +116,7 @@ bin/memorybench:
 
 ########################################################
 
-cannon: bin/cannon bin/cannon/host_cannon bin/cannon/e_cannon.elf bin/cannon/e_cannon.srec
+cannon: bin/cannon bin/cannon/host_cannon bin/cannon/e_cannon.elf bin/cannon/e_cannon.srec cannon/common.h
 
 bin/cannon:
 	@mkdir -p bin/cannon
