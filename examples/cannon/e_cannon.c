@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include "common.h"
 
+#define TEST if (s == 0) ebsp_message("%i", __LINE__);
+
 void get_initial_data(void* A, void* B);
 
 void get_matrix_size(int* n);
@@ -40,16 +42,21 @@ int main()
     int fastmode = 0;
 
     // Allocate local buffers
-    a_data[0] = 0;
+    //a_data[0] = 0;
+    a_data[0] = ebsp_malloc(CORE_BLOCK_BYTES);
     a_data[1] = ebsp_malloc(CORE_BLOCK_BYTES);
-    b_data[0] = 0;
+    //b_data[0] = 0;
+    b_data[0] = ebsp_malloc(CORE_BLOCK_BYTES);
     b_data[1] = ebsp_malloc(CORE_BLOCK_BYTES);
     //TODO
     ebsp_open_up_stream((void**)&c_data, 2);
 
     // Set C to zero
-    for (int i = 0; i < BLOCK_SIZE * BLOCK_SIZE; i++)
+    for (int i = 0; i < CORE_BLOCK_SIZE * CORE_BLOCK_SIZE; i++) {
         c_data[i] = 0;
+        a_data[0][i] = i;
+        b_data[0][i] = i;
+    }
 
     // Register their locations
     bsp_push_reg(a_data[0], CORE_BLOCK_BYTES);
@@ -77,25 +84,24 @@ int main()
     // these are the *global blocks*
     for (int cur_block = 0; cur_block <= M * M * M; cur_block++)
     {
-        if (s == 0) ebsp_message("%i", __LINE__);
-
+        
         if (cur_block != 0) {
             if (cur_block % (M * M) == 0) {
-                ebsp_move_down_cursor(1, // stream id
-                        -(M * M)); // relative chunk count
+                //ebsp_move_down_cursor(1, // stream id
+                //        -(M * M)); // relative chunk count
             }
             else if (cur_block % M == 0) {
-                ebsp_move_down_cursor(0, // stream id
-                        -M); // relative chunk count
+                //ebsp_move_down_cursor(0, // stream id
+                //        -M); // relative chunk count
             }
             if (cur_block % M == 0) {
                 // Send result of C upwards
-                ebsp_move_chunk_up((void*)&c_data, 0, fastmode);
-                ebsp_message("%i (%i, %i, %i, ..., %i)",
-                        cur_block, (int)c_data[0],
-                        (int)c_data[1],
-                        (int)c_data[2],
-                        (int)c_data[CORE_BLOCK_SIZE * CORE_BLOCK_SIZE - 1]);
+                ebsp_move_chunk_up((void*)&c_data, 2, fastmode);
+                //ebsp_message("%i (%i, %i, %i, ..., %i)",
+                //      cur_block, (int)c_data[0],
+                //      (int)c_data[1],
+                //      (int)c_data[2],
+                //      (int)c_data[CORE_BLOCK_SIZE * CORE_BLOCK_SIZE - 1]);
                 ebsp_barrier();
 
                 // FIXME find more elegant way of accomplishing this.
@@ -104,22 +110,18 @@ int main()
                 }
 
                 // Set C to zero
-                for (int i = 0; i < BLOCK_SIZE * BLOCK_SIZE; ++i)
+                for (int i = 0; i < CORE_BLOCK_SIZE * CORE_BLOCK_SIZE; ++i)
                     c_data[i] = 0;
             }
         }
 
-        if (s == 0) ebsp_message("%i", __LINE__);
-
         // Obtain A, B
-        ebsp_move_chunk_down((void**)&a_data[0], // address
-                0, // stream id
-                0);// double buffered mode
-        ebsp_move_chunk_down((void**)&b_data[0], // address
-                1, // stream id
-                0);// double buffered mode
-
-        if (s == 0) ebsp_message("%i", __LINE__);
+        //ebsp_move_chunk_down((void**)&a_data[0], // address
+        //        0, // stream id
+        //        0);// double buffered mode
+        //ebsp_move_chunk_down((void**)&b_data[0], // address
+        //        1, // stream id
+        //        0);// double buffered mode
 
         int cur = 0; // computation
         int cur_buffer = 1; // data transfer
@@ -127,15 +129,11 @@ int main()
         // Multiply this block, by looping over the *core blocks*
         for (int i = 0; i < N; i++)
         {
-            if (s == 0) ebsp_message("%i", __LINE__);
 
             if (i != N - 1) {
                 ebsp_dma_push(&dma_handle_a, neighbor_a_data[cur_buffer], a_data[cur], CORE_BLOCK_BYTES);
                 ebsp_dma_push(&dma_handle_b, neighbor_b_data[cur_buffer], b_data[cur], CORE_BLOCK_BYTES);
             }
-
-            if (s == 0) ebsp_message("%i", __LINE__);
-            if (s == 0) ebsp_message("%i", __LINE__);
 
             // Perform C += A * B
             matrix_multiply_add(a_data[cur], b_data[cur], c_data);
@@ -144,17 +142,12 @@ int main()
                 break;
 
             // Switch buffers
-            cur_buffer = (cur_buffer + 1) % 2;
-            cur = (cur + 1) % 2;
-
-            if (s == 0) ebsp_message("%i", __LINE__);
+            cur_buffer = 1 - cur_buffer;
+            cur = 1 - cur;
 
             ebsp_dma_wait(&dma_handle_a);
             ebsp_dma_wait(&dma_handle_b);
             ebsp_barrier();
-
-            if (s == 0) ebsp_message("%i", __LINE__);
-
         }
     }
 

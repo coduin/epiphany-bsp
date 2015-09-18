@@ -175,7 +175,7 @@ void print_matrix_to_file(float* A, int matrix_size, const char* filename)
 {
     FILE *fp;
     fp = fopen(filename,"w");
-    fprintf(fp, "%%MatrixMarket matrix real general\n");
+    fprintf(fp, "%%%%MatrixMarket matrix array real general\n");
     fprintf(fp, "%i %i\n", matrix_size, matrix_size);
 
     for (int i = 0; i < matrix_size; i++) {
