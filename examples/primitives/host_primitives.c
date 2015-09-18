@@ -52,7 +52,7 @@ int main(int argc, char **argv)
     for (;;) {
         printf("Enter the amount of cores to use: ");
         nprocs = 0;
-        scanf("%d", &nprocs);
+        if (scanf("%d", &nprocs) < 0) return 1;
         if (nprocs <= 0 || nprocs > nprocs_available)
             printf("Invalid. Enter a number between 1 and %d\n", nprocs_available);
         else
