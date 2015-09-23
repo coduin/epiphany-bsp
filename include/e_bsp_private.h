@@ -44,6 +44,8 @@ typedef struct {
     int32_t         pid;
     int32_t         nprocs;
 
+    uint16_t        coreids[_NPROCS]; // pid to coreid mapping
+
     // time_passed is epiphany cpu time (so not walltime) in seconds
     float           time_passed;
 
@@ -91,6 +93,10 @@ extern ebsp_core_data coredata;
 // ebsp_combuf * const combuf = (ebsp_combuf*)E_COMBUF_ADDR;
 
 void _init_local_malloc();
+
+void ebsp_dma_push(ebsp_dma_handle* desc, void *dst, const void *src, size_t nbytes);
+
+void ebsp_dma_wait(ebsp_dma_handle* desc);
 
 /* Faster alternative to memcpy that only works if src and dst are 8-byte aligned
  */
