@@ -38,13 +38,9 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-<<<<<<< HEAD
 all: dirs tests
 
 tests: bsp_time bsp_nprocs bsp_pid bsp_init bsp_memtest bsp_hpput bsp_local_mp bsp_vertical_mp bsp_variables bsp_hp_variables pointer_conversion
-=======
-all: bsp_time bsp_nprocs bsp_pid bsp_init bsp_memtest bsp_hpput pointer_conversion out_stream
->>>>>>> origin/buffer
 
 dirs:
 	@mkdir -p bin
