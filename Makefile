@@ -46,7 +46,8 @@ HOST_SRCS = \
 #First include directory is only for cross-compiling
 INCLUDES = -I/usr/include/esdk \
 		   -I./include \
-		   -I${ESDK}/tools/host/include
+		   -I${ESDK}/tools/host/include\
+		   -I/usr/include
 
 HOST_LIBS= -L${ESDK}/tools/host/lib \
 		   -le-hal
