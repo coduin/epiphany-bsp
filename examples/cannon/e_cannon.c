@@ -43,7 +43,7 @@ int main()
     ebsp_open_up_stream((void**)&c_data, 2);
 
     // Set C to zero
-    for (int i = 0; i < CORE_BLOCK_SIZE * CORE_BLOCK_SIZE; i++) {
+    for (int i = 0; i < CORE_BLOCK_SIZE * CORE_BLOCK_SIZE; ++i) {
         c_data[i] = 0;
     }
 
@@ -69,6 +69,14 @@ int main()
     ebsp_host_sync();
     ebsp_barrier();
 
+    if (s == 0) {
+        ebsp_message("a_data[0]: %p", a_data[0]);
+        ebsp_message("a_data[1]: %p", a_data[1]);
+        ebsp_message("b_data[0]: %p", b_data[0]);
+        ebsp_message("b_data[1]: %p", b_data[1]);
+        ebsp_message("c_data: %p", c_data);
+    }
+
     // Loop over the blocks (chunks)
     // these are the *global blocks*
     for (int cur_block = 0; cur_block <= M * M * M; cur_block++)
@@ -86,11 +94,11 @@ int main()
             if (cur_block % M == 0) {
                 // Send result of C upwards
                 ebsp_move_chunk_up((void*)&c_data, 2, fastmode);
-                //ebsp_message("%i (%i, %i, %i, ..., %i)",
-                //      cur_block, (int)c_data[0],
-                //      (int)c_data[1],
-                //      (int)c_data[2],
-                //      (int)c_data[CORE_BLOCK_SIZE * CORE_BLOCK_SIZE - 1]);
+                ebsp_message("%i (%i, %i, %i, ..., %i)",
+                      cur_block, (int)c_data[0],
+                      (int)c_data[1],
+                      (int)c_data[2],
+                      (int)c_data[CORE_BLOCK_SIZE * CORE_BLOCK_SIZE - 1]);
                 ebsp_barrier();
 
                 // FIXME find more elegant way of accomplishing this.
@@ -111,6 +119,20 @@ int main()
         ebsp_move_chunk_down((void**)&b_data[0], // address
                 1, // stream id
                 0);// double buffered mode
+
+        if (s == 0 || s == 12) {
+            ebsp_message("a: %i (%i, %i, %i, ..., %i, ..., %i)",
+                  cur_block, (int)a_data[0][0],
+                  (int)a_data[0][1],
+                  (int)a_data[0][2],
+                  (int)a_data[0][32],
+                  (int)a_data[0][CORE_BLOCK_SIZE * CORE_BLOCK_SIZE - 1]);
+            ebsp_message("b: %i (%i, %i, %i, ..., %i)",
+                  cur_block, (int)b_data[0][0],
+                  (int)b_data[0][1],
+                  (int)b_data[0][2],
+                  (int)b_data[0][CORE_BLOCK_SIZE * CORE_BLOCK_SIZE - 1]);
+        }
 
         int cur = 0; // computation
         int cur_buffer = 1; // data transfer
@@ -135,6 +157,21 @@ int main()
 
             ebsp_dma_wait(&dma_handle_a);
             ebsp_dma_wait(&dma_handle_b);
+
+            if (s == 0 || s == 12) {
+                ebsp_message("a_dma: %i (%i, %i, %i, ..., %i)",
+                      cur_block, (int)a_data[cur][0],
+                      (int)a_data[cur][1],
+                      (int)a_data[cur][2],
+                      (int)a_data[cur][CORE_BLOCK_SIZE * CORE_BLOCK_SIZE - 1]);
+
+                ebsp_message("b_dma: %i (%i, %i, %i, ..., %i)",
+                      cur_block, (int)b_data[cur][0],
+                      (int)b_data[cur][1],
+                      (int)b_data[cur][2],
+                      (int)b_data[cur][CORE_BLOCK_SIZE * CORE_BLOCK_SIZE - 1]);
+            }
+
             ebsp_barrier();
         }
     }

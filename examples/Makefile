@@ -38,7 +38,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: hello e_hello primitives streaming dot_product streaming_dot_product memtest bspbench lu_decomposition memorybench primes
+all: hello e_hello primitives streaming dot_product streaming_dot_product memtest bspbench lu_decomposition memorybench
 
 ########################################################
 

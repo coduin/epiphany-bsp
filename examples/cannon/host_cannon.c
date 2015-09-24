@@ -19,7 +19,7 @@ int block_count = 0;
 
 int main(int argc, char **argv)
 {
-    matrix_size = 512;
+    matrix_size = 64;
     int M = matrix_size / BLOCK_SIZE;
     matrix_bytes = matrix_size * matrix_size * sizeof(float);
     block_count = matrix_size / BLOCK_SIZE;
@@ -36,8 +36,8 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < matrix_size; i++) {
         for (int j = 0; j < matrix_size; j++) {
-            A[i * matrix_size + j] = (float)i / 10.0f;
-            B[i * matrix_size + j] = (float)j / 10.0f;
+            A[i * matrix_size + j] = (float)i;
+            B[i * matrix_size + j] = (float)j;
             C[i * matrix_size + j] = 0.0f;
         }
     }
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
         ebsp_send_down(s, &tag, &M, sizeof(int));
         up_streams[s] = ebsp_create_up_stream(s,              // core id
                 block_count * block_count * CORE_BLOCK_BYTES, // total size
-                CORE_BLOCK_BYTES);                            // stream size
+                CORE_BLOCK_BYTES);                            // chunk size
     }
 
     printf("Starting spmd\n");

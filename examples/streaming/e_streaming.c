@@ -38,8 +38,8 @@ int main()
     float* downchunk;
     float* downchunkB;
 
-    ebsp_open_down_stream(1);
-    ebsp_open_down_stream(2);
+    ebsp_open_down_stream((void**)&downchunk, 1);
+    ebsp_open_down_stream((void**)&downchunkB, 2);
 
     for (int i = 0; i < chunks; ++i) {
         ebsp_move_chunk_down((void**)&downchunk, 1, 0);

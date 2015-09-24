@@ -38,8 +38,8 @@ int main()
     int a_size;
     int b_size;
 
-    ebsp_open_down_stream(0);
-    ebsp_open_down_stream(1);
+    ebsp_open_down_stream((void**)&a, 0);
+    ebsp_open_down_stream((void**)&b, 1);
 
     while (1){
 
