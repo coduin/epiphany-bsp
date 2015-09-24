@@ -263,7 +263,7 @@ int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc)
 {
     ebsp_stream_descriptor* stream = &coredata.local_streams[stream_id];
 
-    ebsp_dma_handle* desc = (ebsp_dma_handle*) &(stream->e_dma_desc);
+    ebsp_dma_handle* desc = (ebsp_dma_handle*)(&(stream->e_dma_desc));
 
     //if(stream->current_buffer == NULL)
     //    stream->current_buffer =
