@@ -217,7 +217,7 @@ int localmem_test()
     bsp_sync();
 
     if (p == 0)
-        ebsp_message("Memory test: trying to keep allocating untill it overflows the stack. Errors should appear.");
+        ebsp_message("Memory test: trying to allocate more and more untill it overflows the stack");
 
     for (int i = 0; i < 100; i++)
         ptrs[i] = 0;
@@ -236,10 +236,8 @@ int localmem_test()
 
     bsp_sync();
 
-    if (p == 0) {
+    if (p == 0)
         ebsp_message("Success: allocation failed after first succesfully allocating %d = %p bytes.", first_fail*0x100, (void*)(first_fail*0x100));
-        ebsp_message("Stack is at = %p; malloc'ed data from %p to %p", &ptrs[0], ptrs[0], ptrs[first_fail-1] + 0x100);
-    }
 
     for (int i = 0; i < 100; i++)
         if (ptrs[i]) ebsp_free(ptrs[i]);
@@ -293,8 +291,8 @@ int extmem_test()
                 ++errors;
     }
 
-    if (p == 0 || errors != 0)
-        ebsp_message("Memory test complete (%d errors)", errors);
+    if (p == 0)
+        ebsp_message("Memory test complete (%d)", errors);
 
     // Free the memory
     for (int i = 0; i < EXT_MALLOC_COUNT; i++)
