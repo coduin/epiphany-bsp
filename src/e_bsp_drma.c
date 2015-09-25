@@ -57,8 +57,7 @@ void* _get_remote_addr(int pid, const void *addr, int offset)
     // And return the entry for the remote pid including the epiphany mapping
     for (int slot = 0; slot < MAX_BSP_VARS; ++slot)
         if (combuf->bsp_var_list[slot][coredata.pid] == addr)
-            return e_get_global_address(
-                    pid / e_group_config.group_cols,
+            return e_get_global_address(pid / e_group_config.group_cols,
                     pid % e_group_config.group_cols,
                     (void*)((int)combuf->bsp_var_list[slot][pid] + offset));
     ebsp_message(err_var_not_found, addr);
