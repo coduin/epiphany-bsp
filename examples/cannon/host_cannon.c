@@ -19,7 +19,7 @@ int block_count = 0;
 
 int main(int argc, char **argv)
 {
-    matrix_size = 64;
+    matrix_size = 128;
     int M = matrix_size / BLOCK_SIZE;
     matrix_bytes = matrix_size * matrix_size * sizeof(float);
     block_count = matrix_size / BLOCK_SIZE;
