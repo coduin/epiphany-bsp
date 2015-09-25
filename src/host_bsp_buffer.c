@@ -125,7 +125,7 @@ void _ebsp_add_stream(int core_id, void* extmem_buffer, int nbytes, int max_chun
     x.cursor         = x.extmem_addr;
     x.nbytes         = nbytes;
     x.max_chunksize  = max_chunksize;
-    memset(&x.e_dma_desc, 0, sizeof(e_dma_desc_host_t));
+    memset(&x.e_dma_desc, 0, sizeof(ebsp_dma_handle));
     x.current_buffer = NULL;
     x.next_buffer    = NULL;
     x.is_down_stream = is_down_stream;

@@ -43,6 +43,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #pragma once
 
 #include <stddef.h>
+#include "common.h"
 
 /**
  * Denotes the start of a BSP program.
@@ -454,17 +455,6 @@ void* ebsp_malloc(unsigned int nbytes);
 void ebsp_free(void* ptr);
 
 
-#define ALIGN(x)    __attribute__ ((aligned (x)))
-
-typedef struct
-{
-    unsigned config;
-    unsigned inner_stride;
-    unsigned count;
-    unsigned outer_stride;
-    void    *src_addr;
-    void    *dst_addr;
-} ALIGN(8) ebsp_dma_handle;
 
 /**
  * Push a new task to the DMA engine

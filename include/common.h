@@ -97,6 +97,19 @@ typedef struct {
     ebsp_message_header message[MAX_MESSAGES];
 } ebsp_message_queue;
 
+// FIXME: remove
+// typedef struct
+// {
+//     unsigned config;
+//     unsigned inner_stride;
+//     unsigned count;
+//     unsigned outer_stride;
+//     void    *src_addr;
+//     void    *dst_addr;
+// } __attribute__((aligned (8))) e_dma_desc_host_t;
+
+#define ALIGN(x)    __attribute__ ((aligned (x)))
+
 typedef struct
 {
     unsigned config;
@@ -105,20 +118,19 @@ typedef struct
     unsigned outer_stride;
     void    *src_addr;
     void    *dst_addr;
-} __attribute__((aligned (8))) e_dma_desc_host_t;
+} ALIGN(8) ebsp_dma_handle;
 
 typedef struct {
     void*               extmem_addr;    // extmem data in e_core address space
     void*               cursor;         // current position of the stream in extmem
     int                 nbytes;         // size of the stream including headers
     int                 max_chunksize;  // size of required buffer in e_core memory
-    e_dma_desc_host_t   e_dma_desc;     // descriptor of dma, used as dma_id as well
+    ebsp_dma_handle     e_dma_desc;     // descriptor of dma, used as dma_id as well
     void*               current_buffer; // pointer (in e_core_mem) to current chunk
     void*               next_buffer;    // pointer (in e_core_mem) to next chunk
     int                 is_down_stream;  // is 1 if it is a down-stream, 0 if it is an up-stream
     int                 _padding;       // make sure struct is 8 byte aligned when packed in arrays
 } __attribute__((aligned (8))) ebsp_stream_descriptor;
-
 
 // ebsp_combuf is a struct for epiphany <-> ARM communication
 // It is located in external memory. For more info see

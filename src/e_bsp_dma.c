@@ -53,12 +53,12 @@ void ebsp_dma_push(ebsp_dma_handle* descriptor, void *dst, const void *src, size
     prepare_descriptor(desc, dst, src, nbytes);
     
     // Change the previous descriptor to chain to this one if it is a different one
-    e_dma_desc_t* last = coredata.last_dma_desc;
+    e_dma_desc_t* last = (e_dma_desc_t*)coredata.last_dma_desc;
 
     if (last != desc) {
         unsigned newconfig = (last->config & 0x0000ffff) | ((unsigned)desc << 16) | E_DMA_CHAIN;
         last->config = newconfig;
-        coredata.last_dma_desc = desc;
+        coredata.last_dma_desc = descriptor;
     }
 
     // Check if the DMA is idle and start it if needed

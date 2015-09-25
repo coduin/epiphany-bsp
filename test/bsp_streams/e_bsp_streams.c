@@ -48,13 +48,13 @@ int main()
     for (int i = 0; i < chunks; ++i) {
         ebsp_move_chunk_down((void**)&downchunk, 2, 0);
         ebsp_move_chunk_down((void**)&downchunkB, 3, 0);
-        ebsp_move_chunk_down((void**)&downchunkDouble, 4, 1);
+        ebsp_move_chunk_down((void**)&downchunkDouble, 4, 0);
         for (int j = 0; j < chunk_size / sizeof(int); ++j) {
             upstream[j] = (i % 2 == 1) ? downchunk[j] : downchunkB[j];
             upstreamDouble[j] = 2 * downchunk[j];
         }
+        ebsp_move_chunk_up((void**)&upstreamDouble, 1, 0);
         ebsp_move_chunk_up((void**)&upstream, 0, 0);
-        ebsp_move_chunk_up((void**)&upstreamDouble, 1, 1);
     }
 
     EBSP_MSG_ORDERED("%i", downchunk[0]);
