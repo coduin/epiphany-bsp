@@ -468,6 +468,11 @@ void ebsp_free(void* ptr);
 void ebsp_dma_push(ebsp_dma_handle* desc, void *dst, const void *src, size_t nbytes);
 
 /**
+ * Start the queued DMA transfers
+ */
+void ebsp_dma_start()
+
+/**
  * Wait for the task to be completed.
  */
 void ebsp_dma_wait(ebsp_dma_handle* desc);

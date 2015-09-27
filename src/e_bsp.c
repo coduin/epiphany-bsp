@@ -46,6 +46,7 @@ void EXT_MEM_TEXT bsp_begin()
     coredata.tagsize_next = coredata.tagsize;
     coredata.read_queue_index = 0;
     coredata.message_index = 0;
+    coredata.last_dma_desc = NULL;
 
     // Initialize the barrier and mutexes
     e_barrier_init(coredata.sync_barrier, coredata.sync_barrier_tgt);

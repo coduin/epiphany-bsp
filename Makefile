@@ -51,7 +51,7 @@ INCLUDES = -I/usr/include/esdk \
 HOST_LIBS= -L${ESDK}/tools/host/lib \
 		   -le-hal
 
-E_FLAGS = -Os -fno-strict-aliasing -ffast-math -std=c99 -Wall
+E_FLAGS = -Os -fno-strict-aliasing -ffast-math -std=c99 -Wall -Wfatal-errors
 
 E_OBJS = $(E_SRCS:%.c=bin/e/%.o) $(E_ASM_SRCS:%.s=bin/e/%.o)
 HOST_OBJS = $(HOST_SRCS:%.c=bin/host/%.o) 
@@ -64,7 +64,7 @@ vpath %.s src
 
 bin/host/%.o: %.c $(HOST_HEADERS)
 	@echo "CC $<"
-	@$(ARM_PLATFORM_PREFIX)gcc -O3 -Wall -std=c99 $(INCLUDES) -c $< -o $@ ${HOST_LIBS}
+	@$(ARM_PLATFORM_PREFIX)gcc -O3 -Wall -Wfatal-errors -std=c99 $(INCLUDES) -c $< -o $@ ${HOST_LIBS}
 	
 # C code to object file
 bin/e/%.o: %.c $(E_HEADERS)
