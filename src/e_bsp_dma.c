@@ -80,29 +80,38 @@ void ebsp_dma_wait(ebsp_dma_handle* descriptor)
     e_dma_desc_t* desc = (e_dma_desc_t*)descriptor;
     volatile unsigned* dmastatusreg = e_get_global_address(e_group_config.core_row, e_group_config.core_col, (void*)E_REG_DMA1STATUS);
 
+    // There is a chain of DMA tasks. This function loops until 'descriptor'
+    // is no longer one of the elements of this chain
+
     int task_in_queue = 1;
     while(task_in_queue)
     {
         unsigned dmastatus = *dmastatusreg;
 
-        // Check if DMA is idle
+        // Check if DMA is idle, i.e. empty chain
         if ((dmastatus & 0xf) == 0)
             return;
 
         // DMA not idle, so it is working on a descriptor
         e_dma_desc_t* cur = (e_dma_desc_t*)(dmastatus >> 16);
 
-        // Follow path to see if 'desc' still has to be done
+        // Follow path to see if 'desc' is in the chain
         task_in_queue = 0;
         for(;;) {
+            // This should not happen
             if (cur == 0)
                 break;
+
+            // Found the task. This means we have to wait
             if (cur == desc) {
                 task_in_queue = 1;
                 break;
             }
+
+            // End of chain: there is no next task
             if ((cur->config & E_DMA_CHAIN) == 0)
                 break;
+
             cur = (e_dma_desc_t*)(cur->config >> 16);
         }
     }
