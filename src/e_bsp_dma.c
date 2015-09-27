@@ -67,15 +67,13 @@ void ebsp_dma_push(ebsp_dma_handle* descriptor, void *dst, const void *src, size
     }
 }
 
-
 void ebsp_dma_start()
 {
     // Check if the DMA is idle and start it if needed
     volatile unsigned* dmastatus = e_get_global_address(e_group_config.core_row, e_group_config.core_col, (void*)E_REG_DMA1STATUS);
     if ((*dmastatus & 0xf) == 0)
-        e_dma_start(desc, E_DMA_1);
+        e_dma_start((e_dma_desc_t*)coredata.last_dma_desc, E_DMA_1);
 }
-
 
 void ebsp_dma_wait(ebsp_dma_handle* descriptor)
 {
