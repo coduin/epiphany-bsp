@@ -470,7 +470,7 @@ void ebsp_dma_push(ebsp_dma_handle* desc, void *dst, const void *src, size_t nby
 /**
  * Start the queued DMA transfers
  */
-void ebsp_dma_start();
+void ebsp_dma_start(ebsp_dma_handle*);
 
 /**
  * Wait for the task to be completed.

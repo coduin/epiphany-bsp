@@ -67,12 +67,12 @@ void ebsp_dma_push(ebsp_dma_handle* descriptor, void *dst, const void *src, size
     }
 }
 
-void ebsp_dma_start()
+void ebsp_dma_start(ebsp_dma_handle* desc)
 {
     // Check if the DMA is idle and start it if needed
     volatile unsigned* dmastatus = e_get_global_address(e_group_config.core_row, e_group_config.core_col, (void*)E_REG_DMA1STATUS);
     if ((*dmastatus & 0xf) == 0)
-        e_dma_start((e_dma_desc_t*)coredata.last_dma_desc, E_DMA_1);
+        e_dma_start((e_dma_desc_t*)desc, E_DMA_1);
 }
 
 void ebsp_dma_wait(ebsp_dma_handle* descriptor)
@@ -115,4 +115,49 @@ void ebsp_dma_wait(ebsp_dma_handle* descriptor)
             cur = (e_dma_desc_t*)(cur->config >> 16);
         }
     }
+}
+
+void ebsp_dma_debug()
+{
+    volatile unsigned* dmastatusreg = e_get_global_address(e_group_config.core_row, e_group_config.core_col, (void*)E_REG_DMA1STATUS);
+
+    unsigned dmastatus = *dmastatusreg;
+
+    // Check if DMA is idle, i.e. empty chain
+    if ((dmastatus & 0xf) == 0) {
+        ebsp_message("DMA idle");
+        return;
+    }
+
+    void* tasklist[16] = {0};
+    int count = 0;
+
+    // DMA not idle, so it is working on a descriptor
+    e_dma_desc_t* cur = (e_dma_desc_t*)(dmastatus >> 16);
+
+    for(;;) {
+        tasklist[count++] = cur;
+
+        // This should not happen
+        if (cur == 0)
+            break;
+
+        // End of chain: there is no next task
+        if ((cur->config & E_DMA_CHAIN) == 0)
+            break;
+
+        cur = (e_dma_desc_t*)(cur->config >> 16);
+    }
+
+    ebsp_message("DMA chain (%d): %p %p %p %p %p %p %p %p",
+            count,
+            tasklist[0],
+            tasklist[1],
+            tasklist[2],
+            tasklist[3],
+            tasklist[4],
+            tasklist[5],
+            tasklist[6],
+            tasklist[7]);
+
 }

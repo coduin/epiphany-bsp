@@ -140,7 +140,7 @@ int ebsp_move_chunk_up(void** address, unsigned stream_id, int prealloc)
         void* dst = stream->cursor;
 
         ebsp_dma_push(desc, dst, src, chunk_size);  // start dma
-        ebsp_dma_start();
+        //ebsp_dma_start();
 
         void* tmp = stream->current_buffer; //swap buffers
         stream->current_buffer = stream->next_buffer;
@@ -163,7 +163,7 @@ int ebsp_move_chunk_up(void** address, unsigned stream_id, int prealloc)
         void* dst = stream->cursor;
 
         ebsp_dma_push(desc, dst, src, chunk_size);  // start dma
-        ebsp_dma_start();
+        //ebsp_dma_start();
         ebsp_dma_wait(desc);
 
         stream->cursor += chunk_size; // move pointer in extmem
@@ -190,7 +190,7 @@ void _ebsp_write_chunk(ebsp_stream_descriptor* stream, void* target)
 
         // write to current
         ebsp_dma_push(desc, dst, src, chunk_size + 2 * sizeof(int));
-        ebsp_dma_start();
+        //ebsp_dma_start();
 
         // jump over header+chunk
         stream->cursor = (void*) (((unsigned) (stream->cursor))
