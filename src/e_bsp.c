@@ -54,12 +54,18 @@ void EXT_MEM_TEXT bsp_begin()
     e_mutex_init(0, 0, &coredata.ebsp_message_mutex, MUTEXATTR_NULL);
     e_mutex_init(0, 0, &coredata.malloc_mutex, MUTEXATTR_NULL);
 
+    // Barrier fix:
+    // if core i is at ebsp_barrier but core j has not even done bsp_begin yet
+    // then behaviour was undefined. The following line should fix this
+    // by setting core0.sync_barrier[i] = 0
+    *(coredata.sync_barrier_tgt[0]) = 0;
+
     _init_local_malloc();
 
     // Copy stream descriptors to local memory
     unsigned int nbytes = combuf->n_streams[coredata.pid] * sizeof(ebsp_stream_descriptor);
     coredata.local_streams = ebsp_malloc(nbytes);
-    memcpy(coredata.local_streams, combuf->extmem_streams[coredata.pid], nbytes);
+    ebsp_aligned_transfer(coredata.local_streams, combuf->extmem_streams[coredata.pid], nbytes);
 
     // Send &syncstate to ARM
     if (coredata.pid == 0)
@@ -71,6 +77,8 @@ void EXT_MEM_TEXT bsp_begin()
     while (coredata.syncstate != STATE_CONTINUE) {}
 #endif
     _write_syncstate(STATE_RUN);
+
+    ebsp_barrier();
 
     // Initialize epiphany timer
     coredata.time_passed = 0.0f;
@@ -204,6 +212,22 @@ void EXT_MEM_TEXT bsp_abort(const char * format, ...)
     __asm__("trap 3");
 }
 
+void EXT_MEM_TEXT ebsp_send_string(const char* string)
+{
+    // Lock mutex
+    e_mutex_lock(0, 0, &coredata.ebsp_message_mutex);
+    // Write the message
+    ebsp_aligned_transfer(&combuf->msgbuf[0], string, sizeof(combuf->msgbuf));
+
+    // Wait for message to be written
+    _write_syncstate(STATE_MESSAGE);
+    while (coredata.syncstate != STATE_CONTINUE) {};
+    _write_syncstate(STATE_RUN);
+
+    // Unlock mutex
+    e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
+}
+
 void EXT_MEM_TEXT ebsp_message(const char* format, ... )
 {
     // Write the message to a buffer
@@ -213,57 +237,6 @@ void EXT_MEM_TEXT ebsp_message(const char* format, ... )
     vsnprintf(&buf[0], sizeof(buf), format, args);
     va_end(args);
 
-    // Lock mutex
-    e_mutex_lock(0, 0, &coredata.ebsp_message_mutex);
-    // Write the message
-    memcpy(&combuf->msgbuf[0], &buf[0], sizeof(buf));
-    combuf->msgflag = coredata.pid+1;
-    // Wait for it to be printed
-    while (combuf->msgflag != 0){}
-    // Unlock mutex
-    e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
+    ebsp_send_string(buf);
 }
-
-// This is e_dma_copy from the epiphany libs, but without waiting for dma to finish before returning
-//int ebsp_dma_copy_parallel(e_dma_id_t chan, void *dst, void *src, size_t n)
-//{
-//    unsigned   index;
-//    unsigned   shift;
-//    unsigned   stride;
-//    unsigned   config;
-//    e_dma_desc_t* _dma_copy_descriptor_;
-//
-//    unsigned dma_data_size[8] =
-//    {
-//        E_DMA_DWORD,
-//        E_DMA_BYTE,
-//        E_DMA_HWORD,
-//        E_DMA_BYTE,
-//        E_DMA_WORD,
-//        E_DMA_BYTE,
-//        E_DMA_HWORD,
-//        E_DMA_BYTE,
-//    };
-//
-//    _dma_copy_descriptor_ = &(coredata._dma_copy_descriptor_0);
-//    if( chan  == E_DMA_1 )
-//        _dma_copy_descriptor_ = &(coredata._dma_copy_descriptor_1);
-//
-//    index = (((unsigned) dst) | ((unsigned) src) | ((unsigned) n)) & 7;
-//
-//    config = E_DMA_MASTER | E_DMA_ENABLE | dma_data_size[index];
-//    if ((((unsigned) dst) & (0xfff00000)) == 0)
-//        config = config | E_DMA_MSGMODE;
-//    shift = dma_data_size[index] >> 5;
-//    stride = 0x10001 << shift;
-//
-//    _dma_copy_descriptor_ -> config       = config;
-//    _dma_copy_descriptor_ -> inner_stride = stride;
-//    _dma_copy_descriptor_ -> count        = 0x10000 | (n >> shift);
-//    _dma_copy_descriptor_ -> outer_stride = stride;
-//    _dma_copy_descriptor_ -> src_addr     = src;
-//    _dma_copy_descriptor_ -> dst_addr     = dst;
-//
-//    return e_dma_start(_dma_copy_descriptor_, chan);
-//}
 

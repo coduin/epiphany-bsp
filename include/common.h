@@ -190,6 +190,7 @@ typedef struct
 #define STATE_INIT      5
 #define STATE_EREADY    6
 #define STATE_ABORT     7
+#define STATE_MESSAGE   8
 
 // Clockspeed of Epiphany in cycles/second
 // This was 'measured' by comparing with ARM wall-time measurements

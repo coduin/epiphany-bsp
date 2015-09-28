@@ -294,6 +294,15 @@ int ebsp_spmd()
                     abort_counter++;
                     break;
 
+                case STATE_MESSAGE:
+                    printf("$%02d: %s\n",
+                            i,
+                            state.combuf.msgbuf);
+                    fflush(stdout);
+                    // Reset flag to let epiphany core continue
+                    _write_core_syncstate(i, STATE_CONTINUE);
+                    break;
+
                 default:
                     extmem_corrupted++;
                     if (extmem_corrupted <= 32)  // to avoid overflow
@@ -308,7 +317,7 @@ int ebsp_spmd()
         // Check messages
         if (state.combuf.msgflag)
         {
-            printf("$%02d: %s\n",
+            fprintf(stderr, "ERROR: Deprecated message: $%02d: %s\n",
                     state.combuf.msgflag - 1,  // flag = pid+1
                     state.combuf.msgbuf);
             fflush(stdout);
