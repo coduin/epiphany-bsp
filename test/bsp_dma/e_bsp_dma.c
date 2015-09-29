@@ -24,48 +24,64 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <e-lib.h>
 #include "../common.h"
 
-#define BUFFERSIZE 0x3000
+#define BUFFERSIZE 0x2000
 
 void dma_capture(unsigned* resultlist, unsigned count)
 {
     volatile unsigned* dmastatusreg = e_get_global_address(e_group_config.core_row, e_group_config.core_col, (void*)E_REG_DMA1STATUS);
     volatile unsigned* dmaconfigreg = e_get_global_address(e_group_config.core_row, e_group_config.core_col, (void*)E_REG_DMA1CONFIG);
 
-    while (count--) {
-        *resultlist++ = *dmastatusreg;
-        *resultlist++ = *dmaconfigreg;
+    unsigned prevstatus = -1;
+    unsigned prevconfig = -1;
+    unsigned similarcount = 0;
+    while (count) {
+        unsigned dmastatus = *dmastatusreg;
+        unsigned dmaconfig = *dmaconfigreg;
+
+        if (dmastatus == prevstatus && dmaconfig == prevconfig && similarcount < 1000) {
+            similarcount++;
+            continue;
+        }
+
+        *resultlist++ = dmastatus;
+        *resultlist++ = dmaconfig;
+        *resultlist++ = similarcount;
+        prevstatus = dmastatus;
+        prevconfig = dmaconfig;
+        similarcount = 0;
+        count--;
+
+        if ((dmastatus & 0xf) == 0)
+        {
+            *resultlist++ = -1;
+            *resultlist++ = -1;
+            *resultlist++ = -1;
+            break;
+        }
     }
 }
 
 void dma_analyze(unsigned* resultlist, unsigned resultcount)
 {
-    unsigned prevstatus = -1;
-    unsigned prevconfig = -1;
-    unsigned similarcount = 0;
     for (int i = 0; i < resultcount; i++)
     {
-        unsigned dmastatus = resultlist[2*i];
-        unsigned dmaconfig = resultlist[2*i+1];
+        unsigned dmastatus = resultlist[3*i];
+        unsigned dmaconfig = resultlist[3*i+1];
+        unsigned similarcount = resultlist[3*i+2];
 
-        if (dmastatus == prevstatus && dmaconfig == prevconfig) {
-            similarcount++;
-            continue;
-        }
-        if (similarcount != 0)
-            ebsp_message("... for %d iterations", similarcount);
-
-        prevstatus = dmastatus;
-        prevconfig = dmaconfig;
-        similarcount = 0;
+        if (dmastatus == -1 && dmaconfig == -1)
+            break;
 
         // Check if DMA is idle, i.e. empty chain
         if ((dmastatus & 0xf) == 0) {
-            ebsp_message("DMA idle");
-            return;
+            ebsp_message("DMA idle, CONFIG 0x%x", dmaconfig);
+            continue;
         }
 
-        void* tasklist[16] = {(void*)-1};
+        void* tasklist[16];
         int count = 0;
+
+        for (int i = 0; i < 16; i++) tasklist[i] = (void*)-1;
 
         // DMA not idle, so it is working on a descriptor
         e_dma_desc_t* cur = (e_dma_desc_t*)(dmastatus >> 16);
@@ -73,18 +89,13 @@ void dma_analyze(unsigned* resultlist, unsigned resultcount)
         for(;;) {
             tasklist[count++] = cur;
 
-            // This should not happen
-            if (cur == 0)
-                break;
-
-            // End of chain: there is no next task
             if ((cur->config & E_DMA_CHAIN) == 0)
-                break;
+                break; //end of chain
 
             cur = (e_dma_desc_t*)(cur->config >> 16);
         }
 
-        ebsp_message("CONFIG 0x%x Chain (%d): 0x%x %p %p %p %p %p %p %p",
+        ebsp_message("CONFIG 0x%x Chain (%d): 0x%x %p %p %p %p %p %p %p (%d times)",
                 dmaconfig,
                 count,
                 dmastatus,
@@ -94,7 +105,8 @@ void dma_analyze(unsigned* resultlist, unsigned resultcount)
                 tasklist[4],
                 tasklist[5],
                 tasklist[6],
-                tasklist[7]);
+                tasklist[7],
+                similarcount);
     }
 }
 
@@ -136,7 +148,7 @@ int main()
 
     ebsp_barrier();
 
-    unsigned count = BUFFERSIZE / sizeof(int) / 2;
+    unsigned count = BUFFERSIZE / sizeof(int) / 3;
     unsigned *resultlist = (unsigned*)buffer[1];
 
     ebsp_dma_start(&handle[0]);
