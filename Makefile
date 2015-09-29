@@ -51,7 +51,7 @@ INCLUDES = -I/usr/include/esdk \
 HOST_LIBS= -L${ESDK}/tools/host/lib \
 		   -le-hal
 
-E_FLAGS = -Os -fno-strict-aliasing -ffast-math -std=c99 -Wall -Wfatal-errors
+E_FLAGS = -std=c99 -Os -fno-strict-aliasing -ffast-math -fno-tree-loop-distribute-patterns -Wall -Wfatal-errors
 
 E_OBJS = $(E_SRCS:%.c=bin/e/%.o) $(E_ASM_SRCS:%.s=bin/e/%.o)
 HOST_OBJS = $(HOST_SRCS:%.c=bin/host/%.o) 
