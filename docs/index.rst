@@ -24,6 +24,12 @@ we also provide a complete reference of the API and a short introduction to the 
     streaming
 
 .. toctree::
+    :maxdepth: 2
+    :caption: Support Library
+
+    memory_management
+
+.. toctree::
     :maxdepth: 1
     :caption: Reference & Background
 
