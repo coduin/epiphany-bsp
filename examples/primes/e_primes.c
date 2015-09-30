@@ -25,23 +25,21 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <e_bsp.h>
 #include <common.h>
 
-int main()
-{
+int main() {
     bsp_begin();
 
     int p = bsp_pid();
-    
-    int prime_begin = -1; 
-    int prime_end   = -1; 
 
-    char buffer[2*sizeof(int)];     //get prime_begin and prime_end
-    void *ptr = (void*)&buffer;
+    int prime_begin = -1;
+    int prime_end = -1;
+
+    char buffer[2 * sizeof(int)]; // get prime_begin and prime_end
+    void* ptr = (void*)&buffer;
     int sizeleft = sizeof(buffer);
 
     int packets, accum_bytes, status, tag;
     bsp_qsize(&packets, &accum_bytes);
-    for (int i = 0; i < packets; i++)
-    {
+    for (int i = 0; i < packets; i++) {
         // We assume all packet sizes are multiples of 4
         // If not, the cores will crash because of unaligned memory accesses
         bsp_get_tag(&status, &tag);
@@ -50,19 +48,19 @@ int main()
         if (tag == 1)
             prime_begin = *(int*)ptr;
         else if (tag == 2)
-            prime_end   = *(int*)ptr;
+            prime_end = *(int*)ptr;
 
         sizeleft -= status;
         ptr += status;
     }
-    
+
     void* pre_primes = 0;
-    
+
     int prime_table_size = 3600;
-    char* is_prime = ebsp_malloc(prime_table_size*sizeof(char));
-     
+    char* is_prime = ebsp_malloc(prime_table_size * sizeof(char));
+
     int prime_cursor_begin = prime_begin;
-    int prime_cursor_end =   prime_begin + prime_table_size;
+    int prime_cursor_end = prime_begin + prime_table_size;
 
     int out_stream_size = -1;
     void* out_stream_end = 0;
@@ -73,49 +71,48 @@ int main()
     int in_stream_id = 0;
     int out_stream_id = 1;
 
-    while (1){
-        if(prime_cursor_begin >= prime_end)
+    while (1) {
+        if (prime_cursor_begin >= prime_end)
             break;
 
-        if(prime_cursor_end > prime_end)
+        if (prime_cursor_end > prime_end)
             prime_cursor_end = prime_end;
 
-        for(int i=0; i<prime_table_size; i++)
+        for (int i = 0; i < prime_table_size; i++)
             is_prime[i] = 1;
-            
+
         int chunk_size = -1;
-        
-        while( (chunk_size = ebsp_get_next_chunk(&pre_primes, in_stream_id, 0)) != 0 )
-        {
-            for (unsigned offset = 0; offset < chunk_size; offset += sizeof(int))
-            {
+
+        while ((chunk_size =
+                    ebsp_get_next_chunk(&pre_primes, in_stream_id, 0)) != 0) {
+            for (unsigned offset = 0; offset < chunk_size;
+                 offset += sizeof(int)) {
                 int prime_i = *((int*)((unsigned)pre_primes + offset));
-                for (int j=(prime_cursor_begin + prime_i - 1)/prime_i; j*prime_i < prime_cursor_end; j++)
-                {
-                    is_prime[j*prime_i] = 0;
+                for (int j = (prime_cursor_begin + prime_i - 1) / prime_i;
+                     j * prime_i < prime_cursor_end; j++) {
+                    is_prime[j * prime_i] = 0;
                 }
             }
         }
         ebsp_reset_in_cursor(in_stream_id);
 
-        for (int p=prime_cursor_begin; p<prime_cursor_end; p++)
-        {
-            if(out_stream == out_stream_end) {
+        for (int p = prime_cursor_begin; p < prime_cursor_end; p++) {
+            if (out_stream == out_stream_end) {
                 out_stream_size = ebsp_write_out(&out_stream, out_stream_id, 1);
                 out_stream_end = out_stream + out_stream_size;
             }
 
-            if ( is_prime[p] ) {
+            if (is_prime[p]) {
                 *((int*)out_stream) = p;
                 out_stream += sizeof(int);
-                n_primes_found ++;
+                n_primes_found++;
             }
         }
 
         prime_cursor_begin = prime_cursor_end + prime_table_size;
-        prime_cursor_end =   prime_cursor_begin + prime_table_size;
+        prime_cursor_end = prime_cursor_begin + prime_table_size;
     }
-    int nbytes_left = out_stream_size-(out_stream_end-out_stream);
+    int nbytes_left = out_stream_size - (out_stream_end - out_stream);
     ebsp_set_out_size(1, nbytes_left);
     ebsp_write_out(&out_stream, out_stream_id, 1);
 
@@ -128,4 +125,3 @@ int main()
 
     return 0;
 }
-

@@ -25,8 +25,8 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <host_bsp.h>
 #include <host_bsp_inspector.h>
 #include <stdlib.h>
-#include <stdio.h> 
-#include <stdint.h> 
+#include <stdio.h>
+#include <stdint.h>
 
 int main(int argc, char **argv)
 {
@@ -49,7 +49,7 @@ int main(int argc, char **argv)
     int big_chunk_nints = (l + bsp_nprocs() - 1) / bsp_nprocs();
     int small_chunk_nints = big_chunk_nints-1;
     int n_big = l + bsp_nprocs() * ( 1 - big_chunk_nints );
-    
+
     int current_chunk_nints = big_chunk_nints;
     unsigned a_cursor = (unsigned) a;
     unsigned b_cursor = (unsigned) b;
@@ -62,7 +62,7 @@ int main(int argc, char **argv)
 
         ebsp_create_down_stream((void*) a_cursor, pid, current_chunk_size, 8);
         ebsp_create_down_stream((void*) b_cursor, pid, current_chunk_size, 8);
-        
+
         a_cursor += current_chunk_size;
         b_cursor += current_chunk_size;
     }
