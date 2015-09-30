@@ -31,6 +31,8 @@ ebsp_core_data coredata;
 
 void _write_syncstate(int8_t state);
 
+void _int_isr(int);
+
 void EXT_MEM_TEXT bsp_begin()
 {
     int row = e_group_config.core_row;
@@ -46,6 +48,10 @@ void EXT_MEM_TEXT bsp_begin()
     coredata.tagsize_next = coredata.tagsize;
     coredata.read_queue_index = 0;
     coredata.message_index = 0;
+    coredata.last_dma_desc = NULL;
+
+    for (int s = 0; s < coredata.nprocs; s++)
+        coredata.coreids[s] = (uint16_t)e_coreid_from_coords(s / cols, s % cols);
 
     // Initialize the barrier and mutexes
     e_barrier_init(coredata.sync_barrier, coredata.sync_barrier_tgt);
@@ -53,12 +59,37 @@ void EXT_MEM_TEXT bsp_begin()
     e_mutex_init(0, 0, &coredata.ebsp_message_mutex, MUTEXATTR_NULL);
     e_mutex_init(0, 0, &coredata.malloc_mutex, MUTEXATTR_NULL);
 
+    // Barrier fix:
+    // if core i is at ebsp_barrier but core j has not even done bsp_begin yet
+    // then behaviour was undefined. The following line should fix this
+    // by setting core0.sync_barrier[i] = 0
+    *(coredata.sync_barrier_tgt[0]) = 0;
+
+    // Disable interrupts globally
+    e_irq_global_mask(E_TRUE);
+    // Attach interrupt handler
+    e_irq_attach(E_SYNC,         _int_isr); //0
+    e_irq_attach(E_SW_EXCEPTION, _int_isr); //1
+    e_irq_attach(E_MEM_FAULT,    _int_isr); //2
+    e_irq_attach(E_TIMER0_INT,   _int_isr); //3
+    e_irq_attach(E_TIMER1_INT,   _int_isr); //4
+    e_irq_attach(E_MESSAGE_INT,  _int_isr); //5
+    e_irq_attach(E_DMA0_INT,     _int_isr); //6
+    e_irq_attach(E_DMA1_INT,     _int_isr); //7
+    e_irq_attach(E_USER_INT,     _int_isr); //9 (8 is WAND)
+    // Clear the IMASK that would block DMA1 interrupts
+    unsigned prev = e_reg_read(E_REG_IMASK);
+    e_reg_write(E_REG_IMASK, prev & 0xffffff00); // clear 0 to 7
+    //e_irq_mask(E_DMA1_INT,     E_FALSE);
+    // Enable interrupts globally
+    e_irq_global_mask(E_FALSE);
+
     _init_local_malloc();
 
     // Copy stream descriptors to local memory
     unsigned int nbytes = combuf->n_streams[coredata.pid] * sizeof(ebsp_stream_descriptor);
     coredata.local_streams = ebsp_malloc(nbytes);
-    memcpy(coredata.local_streams, combuf->extmem_streams[coredata.pid], nbytes);
+    ebsp_aligned_transfer(coredata.local_streams, combuf->extmem_streams[coredata.pid], nbytes);
 
     // Send &syncstate to ARM
     if (coredata.pid == 0)
@@ -70,6 +101,8 @@ void EXT_MEM_TEXT bsp_begin()
     while (coredata.syncstate != STATE_CONTINUE) {}
 #endif
     _write_syncstate(STATE_RUN);
+
+    ebsp_barrier();
 
     // Initialize epiphany timer
     coredata.time_passed = 0.0f;
@@ -158,6 +191,11 @@ void bsp_sync()
     e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
 }
 
+void ebsp_barrier()
+{
+    e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
+}
+
 void ebsp_host_sync()
 {
     _write_syncstate(STATE_SYNC);
@@ -169,6 +207,29 @@ void _write_syncstate(int8_t state)
 {
     coredata.syncstate = state;  // local variable
     combuf->syncstate[coredata.pid] = state;  // being polled by ARM
+}
+
+void __attribute__((interrupt)) _int_isr(int unusedargument)
+{
+    __asm__("movfs r0, ipend"); //moves IPEND into r0 which is the first argument
+    combuf->interrupts[coredata.pid] = unusedargument;
+	return;
+}	
+
+void EXT_MEM_TEXT ebsp_send_string(const char* string)
+{
+    // Lock mutex
+    e_mutex_lock(0, 0, &coredata.ebsp_message_mutex);
+    // Write the message
+    ebsp_aligned_transfer(&combuf->msgbuf[0], string, sizeof(combuf->msgbuf));
+
+    // Wait for message to be written
+    _write_syncstate(STATE_MESSAGE);
+    while (coredata.syncstate != STATE_CONTINUE) {};
+    _write_syncstate(STATE_RUN);
+
+    // Unlock mutex
+    e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
 }
 
 void EXT_MEM_TEXT bsp_abort(const char * format, ...)
@@ -183,17 +244,8 @@ void EXT_MEM_TEXT bsp_abort(const char * format, ...)
     va_start(args, format);
     vsnprintf(&buf[0], sizeof(buf), format, args);
     va_end(args);
-
-    // Lock mutex
-    e_mutex_lock(0, 0, &coredata.ebsp_message_mutex);
-    // Write the message
-    memcpy(&combuf->msgbuf[0], &buf[0], sizeof(buf));
-    combuf->msgflag = coredata.pid+1;
-    // Wait for it to be printed
-    while (combuf->msgflag != 0){}
-    // Unlock mutex
-    e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
-
+    ebsp_send_string(buf);
+    
     // Abort all cores and notify host
     _write_syncstate(STATE_ABORT);
     // Experimental Epiphany feature that sends
@@ -212,14 +264,6 @@ void EXT_MEM_TEXT ebsp_message(const char* format, ... )
     vsnprintf(&buf[0], sizeof(buf), format, args);
     va_end(args);
 
-    // Lock mutex
-    e_mutex_lock(0, 0, &coredata.ebsp_message_mutex);
-    // Write the message
-    memcpy(&combuf->msgbuf[0], &buf[0], sizeof(buf));
-    combuf->msgflag = coredata.pid+1;
-    // Wait for it to be printed
-    while (combuf->msgflag != 0){}
-    // Unlock mutex
-    e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
+    ebsp_send_string(buf);
 }
 

@@ -1,5 +1,5 @@
 /*
-File: e_streaming_dot_product.c
+File: e_out_stream.c
 
 This file is part of the Epiphany BSP library.
 
@@ -27,50 +27,35 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 int main()
 {
-
     bsp_begin();
 
-    int p = bsp_pid();
-    int sum = 0;
-    void* a = 0;
-    void* b = 0;
+    //int s = bsp_pid();
 
-    int a_size;
-    int b_size;
+    float* upstream = 0;
+    int chunk_size = ebsp_open_up_stream((void**)&upstream, 0);
+    int chunks = 4;
 
-    ebsp_open_down_stream((void**)&a, 0);
-    ebsp_open_down_stream((void**)&b, 1);
+    float* downchunk;
+    float* downchunkB;
 
-    while (1){
+    ebsp_open_down_stream((void**)&downchunk, 1);
+    ebsp_open_down_stream((void**)&downchunkB, 2);
 
-        a_size = ebsp_move_chunk_down(&a, 0, 1);
-        b_size = ebsp_move_chunk_down(&b, 1, 1);
-
-        if (a_size != b_size) {
-            ebsp_message("mismatching chunks!");
-            ebsp_message("b_size = %d", b_size);
+    for (int i = 0; i < chunks; ++i) {
+        ebsp_move_chunk_down((void**)&downchunk, 1, 0);
+        ebsp_move_chunk_down((void**)&downchunkB, 2, 0);
+        for (int j = 0; j < chunk_size / sizeof(float); ++j) {
+            upstream[j] = (i % 2 == 1) ? downchunk[j] : downchunkB[j];
         }
-
-        if (a_size == 0)
-            break;
-
-        for (unsigned offset = 0; offset < a_size; offset += sizeof(int) )
-        {
-            int ai = *((int*)((unsigned)a + offset));
-            int bi = *((int*)((unsigned)b + offset));
-            sum += ai*bi;
-        }
+        ebsp_move_chunk_up((void**)&upstream, 0, 0);
     }
 
-    bsp_sync();
-
-    int tag = p;
-    ebsp_send_up(&tag, &sum, sizeof(int));
-
-    ebsp_close_down_stream(0);
+    ebsp_close_up_stream(0);
     ebsp_close_down_stream(1);
+    ebsp_close_down_stream(2);
 
     bsp_end();
 
     return 0;
 }
+

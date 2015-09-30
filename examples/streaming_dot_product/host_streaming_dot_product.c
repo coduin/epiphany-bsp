@@ -33,6 +33,9 @@ int main(int argc, char **argv)
     bsp_init("e_streaming_dot_product.srec", argc, argv);
     bsp_begin(bsp_nprocs());
 
+    int tagsize = sizeof(int);
+    ebsp_set_tagsize(&tagsize);
+
     // allocate two random vectors of length 512 each
     int l = 512;
     int* a = (int*)malloc(sizeof(int) * l);
@@ -57,14 +60,15 @@ int main(int argc, char **argv)
 
         int current_chunk_size = sizeof(int) * current_chunk_nints;
 
-        ebsp_send_buffered((void*) a_cursor, pid, current_chunk_size, 8);
-        ebsp_send_buffered((void*) b_cursor, pid, current_chunk_size, 8);
+        ebsp_create_down_stream((void*) a_cursor, pid, current_chunk_size, 8);
+        ebsp_create_down_stream((void*) b_cursor, pid, current_chunk_size, 8);
         
         a_cursor += current_chunk_size;
         b_cursor += current_chunk_size;
     }
 
     ebsp_spmd();
+
 
     // read output
     int tag;

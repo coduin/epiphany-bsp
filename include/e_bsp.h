@@ -40,8 +40,10 @@ see the files COPYING and COPYING.LESSER. If not, see
  * They are invalidated after the first call to bsp_sync().
  */
 
-
 #pragma once
+
+#include <stddef.h>
+#include "common.h"
 
 /**
  * Denotes the start of a BSP program.
@@ -117,6 +119,17 @@ float ebsp_host_time();
  * cores are finished with the current superstep.
  */
 void bsp_sync();
+
+/**
+ * Synchronizes cores without resolving outstanding communication
+ */
+void ebsp_barrier();
+
+/**
+ * Synchronizes with the host processor without resolving outstanding
+ * communication.
+ */
+void ebsp_host_sync();
 
 /**
  * Register a variable as available for remote access.
@@ -358,6 +371,7 @@ int bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
 void ebsp_send_up(const void *tag, const void *payload, int nbytes);
 
 /**
+ * Wait for any input-DMAs to finish.
  * A pointer to a chunk of input data is written to *address,
  * the size of this chunk is returned. stream_id is the index of the 
  * input stream sent to this core, in the same order as ebsp_send_buffered().
@@ -368,19 +382,39 @@ void ebsp_send_up(const void *tag, const void *payload, int nbytes);
  * - Sets *address=0 and returns 0 if the stream has ended
  * - Uses the DMA engine
  */
-int ebsp_get_next_chunk(void** address, unsigned stream_id, int prealloc);
+int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc);
 
 /**
- * Get a pointer to a chunk of output data. This function actually does the following things:
- * 1) Wait for the previous DMA (from local memory to exmem) to finish
- * 2) Start a new DMA from local memory to exmem to read the next chunk
- * 3) Return a pointer
+ * Wait for any output-DMAs to finish.
+ * A pointer to a chunk of empty memory is written to *address,
+ * the size of this chunk is returned. stream_id is the index of the 
+ * output stream, in the same order as ebsp_send_buffered().
+ * prealloc can be set to either 1 (true) or 0 (false), and determines whether double
+ * or single buffering is used.
+ *
  * @remarks
- * - There are no guarantees on the initial contents of the output chunk
- * - The size of this chunk is defined in common.h as OUT_CHUNK_SIZE
- * - Uses DMA channel E_DMA_1
+ * - Uses the DMA engine
  */
-void* ebsp_get_out_chunk();
+int ebsp_move_chunk_up(void** address, unsigned stream_id, int prealloc);
+
+
+// TODO: write abstract
+void ebsp_move_down_cursor(int stream_id, int jump_n_chunks);
+
+// TODO: write abstract
+void ebsp_reset_down_cursor(int stream_id);
+
+
+int ebsp_open_up_stream(void** address, unsigned stream_id);
+void ebsp_close_up_stream(unsigned stream_id);
+int ebsp_open_down_stream(void** address, unsigned stream_id);
+void ebsp_close_down_stream(unsigned stream_id);
+
+/**
+ * Sets the number of bytes that has to be written from the current output chunk to extmem.
+ * The default value is max_chunk_size
+ */
+void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes);
 
 /**
  * Aborts the program after outputting a message.
@@ -419,6 +453,38 @@ void* ebsp_malloc(unsigned int nbytes);
  *            or by ebsp_malloc()
  */
 void ebsp_free(void* ptr);
+
+
+
+/**
+ * Push a new task to the DMA engine
+ * @param desc   Used in combination with ebsp_dma_wait(). It is completely filled by this function
+ * @param dst    Destination address
+ * @param src    Source address
+ * @param nbytes Amount of bytes to be copied
+ *
+ * Assumes previous task in `desc` is completed (use ebsp_dma_wait())
+ */
+void ebsp_dma_push(ebsp_dma_handle* desc, void *dst, const void *src, size_t nbytes);
+
+/**
+ * Start the queued DMA transfers
+ */
+void ebsp_dma_start(ebsp_dma_handle*);
+
+/**
+ * Wait for the task to be completed.
+ */
+void ebsp_dma_wait(ebsp_dma_handle* desc);
+
+/**
+ * Get a raw remote memory address for a variable
+ * that was registered using bsp_push_reg()
+ * @param pid Remote core id
+ * @param variable An address that was registered using bsp_push_reg
+ * @return A pointer to the remote variable, or 0 if it was not registered
+ */
+void* ebsp_get_raw_address(int pid, const void* variable);
 
 /**
  * Output a debug message printf style.

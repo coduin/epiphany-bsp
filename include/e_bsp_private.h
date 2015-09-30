@@ -44,6 +44,8 @@ typedef struct {
     int32_t         pid;
     int32_t         nprocs;
 
+    uint16_t        coreids[_NPROCS]; // pid to coreid mapping
+
     // time_passed is epiphany cpu time (so not walltime) in seconds
     float           time_passed;
 
@@ -77,10 +79,10 @@ typedef struct {
     void*           local_malloc_base;
 
     // Location of local copy of combuf.extmem_in_streams
-    void*           local_streams;
+    ebsp_stream_descriptor* local_streams;
 
     // End of chain of DMA descriptors
-    e_dma_desc_t*   last_dma_desc;
+    ebsp_dma_handle*   last_dma_desc;
 
 } ebsp_core_data;
 
@@ -92,15 +94,10 @@ extern ebsp_core_data coredata;
 
 void _init_local_malloc();
 
-/* Push a new task to the DMA engine
- * @param desc   Is completely filled by this function
- * @param dst    Destination address
- * @param src    Source address
- * @param nbytes Amount of bytes to be copied
- *
- * Assumes previous task in `desc` is completed (use ebsp_dma_wait())
+void ebsp_dma_push(ebsp_dma_handle* desc, void *dst, const void *src, size_t nbytes);
+
+void ebsp_dma_wait(ebsp_dma_handle* desc);
+
+/* Faster alternative to memcpy that only works if src and dst are 8-byte aligned
  */
-void ebsp_dma_push(e_dma_desc_t* desc, void *dst, const void *src, size_t nbytes);
-
-void ebsp_dma_wait(e_dma_desc_t* desc);
-
+void ebsp_aligned_transfer(void* dst, const void *src, size_t nbytes);

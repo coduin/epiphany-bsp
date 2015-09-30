@@ -168,9 +168,9 @@ int ebsp_spmd()
     for( int p = 0; p < _NPROCS; p++ )
     {
         int nbytes = state.combuf.n_streams[p]*sizeof(ebsp_stream_descriptor);
-        void* in_stream_descriptors = ebsp_ext_malloc(nbytes);
-        memcpy(in_stream_descriptors, state.buffered_streams[p], nbytes);
-        state.combuf.extmem_streams[p] = _arm_to_e_pointer(in_stream_descriptors);
+        void* stream_descriptors = ebsp_ext_malloc(nbytes);
+        memcpy(stream_descriptors, state.buffered_streams[p], nbytes);
+        state.combuf.extmem_streams[p] = _arm_to_e_pointer(stream_descriptors);
 
         //TODO void*               extmem_current_out_chunk[_NPROCS];
         //TODO int                 out_buffer_size[_NPROCS];
@@ -265,6 +265,20 @@ int ebsp_spmd()
             return 0;
         }
 
+        // Check interrupts
+        for (int i = 0; i < state.nprocs; i++) {
+            if (state.combuf.interrupts[i] != 0)
+            {
+                uint32_t ipend = state.combuf.interrupts[i];
+                fprintf(stderr, "WARNING: Interrupt occured on core %d: 0x%x\n", i, ipend);
+                // Reset
+                state.combuf.interrupts[i] = 0;
+                _write_extmem((void*)&state.combuf.interrupts[i],
+                        offsetof(ebsp_combuf, interrupts[i]),
+                        sizeof(uint16_t));
+            }
+        }
+
         // Check sync states
         run_counter      = 0;
         sync_counter     = 0;
@@ -296,6 +310,15 @@ int ebsp_spmd()
                     abort_counter++;
                     break;
 
+                case STATE_MESSAGE:
+                    printf("$%02d: %s\n",
+                            i,
+                            state.combuf.msgbuf);
+                    fflush(stdout);
+                    // Reset flag to let epiphany core continue
+                    _write_core_syncstate(i, STATE_CONTINUE);
+                    break;
+
                 default:
                     extmem_corrupted++;
                     if (extmem_corrupted <= 32)  // to avoid overflow
@@ -305,21 +328,6 @@ int ebsp_spmd()
                                 i, state.combuf.syncstate[i]);
                     break;
             }
-        }
-
-        // Check messages
-        if (state.combuf.msgflag)
-        {
-            printf("$%02d: %s\n",
-                    state.combuf.msgflag - 1,  // flag = pid+1
-                    state.combuf.msgbuf);
-            fflush(stdout);
-            // Reset flag to let epiphany cores continue
-            state.combuf.msgflag = 0;
-            // Write the int to the external combuf
-            _write_extmem((void*)&state.combuf.msgflag,
-                    offsetof(ebsp_combuf, msgflag),
-                    sizeof(int));
         }
 
 #ifdef DEBUG

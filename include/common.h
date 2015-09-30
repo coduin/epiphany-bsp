@@ -97,6 +97,19 @@ typedef struct {
     ebsp_message_header message[MAX_MESSAGES];
 } ebsp_message_queue;
 
+// FIXME: remove
+// typedef struct
+// {
+//     unsigned config;
+//     unsigned inner_stride;
+//     unsigned count;
+//     unsigned outer_stride;
+//     void    *src_addr;
+//     void    *dst_addr;
+// } __attribute__((aligned (8))) e_dma_desc_host_t;
+
+#define ALIGN(x)    __attribute__ ((aligned (x)))
+
 typedef struct
 {
     unsigned config;
@@ -105,20 +118,19 @@ typedef struct
     unsigned outer_stride;
     void    *src_addr;
     void    *dst_addr;
-} __attribute__((aligned (8))) e_dma_desc_host_t;
+} ALIGN(8) ebsp_dma_handle;
 
 typedef struct {
     void*               extmem_addr;    // extmem data in e_core address space
     void*               cursor;         // current position of the stream in extmem
     int                 nbytes;         // size of the stream including headers
     int                 max_chunksize;  // size of required buffer in e_core memory
-    e_dma_desc_host_t   e_dma_desc;     // descriptor of dma, used as dma_id as well
+    ebsp_dma_handle     e_dma_desc;     // descriptor of dma, used as dma_id as well
     void*               current_buffer; // pointer (in e_core_mem) to current chunk
     void*               next_buffer;    // pointer (in e_core_mem) to next chunk
-    int                 is_instream;    // is 1 if it is an instream, 0 if it is an outstream
-    int                 _padding;        // make sure struct is 8 byte aligned when packed in arrays
+    int                 is_down_stream;  // is 1 if it is a down-stream, 0 if it is an up-stream
+    int                 _padding;       // make sure struct is 8 byte aligned when packed in arrays
 } __attribute__((aligned (8))) ebsp_stream_descriptor;
-
 
 // ebsp_combuf is a struct for epiphany <-> ARM communication
 // It is located in external memory. For more info see
@@ -129,8 +141,8 @@ typedef struct
     // Epiphany --> ARM communication
     int8_t              syncstate[_NPROCS];
     int8_t*             syncstate_ptr;  // Location on epiphany core
-    volatile int8_t     msgflag;  // 0: no msg. 1+pid: msg
     char                msgbuf[128];  // shared by all cores (mutexed)
+    uint16_t            interrupts[_NPROCS];
 
     // ARM --> Epiphany
     float               remotetimer;
@@ -178,6 +190,7 @@ typedef struct
 #define STATE_INIT      5
 #define STATE_EREADY    6
 #define STATE_ABORT     7
+#define STATE_MESSAGE   8
 
 // Clockspeed of Epiphany in cycles/second
 // This was 'measured' by comparing with ARM wall-time measurements

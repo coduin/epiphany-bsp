@@ -40,7 +40,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 all: dirs tests
 
-tests: bsp_time bsp_nprocs bsp_pid bsp_init bsp_memtest bsp_hpput bsp_local_mp bsp_vertical_mp bsp_variables bsp_hp_variables pointer_conversion
+tests: bsp_time bsp_nprocs bsp_pid bsp_init bsp_memtest bsp_hpput bsp_local_mp bsp_vertical_mp bsp_variables bsp_hp_variables bsp_streams
 
 dirs:
 	@mkdir -p bin
@@ -78,7 +78,10 @@ bsp_local_mp: 		bin/e_bsp_local_mp.elf		 bin/e_bsp_local_mp.srec		 bin/host_bsp_
 bsp_vertical_mp: 	bin/e_bsp_vertical_mp.elf	 bin/e_bsp_vertical_mp.srec		 bin/host_bsp_vertical_mp
 bsp_variables: 		bin/e_bsp_variables.elf		 bin/e_bsp_variables.srec		 bin/host_bsp_variables
 bsp_hp_variables: 	bin/e_bsp_hp_variables.elf	 bin/e_bsp_hp_variables.srec	 bin/host_bsp_hp_variables
+bsp_streams:	 	bin/e_bsp_streams.elf		 bin/e_bsp_streams.srec			 bin/host_bsp_streams
+bsp_dma: 			bin/e_bsp_dma.elf 			 bin/e_bsp_dma.srec 			 bin/host_bsp_dma
 pointer_conversion: bin/e_pointer_conversion.elf bin/e_pointer_conversion.srec   bin/host_pointer_conversion
+out_stream: 		bin/e_out_stream.elf 		 bin/e_out_stream.srec   		 bin/host_out_stream
 
 ########################################################
 

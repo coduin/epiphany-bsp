@@ -29,32 +29,9 @@
 #define SZULL (sizeof( long long))
 #define ulong long long
 
-char HEAP[0x2000];
-
 float *vecallocd(int n) { 
-    static int address = (int)&HEAP;
-    /* This function allocates a vector of floats of length n */ 
-    float *pd; 
- 
-    if (n == 0) { 
-        pd = NULL; 
-    } else { 
-        pd = (float *) address;
-        address += (n*SZDBL); 
-        if (address >= ((int)&HEAP + sizeof(HEAP))) {
-            ebsp_message("ERROR: vecallocd(%4d) -> %p. Alloc used [%p, %p[ Stack used [%p, 0x8000[",
-                    n, pd, &HEAP, (void*)address, &pd);
-            return NULL; /* OUT OF MEMORY */
-        }
-    } 
-
-    if (bsp_pid() == 0)
-        ebsp_message("vecallocd(%4d) -> %p. Alloc used [%p, %p[ Stack used [%p, 0x8000[",
-                n, pd, &HEAP, (void*)((int)&HEAP + sizeof(HEAP)), &pd);
-    
-    return pd; 
-} /* end vecallocd */ 
-
+    return (float*)ebsp_malloc(n * sizeof(float));
+}
 /* end bspedupack */
 
 

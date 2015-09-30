@@ -30,7 +30,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 extern bsp_state_t state;
 
 
-void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int max_chunksize)
+void ebsp_create_down_stream(void* src, int dst_core_id, int nbytes, int max_chunksize)
 {
     int nchunks = (nbytes + max_chunksize - 1)/max_chunksize; // nbytes/chunksize rounded up
 
@@ -75,10 +75,10 @@ void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int max_chunksiz
     dst_cursor += sizeof(int);
 
     // 3) add stream to state
-    _ebsp_add_stream(dst_core_id, extmem_in_buffer, nbytes_including_headers, max_chunksize);
+    _ebsp_add_stream(dst_core_id, extmem_in_buffer, nbytes_including_headers, max_chunksize, 1);
 }
 
-void ebsp_send_buffered_raw(void* src, int dst_core_id, int nbytes, int max_chunksize)
+void ebsp_create_down_stream_raw(void* src, int dst_core_id, int nbytes, int max_chunksize)
 {
     // 1) malloc in extmem
     void* extmem_in_buffer = ebsp_ext_malloc(nbytes);
@@ -91,14 +91,29 @@ void ebsp_send_buffered_raw(void* src, int dst_core_id, int nbytes, int max_chun
     memcpy(extmem_in_buffer, src, nbytes);
 
     // 3) add stream to state
-    _ebsp_add_stream(dst_core_id, (void*)extmem_in_buffer, nbytes, max_chunksize);
+    _ebsp_add_stream(dst_core_id, extmem_in_buffer, nbytes, max_chunksize, 1);
 }
 
+void* ebsp_create_up_stream(int src_core_id, int nbytes, int max_chunksize)
+{
+    // 1) malloc in extmem
+    void* extmem_out_buffer = ebsp_ext_malloc(nbytes);
+    if (extmem_out_buffer == 0)
+    {
+        printf("ERROR: not enough memory in extmem for ebsp_get_buffered\n");
+        return NULL;
+    }
+
+    // 2) add stream to state
+    _ebsp_add_stream(src_core_id, extmem_out_buffer, nbytes, max_chunksize, 0);
+
+    return extmem_out_buffer;
+}
 
 // add ebsp_stream_descriptor to state.buffered_streams, update state.n_streams
-void _ebsp_add_stream(int dst_core_id, void* extmem_in_buffer, int nbytes, int max_chunksize)
+void _ebsp_add_stream(int core_id, void* extmem_buffer, int nbytes, int max_chunksize, int is_down_stream)
 {
-    if (state.combuf.n_streams[dst_core_id] == MAX_N_STREAMS)
+    if (state.combuf.n_streams[core_id] == MAX_N_STREAMS)
     {
         printf("ERROR: state.combuf.n_streams >= MAX_N_STREAMS\n");
         return;
@@ -106,31 +121,17 @@ void _ebsp_add_stream(int dst_core_id, void* extmem_in_buffer, int nbytes, int m
 
     ebsp_stream_descriptor x;
 
-    x.extmem_addr    = _arm_to_e_pointer(extmem_in_buffer);
+    x.extmem_addr    = _arm_to_e_pointer(extmem_buffer);
     x.cursor         = x.extmem_addr;
-    x.nbytes            = nbytes;
-    x.max_chunksize     = max_chunksize;
-    memset(&x.e_dma_desc, 0, sizeof(e_dma_desc_host_t));
+    x.nbytes         = nbytes;
+    x.max_chunksize  = max_chunksize;
+    memset(&x.e_dma_desc, 0, sizeof(ebsp_dma_handle));
     x.current_buffer = NULL;
     x.next_buffer    = NULL;
+    x.is_down_stream = is_down_stream;
 
-    state.buffered_streams[dst_core_id][state.combuf.n_streams[dst_core_id]] = x;
-    state.combuf.n_streams[dst_core_id]++;
+    state.buffered_streams[core_id][state.combuf.n_streams[core_id]] = x;
+    state.combuf.n_streams[core_id]++;
 }
-
-/*
-void ebsp_get_buffered(int nbytes)
-{
-    // 1) malloc in extmem
-    void* extmem_out_buffer = ebsp_ext_malloc(nbytes);
-    if (extmem_out_buffer == 0)
-    {
-        printf("ERROR: not enough memory in extmem for ebsp_get_buffered\n");
-        return;
-    }
-
-    // 2) add stream to state
-    _ebsp_add_stream(dst_core_id, extmem_in_buffer, nbytes_including_headers, max_chunksize);
-}*/
 
 

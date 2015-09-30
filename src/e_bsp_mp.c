@@ -33,14 +33,14 @@ int ebsp_get_tagsize()
     return coredata.tagsize;
 }
 
-void bsp_set_tagsize(int *tag_bytes)
+void EXT_MEM_TEXT bsp_set_tagsize(int *tag_bytes)
 {
     coredata.tagsize_next = *tag_bytes;
     combuf->tagsize = *tag_bytes;
     *tag_bytes = coredata.tagsize;
 }
 
-void bsp_send(int pid, const void *tag, const void *payload, int nbytes)
+void EXT_MEM_TEXT bsp_send(int pid, const void *tag, const void *payload, int nbytes)
 {
     unsigned int index;
     unsigned int payload_offset;
@@ -83,7 +83,7 @@ void bsp_send(int pid, const void *tag, const void *payload, int nbytes)
 
 // Gets the next message from the queue, does not pop
 // Returns 0 if no message
-ebsp_message_header* _next_queue_message()
+ebsp_message_header* EXT_MEM_TEXT _next_queue_message()
 {
     ebsp_message_queue* q = &combuf->message_queue[coredata.read_queue_index];
     int qsize = q->count;
@@ -102,7 +102,7 @@ void _pop_queue_message()
     coredata.message_index++;
 }
 
-void bsp_qsize(int *packets, int *accum_bytes)
+void EXT_MEM_TEXT bsp_qsize(int *packets, int *accum_bytes)
 {
     *packets = 0;
     *accum_bytes = 0;
@@ -121,7 +121,7 @@ void bsp_qsize(int *packets, int *accum_bytes)
     return;
 }
 
-void bsp_get_tag(int *status, void *tag)
+void EXT_MEM_TEXT bsp_get_tag(int *status, void *tag)
 {
     ebsp_message_header* m = _next_queue_message();
     if (m == 0) {
@@ -132,7 +132,7 @@ void bsp_get_tag(int *status, void *tag)
     memcpy(tag, m->tag, coredata.tagsize);
 }
 
-void bsp_move(void *payload, int buffer_size)
+void EXT_MEM_TEXT bsp_move(void *payload, int buffer_size)
 {
     ebsp_message_header* m = _next_queue_message();
     _pop_queue_message();
@@ -148,7 +148,7 @@ void bsp_move(void *payload, int buffer_size)
     memcpy(payload, m->payload, buffer_size);
 }
 
-int bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
+int EXT_MEM_TEXT bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
 {
     ebsp_message_header* m = _next_queue_message();
     _pop_queue_message();
@@ -161,8 +161,8 @@ int bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
     return m->nbytes;
 }
 
-void ebsp_send_up(const void *tag, const void *payload, int nbytes)
+void EXT_MEM_TEXT ebsp_send_up(const void *tag, const void *payload, int nbytes)
 {
-    coredata.read_queue_index = 0;
+    coredata.read_queue_index = 1;
     return bsp_send(-1, tag, payload, nbytes);
 }
