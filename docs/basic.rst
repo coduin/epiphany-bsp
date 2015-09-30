@@ -5,10 +5,15 @@
 
 .. highlight:: c
 
-Getting started
-===============
+Getting started: The Basics
+===========================
 
-EBSP programs are written in single-program multiple-data *(SPMD)* style. This means that each core runs the same code, but obtains different data. Later we will see how we can transfer data to and from the Epiphany cores, but for now our first step will be to get the cores to output their designated core number (called `pid` for *processor identifier*). Like all programs written for the Parallella, an EBSP program consists of two parts. One part contains the code that runs on the *host processor*, the ARM chip that hosts the Linux OS. The other part contains the code that runs on each Epiphany core. In heterogeneous computing it is common to call this second part the *kernel*. A host program consists of at least four EBSP functions, which are generally used as in the following example:::
+EBSP programs are written in single-program multiple-data *(SPMD)* style. This means that each core runs the same code, but obtains different data. Later we will see how we can transfer data to and from the Epiphany cores, but for now our first step will be to get the cores to output their designated core number (called `pid` for *processor identifier*). Like all programs written for the Parallella, an EBSP program consists of two parts. One part contains the code that runs on the *host processor*, the ARM chip that hosts the Linux OS. The other part contains the code that runs on each Epiphany core. In heterogeneous computing it is common to call this second part the *kernel*.
+
+Hello World!
+------------
+
+A host program consists of at least four EBSP functions, which are generally used as in the following example:::
 
     // file: host_code.c
 
@@ -45,7 +50,7 @@ Next we write the kernel for our Hello World program. Besides outputting "Hello 
 
 Let us also go over the kernel code line by line. First we initialize the EBSP system on the core, by calling `bsp_begin`. In a kernel program this call does not require any arguments, since there is no additional program to run! Next we obtain information about our own designated processor number (commonly called `s`) using `bsp_pid`, and the total number of processors (commonly called `p`) by calling `bsp_nprocs`. We then output a message to host using `ebsp_message`. This function can be used completely identically to `printf` in ordinary C programs. Again we finalize the system with a call to `bsp_end` which cleans up the EBSP system.
 
-You may have noticed that some EBSP functions, which we will refer to as *primitives*, are prefixed with `bsp_` while others are prefixed by `ebsp_`. This is because the EBSP library introduces some functions that are not in the [BSPlib standard][bsplib] but that can be very helpful when programming for the Epiphany.
+You may have noticed that some EBSP functions, which we will refer to as *primitives*, are prefixed with `bsp_` while others are prefixed by `ebsp_`. This is because the EBSP library introduces some functions that are not in the `BSPlib standard <http://www.bsp-worldwide.org/>`_ but that can be very helpful when programming for the Epiphany.
 
 Running this program should result in output similar to the following:::
 

@@ -67,8 +67,8 @@ This code results in the following output:::
 Message passing is a very general and powerful technique when using variables to communicate proves to restrictive. However, the flexibility of message passing comes with performance penalty, because the buffers that are involved are too large to store on a single core. As before, `bsp_hpput` and `bsp_hpget` should be your preferred way of communicating if you are optimizing for speed.
 
 
-Examples
---------
+Example
+-------
 
 We finish our discussion of inter-core BSP message passing by providing a complete program that sends messages around:::
 

@@ -85,7 +85,7 @@ The arguments for `bsp_get` are:
 4. A pointer to the local destination.
 5. The number of bytes to copy.
 
-And again, we perform a barrier synchronisation to ensure the data has been transferred. If you are familiar with concurrent programming, then you might think we are at risk of a [race condition][racecondition]! What if processor `s` reaches the `bsp_get` statement before processor `(s + 1) % p` has set the value for `a` equal to its process number? Do we then obtain zero? In this case, we do not have to worry -- no data transfer is initialized until each core has reached `bsp_sync`. Indeed we receive the correct output:::
+And again, we perform a barrier synchronisation to ensure the data has been transferred. If you are familiar with concurrent programming, then you might think we are at risk of a `race condition <https://en.wikipedia.org/wiki/Race_condition>`_! What if processor `s` reaches the `bsp_get` statement before processor `(s + 1) % p` has set the value for `a` equal to its process number? Do we then obtain zero? In this case, we do not have to worry -- no data transfer is initialized until each core has reached `bsp_sync`. Indeed we receive the correct output:::
 
     $01: received: 2
     $03: received: 4
@@ -98,7 +98,7 @@ Unbuffered communication
 
 So far we have discussed writing to, and reading from variables using `bsp_put` and `bsp_get`. These two functions are *buffered*. When calling `bsp_put` for example, the *current source value* at the time of the function call is guarenteed to be sent to the target processor, but it does not get sent until the next barrier synchronisation -- so behind the scenes the EBSP library stores a copy of the data. The BSP standard was originally designed for distributed memory systems with very high latency, in which this design makes a lot of sense. On the Epiphany platform this gives a lot of unnecessary overhead since data is copied to *external memory*.
 
-This problem is not unique to the Epiphany platform however. Together with the [MulticoreBSP][multicorebsp] which target modern multicore processors, two additional BSP primitives were introduced that provide *unbuffered* variable communication, `bsp_hpput` and `bsp_hpget`. Here the `hp...` prefix stands for *high performance*.
+This problem is not unique to the Epiphany platform however. Together with the `MulticoreBSP <http://www.multicorebsp.com/>`_ which target modern multicore processors, two additional BSP primitives were introduced that provide *unbuffered* variable communication, `bsp_hpput` and `bsp_hpget`. Here the `hp...` prefix stands for *high performance*.
 
 However, although their function signatures are completely identical, these are not meant as a drop-in replacements for `bsp_put` and `bsp_get`. They are unsafe in the sense that data transfer happens *at once*. This means that when using these functions you should be aware of possible race conditions -- which can notoriously lead to mistakes that can be very hard to debug.
 
