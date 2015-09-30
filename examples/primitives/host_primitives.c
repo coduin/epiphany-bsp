@@ -27,7 +27,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdlib.h>
 
 // Data to be processed by the epiphany cores
-#define data_count (16*1000)
+#define data_count (16 * 1000)
 float data[data_count];
 
 int nprocs;
@@ -36,11 +36,9 @@ void generate_data();
 void send_data();
 void retrieve_data();
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
     // Initialize the BSP system
-    if (!bsp_init("e_primitives.srec", argc, argv))
-    {
+    if (!bsp_init("e_primitives.srec", argc, argv)) {
         fprintf(stderr, "ERROR: bsp_init() failed\n");
         return -1;
     }
@@ -52,16 +50,17 @@ int main(int argc, char **argv)
     for (;;) {
         printf("Enter the amount of cores to use: ");
         nprocs = 0;
-        if (scanf("%d", &nprocs) < 0) return 1;
+        if (scanf("%d", &nprocs) < 0)
+            return 1;
         if (nprocs <= 0 || nprocs > nprocs_available)
-            printf("Invalid. Enter a number between 1 and %d\n", nprocs_available);
+            printf("Invalid. Enter a number between 1 and %d\n",
+                   nprocs_available);
         else
             break;
     }
 
     // Initialize the epiphany system, and load the e-program
-    if (!bsp_begin(nprocs))
-    {
+    if (!bsp_begin(nprocs)) {
         fprintf(stderr, "ERROR: bsp_begin() failed\n");
         return -1;
     }
@@ -82,14 +81,12 @@ int main(int argc, char **argv)
     bsp_end();
 }
 
-void generate_data()
-{
+void generate_data() {
     for (int i = 0; i < data_count; i++)
-        data[i] = (float)(1+i);
+        data[i] = (float)(1 + i);
 }
 
-void send_data()
-{
+void send_data() {
     // Give it a tag. For example an integer
     int tag;
     int tagsize = sizeof(int);
@@ -99,18 +96,14 @@ void send_data()
     int chunk_size = (data_count + nprocs - 1) / nprocs;
 
     ebsp_set_tagsize(&tagsize);
-    for (int p = 0; p < nprocs; p++)
-    {
+    for (int p = 0; p < nprocs; p++) {
         tag = 100 + p; // random tag
-        ebsp_send_down(p, &tag,
-                &data[p*chunk_size],
-                sizeof(float)*chunk_size);
+        ebsp_send_down(p, &tag, &data[p * chunk_size],
+                       sizeof(float) * chunk_size);
     }
 }
 
-
-void retrieve_data()
-{
+void retrieve_data() {
     int packets;
     int accum_bytes;
     int tagsize;
@@ -118,50 +111,39 @@ void retrieve_data()
     ebsp_qsize(&packets, &accum_bytes);
     tagsize = ebsp_get_tagsize();
 
-    printf("Queue contains %d bytes in %d packet(s), tagsize %d\n",
-            accum_bytes, packets, tagsize);
+    printf("Queue contains %d bytes in %d packet(s), tagsize %d\n", accum_bytes,
+           packets, tagsize);
 
     void* tag = malloc(tagsize);
     int status;
-    
-    for (int i = 0; i < packets; i++)
-    {
+
+    for (int i = 0; i < packets; i++) {
         ebsp_get_tag(&status, tag);
-        if (status == -1)
-        {
+        if (status == -1) {
             printf("bsp_get_tag failed");
             break;
         }
         int ntag = *(int*)tag;
-        if (ntag == 1)
-        {
+        if (ntag == 1) {
             float value;
             ebsp_move(&value, sizeof(float));
             printf("Result 1: square sum is %f\n", value);
-        }
-        else if (ntag == 2)
-        {
+        } else if (ntag == 2) {
             int value;
             ebsp_move(&value, sizeof(int));
             printf("Result 2: memory allocation errors: %d\n", value);
-        }
-        else if (ntag == 3)
-        {
+        } else if (ntag == 3) {
             float value;
             ebsp_move(&value, sizeof(float));
             printf("Result 3: total squaresum time of all cores: %e\n", value);
-        }
-        else if (ntag >= 100 && ntag <= 200)
-        {
+        } else if (ntag >= 100 && ntag <= 200) {
             float value;
             ebsp_move(&value, sizeof(float));
-            printf("Result 4: memory allocation time for core %d: %e\n", ntag - 100, value);
-        }
-        else
-        {
+            printf("Result 4: memory allocation time for core %d: %e\n",
+                   ntag - 100, value);
+        } else {
             printf("Received %d bytes with tag %d:\n", status, ntag);
         }
     }
     free(tag);
 }
-

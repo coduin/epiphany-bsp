@@ -23,11 +23,10 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include <host_bsp.h>
-#include <stdio.h> 
+#include <stdio.h>
 #include <stdlib.h>
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
     bsp_init("e_streaming.srec", argc, argv);
     bsp_begin(bsp_nprocs());
 
@@ -35,35 +34,27 @@ int main(int argc, char **argv)
     int chunks = 4;
 
     float** upstreams = (float**)malloc(sizeof(float*) * bsp_nprocs());
-    float* downdata =  (float*)malloc(chunks * chunk_size);
-    float* downdataB =  (float*)malloc(chunks * chunk_size);
+    float* downdata = (float*)malloc(chunks * chunk_size);
+    float* downdataB = (float*)malloc(chunks * chunk_size);
 
     int c = 0;
-    for (int i = chunks * chunk_size / sizeof(float) - 1;
-            i >= 0; --i) {
+    for (int i = chunks * chunk_size / sizeof(float) - 1; i >= 0; --i) {
         downdata[c] = i;
         downdataB[c] = c;
         c++;
     }
-   
+
     for (int s = 0; s < bsp_nprocs(); ++s) {
-        upstreams[s] = (float*)ebsp_create_up_stream(s,
-                chunks * chunk_size,
-                chunk_size);
+        upstreams[s] =
+            (float*)ebsp_create_up_stream(s, chunks * chunk_size, chunk_size);
     }
 
     for (int s = 0; s < bsp_nprocs(); ++s) {
-        ebsp_create_down_stream(downdata,
-                s,
-                chunks * chunk_size,
-                chunk_size);
+        ebsp_create_down_stream(downdata, s, chunks * chunk_size, chunk_size);
     }
 
     for (int s = 0; s < bsp_nprocs(); ++s) {
-        ebsp_create_down_stream(downdataB,
-                s,
-                chunks * chunk_size,
-                chunk_size);
+        ebsp_create_down_stream(downdataB, s, chunks * chunk_size, chunk_size);
     }
 
     ebsp_spmd();

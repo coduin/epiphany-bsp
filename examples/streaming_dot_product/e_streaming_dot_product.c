@@ -25,9 +25,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <e_bsp.h>
 #include <common.h>
 
-int main()
-{
-
+int main() {
     bsp_begin();
 
     int p = bsp_pid();
@@ -41,7 +39,7 @@ int main()
     ebsp_open_down_stream((void**)&a, 0);
     ebsp_open_down_stream((void**)&b, 1);
 
-    while (1){
+    while (1) {
 
         a_size = ebsp_move_chunk_down(&a, 0, 1);
         b_size = ebsp_move_chunk_down(&b, 1, 1);
@@ -54,11 +52,10 @@ int main()
         if (a_size == 0)
             break;
 
-        for (unsigned offset = 0; offset < a_size; offset += sizeof(int) )
-        {
+        for (unsigned offset = 0; offset < a_size; offset += sizeof(int)) {
             int ai = *((int*)((unsigned)a + offset));
             int bi = *((int*)((unsigned)b + offset));
-            sum += ai*bi;
+            sum += ai * bi;
         }
     }
 

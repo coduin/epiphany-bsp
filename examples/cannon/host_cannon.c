@@ -17,17 +17,19 @@ int matrix_bytes = 0;
 
 int block_count = 0;
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
     matrix_size = BLOCK_SIZE;
     int M = matrix_size / BLOCK_SIZE;
     matrix_bytes = matrix_size * matrix_size * sizeof(float);
     block_count = matrix_size / BLOCK_SIZE;
 
     printf("%d X %d cores\n", N, N);
-    printf("core_blocks: %d X %d = %d bytes = 0x%x bytes\n", CORE_BLOCK_SIZE, CORE_BLOCK_SIZE, CORE_BLOCK_BYTES, CORE_BLOCK_BYTES);
-    printf("blocks: %d X %d = %d bytes = 0x%x bytes\n", BLOCK_SIZE, BLOCK_SIZE, BLOCK_BYTES, BLOCK_BYTES);
-    printf("full matrix: %d X %d = %d bytes = 0x%x bytes\n", matrix_size, matrix_size, matrix_bytes, matrix_bytes); 
+    printf("core_blocks: %d X %d = %d bytes = 0x%x bytes\n", CORE_BLOCK_SIZE,
+           CORE_BLOCK_SIZE, CORE_BLOCK_BYTES, CORE_BLOCK_BYTES);
+    printf("blocks: %d X %d = %d bytes = 0x%x bytes\n", BLOCK_SIZE, BLOCK_SIZE,
+           BLOCK_BYTES, BLOCK_BYTES);
+    printf("full matrix: %d X %d = %d bytes = 0x%x bytes\n", matrix_size,
+           matrix_size, matrix_bytes, matrix_bytes);
     printf("M_host: %i", M);
 
     // Prepare full matrix
@@ -66,19 +68,26 @@ int main(int argc, char **argv)
             // So that block's top-left element is
             // (i,j) = (block_Y * BLOCK_SIZE , block_X * BLOCK_SIZE)
             // Now loop i,j from 0 to BLOCK_SIZE and use
-            // A[ (block_Y * BLOCK_SIZE + j) * matrix_size + (block_X * BLOCK_SIZE + j) ]
+            // A[ (block_Y * BLOCK_SIZE + j) * matrix_size + (block_X *
+            // BLOCK_SIZE + j) ]
             //
-            // Within this block, we want to partition into 16 * 16 smaller blocks
+            // Within this block, we want to partition into 16 * 16 smaller
+            // blocks
 
             for (int i = 0; i < BLOCK_SIZE; i++) {
                 for (int j = 0; j < BLOCK_SIZE; j++) {
-                    float element_A = A[ (block_Y * BLOCK_SIZE + i) * matrix_size + (block_X * BLOCK_SIZE + j) ];
-                    float element_B = B[ (block_X * BLOCK_SIZE + i) * matrix_size + (block_Y * BLOCK_SIZE + j) ];
+                    float element_A =
+                        A[(block_Y * BLOCK_SIZE + i) * matrix_size +
+                          (block_X * BLOCK_SIZE + j)];
+                    float element_B =
+                        B[(block_X * BLOCK_SIZE + i) * matrix_size +
+                          (block_Y * BLOCK_SIZE + j)];
                     // i,j are coordinates within the block
                     int X = i / CORE_BLOCK_SIZE;
                     int Y = j / CORE_BLOCK_SIZE;
                     //
-                    // Target processor: P(i,j) gets block_A(i,i+j) and block_B(i+j,j)
+                    // Target processor: P(i,j) gets block_A(i,i+j) and
+                    // block_B(i+j,j)
                     //
                     // block_A(X,Y) goes to P(X,Y-X)
                     // block_B(X,Y) goes to P(X-Y,Y)
@@ -106,12 +115,15 @@ int main(int argc, char **argv)
     ebsp_set_tagsize(&tagsize);
 
     for (int s = 0; s < N * N; s++) {
-        ebsp_create_down_stream(stream_A[s], s, matrix_bytes / (N * N), CORE_BLOCK_BYTES);
-        ebsp_create_down_stream(stream_B[s], s, matrix_bytes / (N * N), CORE_BLOCK_BYTES);
+        ebsp_create_down_stream(stream_A[s], s, matrix_bytes / (N * N),
+                                CORE_BLOCK_BYTES);
+        ebsp_create_down_stream(stream_B[s], s, matrix_bytes / (N * N),
+                                CORE_BLOCK_BYTES);
         ebsp_send_down(s, &tag, &M, sizeof(int));
-        up_streams[s] = ebsp_create_up_stream(s,              // core id
-                block_count * block_count * CORE_BLOCK_BYTES, // total size
-                CORE_BLOCK_BYTES);                            // chunk size
+        up_streams[s] = ebsp_create_up_stream(
+            s,                                            // core id
+            block_count * block_count * CORE_BLOCK_BYTES, // total size
+            CORE_BLOCK_BYTES);                            // chunk size
     }
 
     printf("Starting spmd\n");
@@ -121,7 +133,7 @@ int main(int argc, char **argv)
     // Gather C
     // Loop over blocks
     // everything in row-major order
-    int cur_index[N * N] = { 0 };
+    int cur_index[N * N] = {0};
     for (int block = 0; block < block_count * block_count; ++block) {
         int blockI = block / block_count;
         int blockJ = block % block_count;
@@ -150,8 +162,7 @@ int main(int argc, char **argv)
     free(B);
 }
 
-void sync_callback()
-{
+void sync_callback() {
     printf("Host syncing");
     for (int i = 0; i < 5; i++) {
         printf(".");
@@ -161,8 +172,7 @@ void sync_callback()
     printf("\n");
 }
 
-void print_matrix(float* A, int matrix_size)
-{
+void print_matrix(float* A, int matrix_size) {
     for (int i = 0; i < matrix_size; i++) {
         for (int j = 0; j < matrix_size; j++) {
             printf("%5.2f ", A[i * matrix_size + j]);
@@ -172,10 +182,9 @@ void print_matrix(float* A, int matrix_size)
     printf("\n");
 }
 
-void print_matrix_to_file(float* A, int matrix_size, const char* filename)
-{
-    FILE *fp;
-    fp = fopen(filename,"w");
+void print_matrix_to_file(float* A, int matrix_size, const char* filename) {
+    FILE* fp;
+    fp = fopen(filename, "w");
     fprintf(fp, "%%%%MatrixMarket matrix array real general\n");
     fprintf(fp, "%i %i\n", matrix_size, matrix_size);
 

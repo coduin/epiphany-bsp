@@ -30,14 +30,13 @@ int n, p;
 // by concatenating all messages after each other into the buffer
 // As input, nbytes contains the maximum buffer size
 // On return, nbytes contains the amount of bytes that were retrieved
-void get_initial_data(void *buffer, unsigned int *nbytes);
+void get_initial_data(void* buffer, unsigned int* nbytes);
 
 // Test allocating and freeing of memory
 int extmem_test();
 int localmem_test();
 
-int main()
-{
+int main() {
     float data_buffer[1000];
     float squaresums[16];
     float timings[16];
@@ -50,7 +49,7 @@ int main()
     // Initialize
     bsp_begin();
 
-    n = bsp_nprocs(); 
+    n = bsp_nprocs();
     p = bsp_pid();
 
     // Get the initial data from the host using the message passing queue
@@ -82,7 +81,7 @@ int main()
 
     // Send result of the sum to processor 0
     // into the correct slot of the array
-    bsp_put(0, &sum, &squaresums, p*sizeof(float), sizeof(float));
+    bsp_put(0, &sum, &squaresums, p * sizeof(float), sizeof(float));
 
     // The result of the timings will be transferred
     // through bsp_get instead of bsp_put
@@ -93,8 +92,7 @@ int main()
     bsp_sync();
 
     // Compute final result on processor 0
-    if (p == 0)
-    {
+    if (p == 0) {
         sum = 0.0f;
         for (int i = 0; i < n; i++)
             sum += squaresums[i];
@@ -113,10 +111,9 @@ int main()
     localmem_test();
 
     // Everything is done. The only thing left now is sending results
-    int tag = 100+p;
+    int tag = 100 + p;
     ebsp_send_up(&tag, &time0, sizeof(float));
-    if (p == 0)
-    {
+    if (p == 0) {
         // Send back the result of the sum
         tag = 1;
         ebsp_send_up(&tag, &sum, sizeof(float));
@@ -133,8 +130,7 @@ int main()
     return 0;
 }
 
-void get_initial_data(void *buffer, unsigned int *nbytes)
-{
+void get_initial_data(void* buffer, unsigned int* nbytes) {
     // Get the initial data from the host
     int packets;
     int accum_bytes;
@@ -145,18 +141,16 @@ void get_initial_data(void *buffer, unsigned int *nbytes)
     tagsize = ebsp_get_tagsize();
 
     // Double-check if the host has set the proper tagsize
-    if (tagsize != 4)
-    {
+    if (tagsize != 4) {
         bsp_abort("ERROR: tagsize is %d instead of 4", tagsize);
         return;
     }
 
     // Output some info, but only from core 0 to prevent spamming the console
     int p = bsp_pid();
-    if (p == 0)
-    {
-        ebsp_message("Queue contains %d bytes in %d packet(s).",
-                accum_bytes, packets);
+    if (p == 0) {
+        ebsp_message("Queue contains %d bytes in %d packet(s).", accum_bytes,
+                     packets);
 
         if (accum_bytes > bufsize)
             ebsp_message("Received more bytes than local buffer could hold.");
@@ -166,12 +160,10 @@ void get_initial_data(void *buffer, unsigned int *nbytes)
     int tag;
     int offset = 0;
 
-    for (int i = 0; i < packets; i++)
-    {
+    for (int i = 0; i < packets; i++) {
         // Get message tag and size
         bsp_get_tag(&status, &tag);
-        if (status == -1)
-        {
+        if (status == -1) {
             ebsp_message("bsp_get_tag failed");
             break;
         }
@@ -193,10 +185,10 @@ void get_initial_data(void *buffer, unsigned int *nbytes)
     *nbytes = offset;
 }
 
-int localmem_test()
-{
+int localmem_test() {
     if (p == 0)
-        ebsp_message("Memory test: allocating 100 local memory objects per core");
+        ebsp_message(
+            "Memory test: allocating 100 local memory objects per core");
 
     // Allocate limited local memory
     // Use ebsp_malloc and ebsp_free 100 times per core to check if it works
@@ -217,7 +209,8 @@ int localmem_test()
     bsp_sync();
 
     if (p == 0)
-        ebsp_message("Memory test: trying to keep allocating untill it overflows the stack. Errors should appear.");
+        ebsp_message("Memory test: trying to keep allocating untill it "
+                     "overflows the stack. Errors should appear.");
 
     for (int i = 0; i < 100; i++)
         ptrs[i] = 0;
@@ -225,8 +218,7 @@ int localmem_test()
     bsp_sync();
 
     int first_fail = -1;
-    for (int i = 0; i < 100; i++)
-    {
+    for (int i = 0; i < 100; i++) {
         ptrs[i] = ebsp_malloc(0x100);
         if (ptrs[i] == 0) {
             first_fail = i;
@@ -237,12 +229,16 @@ int localmem_test()
     bsp_sync();
 
     if (p == 0) {
-        ebsp_message("Success: allocation failed after first succesfully allocating %d = %p bytes.", first_fail*0x100, (void*)(first_fail*0x100));
-        ebsp_message("Stack is at = %p; malloc'ed data from %p to %p", &ptrs[0], ptrs[0], ptrs[first_fail-1] + 0x100);
+        ebsp_message("Success: allocation failed after first succesfully "
+                     "allocating %d = %p bytes.",
+                     first_fail * 0x100, (void*)(first_fail * 0x100));
+        ebsp_message("Stack is at = %p; malloc'ed data from %p to %p", &ptrs[0],
+                     ptrs[0], ptrs[first_fail - 1] + 0x100);
     }
 
     for (int i = 0; i < 100; i++)
-        if (ptrs[i]) ebsp_free(ptrs[i]);
+        if (ptrs[i])
+            ebsp_free(ptrs[i]);
 
     bsp_sync();
 
@@ -254,12 +250,12 @@ int localmem_test()
 
 #define EXT_MALLOC_COUNT 20
 
-int extmem_test()
-{
+int extmem_test() {
     int errors = 0;
 
     if (p == 0)
-        ebsp_message("Memory test: allocating 20 external memory objects per core");
+        ebsp_message(
+            "Memory test: allocating 20 external memory objects per core");
 
     // Allocate external (slow, but larger) memory
     // Use ebsp_ext_malloc and ebsp_free 20 times per core to check if it works
@@ -281,10 +277,11 @@ int extmem_test()
     void* otherptrs[EXT_MALLOC_COUNT];
     bsp_push_reg(&otherptrs, sizeof(otherptrs));
     bsp_sync();
-    for (int core = p + 1; ; core++)
-    {
-        if (core == n) core = 0; // wrap around
-        if (core == p) break;
+    for (int core = p + 1;; core++) {
+        if (core == n)
+            core = 0; // wrap around
+        if (core == p)
+            break;
         bsp_hpput(core, &ptrs, &otherptrs, 0, sizeof(ptrs));
         bsp_sync();
         // Now check for equality

@@ -25,11 +25,10 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <host_bsp.h>
 #include <host_bsp_inspector.h>
 #include <stdlib.h>
-#include <stdio.h> 
-#include <stdint.h> 
+#include <stdio.h>
+#include <stdint.h>
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
     bsp_init("e_streaming_dot_product.srec", argc, argv);
     bsp_begin(bsp_nprocs());
 
@@ -42,33 +41,31 @@ int main(int argc, char **argv)
     int* b = (int*)malloc(sizeof(int) * l);
     for (int i = 0; i < l; ++i) {
         a[i] = i;
-        b[i] = 2*i;
+        b[i] = 2 * i;
     }
 
     // partition and write to processors
     int big_chunk_nints = (l + bsp_nprocs() - 1) / bsp_nprocs();
-    int small_chunk_nints = big_chunk_nints-1;
-    int n_big = l + bsp_nprocs() * ( 1 - big_chunk_nints );
-    
+    int small_chunk_nints = big_chunk_nints - 1;
+    int n_big = l + bsp_nprocs() * (1 - big_chunk_nints);
+
     int current_chunk_nints = big_chunk_nints;
-    unsigned a_cursor = (unsigned) a;
-    unsigned b_cursor = (unsigned) b;
-    for (int pid = 0; pid < bsp_nprocs(); pid++)
-    {
+    unsigned a_cursor = (unsigned)a;
+    unsigned b_cursor = (unsigned)b;
+    for (int pid = 0; pid < bsp_nprocs(); pid++) {
         if (pid == n_big)
             current_chunk_nints = small_chunk_nints;
 
         int current_chunk_size = sizeof(int) * current_chunk_nints;
 
-        ebsp_create_down_stream((void*) a_cursor, pid, current_chunk_size, 8);
-        ebsp_create_down_stream((void*) b_cursor, pid, current_chunk_size, 8);
-        
+        ebsp_create_down_stream((void*)a_cursor, pid, current_chunk_size, 8);
+        ebsp_create_down_stream((void*)b_cursor, pid, current_chunk_size, 8);
+
         a_cursor += current_chunk_size;
         b_cursor += current_chunk_size;
     }
 
     ebsp_spmd();
-
 
     // read output
     int tag;
@@ -80,8 +77,7 @@ int main(int argc, char **argv)
     int sum = 0;
     printf("proc \t partial_sum\n");
     printf("---- \t -----------\n");
-    for (int i = 0; i < packets; i++)
-    {
+    for (int i = 0; i < packets; i++) {
         ebsp_get_tag(&status, &tag);
         ebsp_move(&result, sizeof(int));
         printf("%i: \t %i\n", tag, result);
