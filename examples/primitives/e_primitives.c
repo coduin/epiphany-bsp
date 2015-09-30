@@ -217,25 +217,29 @@ int localmem_test()
     bsp_sync();
 
     if (p == 0)
-        ebsp_message("Memory test: trying to allocate more and more untill it overflows the stack");
+        ebsp_message("Memory test: trying to keep allocating untill it overflows the stack. Errors should appear.");
 
     for (int i = 0; i < 100; i++)
         ptrs[i] = 0;
 
+    bsp_sync();
+
+    int first_fail = -1;
     for (int i = 0; i < 100; i++)
     {
         ptrs[i] = ebsp_malloc(0x100);
         if (ptrs[i] == 0) {
-            if (p == 0)
-                ebsp_message("Allocation failed after first succesfully allocating %d = %p bytes.", i*0x100, (void*)(i*0x100));
+            first_fail = i;
             break;
         }
     }
 
     bsp_sync();
 
-    if (p == 0)
+    if (p == 0) {
         ebsp_message("Success: allocation failed after first succesfully allocating %d = %p bytes.", first_fail*0x100, (void*)(first_fail*0x100));
+        ebsp_message("Stack is at = %p; malloc'ed data from %p to %p", &ptrs[0], ptrs[0], ptrs[first_fail-1] + 0x100);
+    }
 
     for (int i = 0; i < 100; i++)
         if (ptrs[i]) ebsp_free(ptrs[i]);
@@ -243,28 +247,30 @@ int localmem_test()
     bsp_sync();
 
     if (p == 0)
-        ebsp_message("Memory test: complete");
+        ebsp_message("Local memory test complete.");
 
     return 0;
 }
+
+#define EXT_MALLOC_COUNT 20
 
 int extmem_test()
 {
     int errors = 0;
 
     if (p == 0)
-        ebsp_message("Memory test: allocating 100 external memory objects per core");
+        ebsp_message("Memory test: allocating 20 external memory objects per core");
 
     // Allocate external (slow, but larger) memory
-    // Use ebsp_ext_malloc and ebsp_free 100 times per core to check if it works
-    void* ptrs[100];
-    for (int i = 0; i < 100; i++)
+    // Use ebsp_ext_malloc and ebsp_free 20 times per core to check if it works
+    void* ptrs[EXT_MALLOC_COUNT];
+    for (int i = 0; i < EXT_MALLOC_COUNT; i++)
         ptrs[i] = ebsp_ext_malloc(1);
     // Now free all odd ones
-    for (int i = 0; i < 100; i += 2)
+    for (int i = 0; i < EXT_MALLOC_COUNT; i += 2)
         ebsp_free(ptrs[i]);
     // Allocate them again
-    for (int i = 0; i < 100; i += 2)
+    for (int i = 0; i < EXT_MALLOC_COUNT; i += 2)
         ptrs[i] = ebsp_ext_malloc(1);
 
     ebsp_message("Allocation done");
@@ -272,7 +278,7 @@ int extmem_test()
     // Now we will rotate all the pointers between all cores to check
     // if they are all unique. We have to rotate n-1 times
     // Store the other core's pointers in otherptrs
-    void* otherptrs[100];
+    void* otherptrs[EXT_MALLOC_COUNT];
     bsp_push_reg(&otherptrs, sizeof(otherptrs));
     bsp_sync();
     for (int core = p + 1; ; core++)
@@ -282,16 +288,16 @@ int extmem_test()
         bsp_hpput(core, &ptrs, &otherptrs, 0, sizeof(ptrs));
         bsp_sync();
         // Now check for equality
-        for (int j = 0; j < 100; j++)
+        for (int j = 0; j < EXT_MALLOC_COUNT; j++)
             if (ptrs[j] == otherptrs[j])
                 ++errors;
     }
 
-    if (p == 0)
-        ebsp_message("Memory test complete (%d)", errors);
+    if (p == 0 || errors != 0)
+        ebsp_message("Memory test complete (%d errors)", errors);
 
     // Free the memory
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < EXT_MALLOC_COUNT; i++)
         ebsp_free(ptrs[i]);
 
     return errors;
