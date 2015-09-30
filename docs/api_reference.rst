@@ -12,34 +12,10 @@ On this page we give a complete overview of all the primitives we expose in the 
 Host
 ----
 
-ebsp_write
-^^^^^^^^^^
-
-.. doxygenfunction:: ebsp_write
-   :project: ebsp
-
-ebsp_read
-^^^^^^^^^
-
-.. doxygenfunction:: ebsp_read
-   :project: ebsp
-
 bsp_init
 ^^^^^^^^
 
 .. doxygenfunction:: bsp_init
-   :project: ebsp
-
-ebsp_set_sync_callback
-^^^^^^^^^^^^^^^^^^^^^^
-
-.. doxygenfunction:: ebsp_set_sync_callback
-   :project: ebsp
-
-ebsp_set_end_callback
-^^^^^^^^^^^^^^^^^^^^^
-
-.. doxygenfunction:: ebsp_set_end_callback
    :project: ebsp
 
 ebsp_spmd
@@ -124,6 +100,30 @@ ebsp_create_up_stream
 ^^^^^^^^^^^^^^^^^^^^^
 
 .. doxygenfunction:: ebsp_create_up_stream
+   :project: ebsp
+
+ebsp_write
+^^^^^^^^^^
+
+.. doxygenfunction:: ebsp_write
+   :project: ebsp
+
+ebsp_read
+^^^^^^^^^
+
+.. doxygenfunction:: ebsp_read
+   :project: ebsp
+
+ebsp_set_sync_callback
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. doxygenfunction:: ebsp_set_sync_callback
+   :project: ebsp
+
+ebsp_set_end_callback
+^^^^^^^^^^^^^^^^^^^^^
+
+.. doxygenfunction:: ebsp_set_end_callback
    :project: ebsp
 
 Epiphany
