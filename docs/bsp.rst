@@ -9,9 +9,9 @@ The BSP model is defined on an abstract computer called a BSP computer. This com
 2. It has a network in place that allows the different processors to send and receive data.
 3. It has a mechanism that allows for the synchronisation of these processors, e.g. by means of a blocking barrier.
 
-A BSP program consists of a number of distinct blocks of computation and communication called _supersteps_. These steps are separated by a barrier synchronisation, and consist of a computation and a communication step.
+A BSP program consists of a number of distinct blocks of computation and communication called *supersteps*. These steps are separated by a barrier synchronisation, and consist of a computation and a communication step.
 
-An important part of a BSP algorithm is the associated cost function. To this end we introduce two important concepts: namely an :math:`h`-relation, and a notion of the _work_ done by a processor. Furthermore we introduce two parameters that define a BSP computer: :math:`g` and :math:`l`.
+An important part of a BSP algorithm is the associated cost function. To this end we introduce two important concepts: namely an :math:`h`-relation, and a notion of the *work* done by a processor. Furthermore we introduce two parameters that define a BSP computer: :math:`g` and :math:`l`.
 
 An :math:`h`-relation is a superstep in which each processor sends or receives a maximum of :math:`h` words of data. We commonly denote with :math:`p` the id of a processor such that we can write for the :math:`h`-relation:
 
@@ -23,9 +23,9 @@ Where :math:`h_p` denotes the number of words received or sent by processor :mat
 .. math::
     T = \sum_{\text{supersteps } i} (w_i + g \cdot h_i + l)
 
-The BSP model has gained significant interest in the last couple of years. Most notably because Google has adopted the model and has developed some technologies based on BSP such as MapReduce and Pregel. The standard for BSP implementations is [BSPlib][2]. Modern implementations of the BSP model include BSPonMPI, which simulates the BSP model on top of MPI, and MulticoreBSP, which provides a BSP implementation for shared-memory multi-core computers.
+The BSP model has gained significant interest in the last couple of years. Most notably because Google has adopted the model and has developed some technologies based on BSP such as MapReduce and Pregel. The standard for BSP implementations is `BSPlib <http://www.bsp-worldwide.org/>`_. Modern implementations of the BSP model include BSPonMPI, which simulates the BSP model on top of MPI, and MulticoreBSP, which provides a BSP implementation for shared-memory multi-core computers.
 
-For a more detailed introduction on the BSP model, as well as a large number of examples of BSP programs we refer to the [introductory textbook on BSP and MPI][1] by Rob Bisseling.
+For a more detailed introduction on the BSP model, as well as a large number of examples of BSP programs we refer to the `introductory textbook on BSP and MPI <http://ukcatalogue.oup.com/product/9780198529392.do>`_ by Rob Bisseling.
 
 A large number of algorithms have already been implemented using the BSP model. Some of them with their associated cost function are listed below:
 
@@ -48,6 +48,3 @@ List Ranking                                   :math:`n/p + (n/p)\cdot g+(\log p
 ============================================== =========================================
 
 *(From: McColl 1998 "Foundations of Time-Critical Scalable Computing")*
-
-[1]: http://ukcatalogue.oup.com/product/9780198529392.do
-[2]: http://www.bsp-worldwide.org/

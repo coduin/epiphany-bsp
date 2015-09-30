@@ -27,6 +27,7 @@ we also provide a complete reference of the API and a short introduction to the 
     :maxdepth: 2
     :caption: Support Library
 
+    output
     memory_management
 
 .. toctree::

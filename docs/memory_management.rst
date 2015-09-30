@@ -23,12 +23,23 @@ Example
 Interface
 ------------------
 
-Host
-^^^^
+.. doxygenfunction:: ebsp_ext_malloc
+   :project: ebsp
 
-...
+.. doxygenfunction:: ebsp_malloc
+   :project: ebsp
 
-Epiphany
-^^^^^^^^
+.. doxygenfunction:: ebsp_free
+   :project: ebsp
 
-...
+.. doxygenfunction:: ebsp_dma_push
+   :project: ebsp
+
+.. doxygenfunction:: ebsp_dma_start
+   :project: ebsp
+
+.. doxygenfunction:: ebsp_dma_wait
+   :project: ebsp
+
+.. doxygenfunction:: ebsp_get_raw_address
+   :project: ebsp

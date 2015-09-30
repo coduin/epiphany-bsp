@@ -91,7 +91,9 @@ Note that now we are using our processor number as the tag, such that the host c
 
     ebsp_end();
 
-This gives the output::
+This gives the output:
+
+.. code-block:: none
 
     payload: 2001, tag: 1
     payload: 2013, tag: 13
