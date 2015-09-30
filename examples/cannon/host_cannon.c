@@ -19,7 +19,7 @@ int block_count = 0;
 
 int main(int argc, char **argv)
 {
-    matrix_size = 64;
+    matrix_size = BLOCK_SIZE;
     int M = matrix_size / BLOCK_SIZE;
     matrix_bytes = matrix_size * matrix_size * sizeof(float);
     block_count = matrix_size / BLOCK_SIZE;
@@ -28,6 +28,7 @@ int main(int argc, char **argv)
     printf("core_blocks: %d X %d = %d bytes = 0x%x bytes\n", CORE_BLOCK_SIZE, CORE_BLOCK_SIZE, CORE_BLOCK_BYTES, CORE_BLOCK_BYTES);
     printf("blocks: %d X %d = %d bytes = 0x%x bytes\n", BLOCK_SIZE, BLOCK_SIZE, BLOCK_BYTES, BLOCK_BYTES);
     printf("full matrix: %d X %d = %d bytes = 0x%x bytes\n", matrix_size, matrix_size, matrix_bytes, matrix_bytes); 
+    printf("M_host: %i", M);
 
     // Prepare full matrix
     float* A = malloc(matrix_bytes);

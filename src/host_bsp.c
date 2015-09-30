@@ -97,15 +97,13 @@ int bsp_begin(int nprocs)
     // So at e_load_group failure it cleanup the e_open result
 
     if (nprocs < 1 || nprocs > _NPROCS) {
-        fprintf(stderr, "ERROR: bsp_begin called with nprocs = %d.\n", nprocs);
+        fprintf(stderr, "ERROR: nprocs = %d.\n", nprocs);
         return 0;
     }
 
     // TODO(*) non-rectangle
-    //state.rows = (nprocs / state.platform.rows);
-    //state.cols = nprocs / (nprocs / state.platform.rows);
-    state.rows = state.platform.rows;
-    state.cols = state.platform.cols;
+    state.rows = (nprocs / state.platform.rows);
+    state.cols = nprocs / (nprocs / state.platform.rows);
 
 #ifdef DEBUG
     printf("(BSP) INFO: Making a workgroup of size %i x %i\n",
@@ -265,6 +263,20 @@ int ebsp_spmd()
             return 0;
         }
 
+        // Check interrupts
+        for (int i = 0; i < state.nprocs; i++) {
+            if (state.combuf.interrupts[i] != 0)
+            {
+                uint32_t ipend = state.combuf.interrupts[i];
+                fprintf(stderr, "WARNING: Interrupt occured on core %d: 0x%x\n", i, ipend);
+                // Reset
+                state.combuf.interrupts[i] = 0;
+                _write_extmem((void*)&state.combuf.interrupts[i],
+                        offsetof(ebsp_combuf, interrupts[i]),
+                        sizeof(uint16_t));
+            }
+        }
+
         // Check sync states
         run_counter      = 0;
         sync_counter     = 0;
@@ -296,6 +308,15 @@ int ebsp_spmd()
                     abort_counter++;
                     break;
 
+                case STATE_MESSAGE:
+                    printf("$%02d: %s\n",
+                            i,
+                            state.combuf.msgbuf);
+                    fflush(stdout);
+                    // Reset flag to let epiphany core continue
+                    _write_core_syncstate(i, STATE_CONTINUE);
+                    break;
+
                 default:
                     extmem_corrupted++;
                     if (extmem_corrupted <= 32)  // to avoid overflow
@@ -310,7 +331,7 @@ int ebsp_spmd()
         // Check messages
         if (state.combuf.msgflag)
         {
-            printf("$%02d: %s\n",
+            fprintf(stderr, "ERROR: Deprecated message: $%02d: %s\n",
                     state.combuf.msgflag - 1,  // flag = pid+1
                     state.combuf.msgbuf);
             fflush(stdout);
@@ -332,7 +353,7 @@ int ebsp_spmd()
         ++iter;
 #endif
 
-        if (sync_counter == state.nprocs_used) {
+        if (sync_counter == state.nprocs) {
             ++total_syncs;
 #ifdef DEBUG
             // This part of the sync (host side)
@@ -346,20 +367,20 @@ int ebsp_spmd()
                 state.sync_callback();
 
             // First reset the combuf
-            for (int i = 0; i < state.nprocs_used; i++)
+            for (int i = 0; i < state.nprocs; i++)
                 state.combuf.syncstate[i] = STATE_CONTINUE;
             _write_extmem(&state.combuf.syncstate,
                     offsetof(ebsp_combuf, syncstate),
                     _NPROCS * sizeof(int));
             // Now write it to all cores to continue their execution
-            for (int i = 0; i < state.nprocs_used; i++)
+            for (int i = 0; i < state.nprocs; i++)
                 _write_core_syncstate(i, STATE_CONTINUE);
         }
         if (abort_counter != 0) {
             printf("(BSP) ERROR: bsp_abort was called\n");
             break;
         }
-        if (finish_counter == state.nprocs_used)
+        if (finish_counter == state.nprocs)
             break;
     }
     // Read the communication buffer

@@ -27,13 +27,13 @@ see the files COPYING and COPYING.LESSER. If not, see
 #define local_mask (0xfff00000)
 extern unsigned dma_data_size[8];
 
-void prepare_descriptor(e_dma_desc_t* desc, void *dst, const void *src, size_t nbytes)
+void _prepare_descriptor(e_dma_desc_t* desc, void *dst, const void *src, size_t nbytes)
 {
     // Alignment
     unsigned index = (((unsigned) dst) | ((unsigned) src) | ((unsigned) nbytes)) & 7;
     unsigned shift = dma_data_size[index] >> 5;
 
-    desc->config = E_DMA_MASTER | E_DMA_ENABLE | dma_data_size[index];
+    desc->config = E_DMA_MASTER | E_DMA_ENABLE | E_DMA_IRQEN | dma_data_size[index];
     if ((((unsigned)dst) & local_mask) == 0)
         desc->config |= E_DMA_MSGMODE;
     desc->inner_stride  = 0x00010001 << shift;
@@ -46,27 +46,33 @@ void prepare_descriptor(e_dma_desc_t* desc, void *dst, const void *src, size_t n
 
 void ebsp_dma_push(ebsp_dma_handle* descriptor, void *dst, const void *src, size_t nbytes)
 {
-    if (nbytes == 0) return;
+    if (nbytes == 0)
+        return;
+
     e_dma_desc_t* desc = (e_dma_desc_t*)descriptor;
 
     // Set the contents of the descriptor
-    prepare_descriptor(desc, dst, src, nbytes);
-    
-    // Change the previous descriptor to chain to this one if it is a different one
-    e_dma_desc_t* last = coredata.last_dma_desc;
+    _prepare_descriptor(desc, dst, src, nbytes);
 
-    if (last != desc) {
+    // Change the previous descriptor to chain to this one if it is a different one
+    e_dma_desc_t* last = (e_dma_desc_t*)coredata.last_dma_desc;
+
+    if (last == NULL) {
+        coredata.last_dma_desc = descriptor;
+    }
+    else if (last != desc) {
         unsigned newconfig = (last->config & 0x0000ffff) | ((unsigned)desc << 16) | E_DMA_CHAIN;
         last->config = newconfig;
-        coredata.last_dma_desc = desc;
+        coredata.last_dma_desc = descriptor;
     }
+}
 
+void ebsp_dma_start(ebsp_dma_handle* desc)
+{
     // Check if the DMA is idle and start it if needed
     volatile unsigned* dmastatus = e_get_global_address(e_group_config.core_row, e_group_config.core_col, (void*)E_REG_DMA1STATUS);
     if ((*dmastatus & 0xf) == 0)
-        e_dma_start(desc, E_DMA_1);
-
-    return;
+        e_dma_start((e_dma_desc_t*)desc, E_DMA_1);
 }
 
 void ebsp_dma_wait(ebsp_dma_handle* descriptor)
@@ -74,33 +80,40 @@ void ebsp_dma_wait(ebsp_dma_handle* descriptor)
     e_dma_desc_t* desc = (e_dma_desc_t*)descriptor;
     volatile unsigned* dmastatusreg = e_get_global_address(e_group_config.core_row, e_group_config.core_col, (void*)E_REG_DMA1STATUS);
 
+    // There is a chain of DMA tasks. This function loops until 'descriptor'
+    // is no longer one of the elements of this chain
+
     int task_in_queue = 1;
     while(task_in_queue)
     {
         unsigned dmastatus = *dmastatusreg;
 
-
-        // Check if DMA is idle
-        if ((dmastatus & 0xf) == 0) return;
+        // Check if DMA is idle, i.e. empty chain
+        if ((dmastatus & 0xf) == 0)
+            return;
 
         // DMA not idle, so it is working on a descriptor
         e_dma_desc_t* cur = (e_dma_desc_t*)(dmastatus >> 16);
 
-        // Follow path to see if 'desc' still has to be done
+        // Follow path to see if 'desc' is in the chain
         task_in_queue = 0;
         for(;;) {
+            // This should not happen
             if (cur == 0)
                 break;
+
+            // Found the task. This means we have to wait
             if (cur == desc) {
                 task_in_queue = 1;
                 break;
             }
+
+            // End of chain: there is no next task
             if ((cur->config & E_DMA_CHAIN) == 0)
                 break;
+
             cur = (e_dma_desc_t*)(cur->config >> 16);
         }
     }
-
-    return;
 }
 

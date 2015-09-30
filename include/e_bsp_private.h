@@ -44,8 +44,6 @@ typedef struct {
     int32_t         pid;
     int32_t         nprocs;
 
-    uint16_t        coreids[_NPROCS]; // pid to coreid mapping
-
     // time_passed is epiphany cpu time (so not walltime) in seconds
     float           time_passed;
 
