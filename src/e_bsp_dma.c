@@ -33,7 +33,7 @@ void _prepare_descriptor(e_dma_desc_t* desc, void *dst, const void *src, size_t 
     unsigned index = (((unsigned) dst) | ((unsigned) src) | ((unsigned) nbytes)) & 7;
     unsigned shift = dma_data_size[index] >> 5;
 
-    desc->config = E_DMA_MASTER | E_DMA_ENABLE | dma_data_size[index];
+    desc->config = E_DMA_MASTER | E_DMA_ENABLE | E_DMA_IRQEN | dma_data_size[index];
     if ((((unsigned)dst) & local_mask) == 0)
         desc->config |= E_DMA_MSGMODE;
     desc->inner_stride  = 0x00010001 << shift;

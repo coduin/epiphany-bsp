@@ -31,6 +31,8 @@ ebsp_core_data coredata;
 
 void _write_syncstate(int8_t state);
 
+void _int_isr(int);
+
 void EXT_MEM_TEXT bsp_begin()
 {
     int row = e_group_config.core_row;
@@ -59,6 +61,29 @@ void EXT_MEM_TEXT bsp_begin()
     // then behaviour was undefined. The following line should fix this
     // by setting core0.sync_barrier[i] = 0
     *(coredata.sync_barrier_tgt[0]) = 0;
+
+   	// Disable interrupts globally
+	e_irq_global_mask(E_TRUE);
+    // Attach interrupt handler
+	e_irq_attach(E_SYNC,         _int_isr);
+	e_irq_attach(E_SW_EXCEPTION, _int_isr);
+	e_irq_attach(E_MEM_FAULT,    _int_isr);
+	e_irq_attach(E_TIMER0_INT,   _int_isr);
+	e_irq_attach(E_TIMER1_INT,   _int_isr);
+	e_irq_attach(E_DMA0_INT,     _int_isr);
+	e_irq_attach(E_DMA1_INT,     _int_isr);
+	e_irq_attach(E_USER_INT,     _int_isr);
+	// Clear the IMASK that would block DMA1 interrupts
+	e_irq_mask(E_SYNC,         E_FALSE);
+	e_irq_mask(E_SW_EXCEPTION, E_FALSE);
+	e_irq_mask(E_MEM_FAULT,    E_FALSE);
+	e_irq_mask(E_TIMER0_INT,   E_FALSE);
+	e_irq_mask(E_TIMER1_INT,   E_FALSE);
+	e_irq_mask(E_DMA0_INT,     E_FALSE);
+	e_irq_mask(E_DMA1_INT,     E_FALSE);
+	e_irq_mask(E_USER_INT,     E_FALSE);
+	// Enable interrupts globally
+	e_irq_global_mask(E_FALSE);
 
     _init_local_malloc();
 
@@ -179,6 +204,13 @@ void _write_syncstate(int8_t state)
     coredata.syncstate = state;  // local variable
     combuf->syncstate[coredata.pid] = state;  // being polled by ARM
 }
+
+void __attribute__((interrupt)) _int_isr(int unusedparameter)
+{
+    __asm__("movfs r0, ipend"); //moves IPEND into r0 which is the first parameter
+    combuf->interrupts[coredata.pid] = unusedparameter;
+	return;
+}	
 
 void EXT_MEM_TEXT bsp_abort(const char * format, ...)
 {
