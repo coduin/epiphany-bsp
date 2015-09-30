@@ -141,14 +141,14 @@ void EXT_MEM_TEXT bsp_put(int pid, const void *src, void *dst, int offset, int n
     coredata.request_counter = req_count + 1;
 
     // Save payload
-    memcpy(payload_ptr, src, nbytes);
+    ebsp_memcpy(payload_ptr, src, nbytes);
 }
 
 void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes)
 {
     void* dst_remote = _get_remote_addr(pid, dst, offset);
     if (!dst_remote) return;
-    memcpy(dst_remote, src, nbytes);
+    ebsp_memcpy(dst_remote, src, nbytes);
 }
 
 void EXT_MEM_TEXT bsp_get(int pid, const void *src, int offset, void *dst, int nbytes)
@@ -170,7 +170,7 @@ void bsp_hpget(int pid, const void *src, int offset, void *dst, int nbytes)
 {
     const void* src_remote = _get_remote_addr(pid, src, offset);
     if (!src_remote) return;
-    memcpy(dst, src_remote, nbytes);
+    ebsp_memcpy(dst, src_remote, nbytes);
 }
 
 void* ebsp_get_raw_address(int pid, const void* variable)

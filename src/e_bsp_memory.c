@@ -78,7 +78,7 @@ void EXT_MEM_TEXT ebsp_free(void* ptr)
     }
 }
 
-void ebsp_aligned_transfer(void* dest, const void *source, size_t nbytes)
+void ebsp_memcpy(void* dest, const void *source, size_t nbytes)
 {
     unsigned bits = (unsigned)dest | (unsigned)source;
     if ((bits & 0x7) == 0) {

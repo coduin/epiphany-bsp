@@ -89,7 +89,7 @@ void EXT_MEM_TEXT bsp_begin()
     // Copy stream descriptors to local memory
     unsigned int nbytes = combuf->n_streams[coredata.pid] * sizeof(ebsp_stream_descriptor);
     coredata.local_streams = ebsp_malloc(nbytes);
-    ebsp_aligned_transfer(coredata.local_streams, combuf->extmem_streams[coredata.pid], nbytes);
+    ebsp_memcpy(coredata.local_streams, combuf->extmem_streams[coredata.pid], nbytes);
 
     // Send &syncstate to ARM
     if (coredata.pid == 0)
@@ -159,7 +159,7 @@ void bsp_sync()
             int nbytes = reqs[i].nbytes;
             // Check if this is a get or a put
             if ((nbytes & DATA_PUT_BIT) == put)
-                memcpy(reqs[i].dst, reqs[i].src, nbytes & ~DATA_PUT_BIT);
+                ebsp_memcpy(reqs[i].dst, reqs[i].src, nbytes & ~DATA_PUT_BIT);
         }
         if (put == 0)
             put = DATA_PUT_BIT;
@@ -221,7 +221,7 @@ void EXT_MEM_TEXT ebsp_send_string(const char* string)
     // Lock mutex
     e_mutex_lock(0, 0, &coredata.ebsp_message_mutex);
     // Write the message
-    ebsp_aligned_transfer(&combuf->msgbuf[0], string, sizeof(combuf->msgbuf));
+    ebsp_memcpy(&combuf->msgbuf[0], string, sizeof(combuf->msgbuf));
 
     // Wait for message to be written
     _write_syncstate(STATE_MESSAGE);

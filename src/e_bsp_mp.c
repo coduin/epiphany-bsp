@@ -77,8 +77,8 @@ void EXT_MEM_TEXT bsp_send(int pid, const void *tag, const void *payload, int nb
     q->message[index].payload = payload_ptr;
     q->message[index].nbytes = nbytes;
 
-    memcpy(tag_ptr, tag, coredata.tagsize);
-    memcpy(payload_ptr, payload, nbytes);
+    ebsp_memcpy(tag_ptr, tag, coredata.tagsize);
+    ebsp_memcpy(payload_ptr, payload, nbytes);
 }
 
 // Gets the next message from the queue, does not pop
@@ -129,7 +129,7 @@ void EXT_MEM_TEXT bsp_get_tag(int *status, void *tag)
         return;
     }
     *status = m->nbytes;
-    memcpy(tag, m->tag, coredata.tagsize);
+    ebsp_memcpy(tag, m->tag, coredata.tagsize);
 }
 
 void EXT_MEM_TEXT bsp_move(void *payload, int buffer_size)
@@ -145,7 +145,7 @@ void EXT_MEM_TEXT bsp_move(void *payload, int buffer_size)
     if (m->nbytes < buffer_size)
         buffer_size = m->nbytes;
 
-    memcpy(payload, m->payload, buffer_size);
+    ebsp_memcpy(payload, m->payload, buffer_size);
 }
 
 int EXT_MEM_TEXT bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
