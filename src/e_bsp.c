@@ -62,20 +62,24 @@ void EXT_MEM_TEXT bsp_begin()
     // by setting core0.sync_barrier[i] = 0
     *(coredata.sync_barrier_tgt[0]) = 0;
 
+    // Disable interrupts globally
+    e_irq_global_mask(E_TRUE);
     // Attach interrupt handler
-	e_irq_attach(E_SYNC,         _int_isr);
-	e_irq_attach(E_SW_EXCEPTION, _int_isr);
-	e_irq_attach(E_MEM_FAULT,    _int_isr);
-	e_irq_attach(E_TIMER0_INT,   _int_isr);
-	e_irq_attach(E_TIMER1_INT,   _int_isr);
-	e_irq_attach(E_DMA0_INT,     _int_isr);
-	e_irq_attach(E_DMA1_INT,     _int_isr);
-	e_irq_attach(E_USER_INT,     _int_isr);
-	// Clear the IMASK that would block DMA1 interrupts
-    e_reg_write(E_REG_IMASK, 0); // clear all
-	//e_irq_mask(E_DMA1_INT,     E_FALSE);
-	// Enable interrupts globally
-	e_irq_global_mask(E_FALSE);
+    e_irq_attach(E_SYNC,         _int_isr); //0
+    e_irq_attach(E_SW_EXCEPTION, _int_isr); //1
+    e_irq_attach(E_MEM_FAULT,    _int_isr); //2
+    e_irq_attach(E_TIMER0_INT,   _int_isr); //3
+    e_irq_attach(E_TIMER1_INT,   _int_isr); //4
+    e_irq_attach(E_MESSAGE_INT,  _int_isr); //5
+    e_irq_attach(E_DMA0_INT,     _int_isr); //6
+    e_irq_attach(E_DMA1_INT,     _int_isr); //7
+    e_irq_attach(E_USER_INT,     _int_isr); //9 (8 is WAND)
+    // Clear the IMASK that would block DMA1 interrupts
+    unsigned prev = e_reg_read(E_REG_IMASK);
+    e_reg_write(E_REG_IMASK, prev & 0xffffff00); // clear 0 to 7
+    //e_irq_mask(E_DMA1_INT,     E_FALSE);
+    // Enable interrupts globally
+    e_irq_global_mask(E_FALSE);
 
     _init_local_malloc();
 
@@ -197,44 +201,12 @@ void _write_syncstate(int8_t state)
     combuf->syncstate[coredata.pid] = state;  // being polled by ARM
 }
 
-void __attribute__((interrupt)) _int_isr(int unusedparameter)
+void __attribute__((interrupt)) _int_isr(int unusedargument)
 {
-    __asm__("movfs r0, ipend"); //moves IPEND into r0 which is the first parameter
-    combuf->interrupts[coredata.pid] = unusedparameter;
+    __asm__("movfs r0, ipend"); //moves IPEND into r0 which is the first argument
+    combuf->interrupts[coredata.pid] = unusedargument;
 	return;
 }	
-
-void EXT_MEM_TEXT bsp_abort(const char * format, ...)
-{
-    // Because of the way these arguments work we can not
-    // simply call ebsp_message here
-    // so this function contains a copy of ebsp_message
-
-    // Write the message to a buffer
-    char buf[128];
-    va_list args;
-    va_start(args, format);
-    vsnprintf(&buf[0], sizeof(buf), format, args);
-    va_end(args);
-
-    // Lock mutex
-    e_mutex_lock(0, 0, &coredata.ebsp_message_mutex);
-    // Write the message
-    memcpy(&combuf->msgbuf[0], &buf[0], sizeof(buf));
-    combuf->msgflag = coredata.pid+1;
-    // Wait for it to be printed
-    while (combuf->msgflag != 0){}
-    // Unlock mutex
-    e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
-
-    // Abort all cores and notify host
-    _write_syncstate(STATE_ABORT);
-    // Experimental Epiphany feature that sends
-    // and abort signal to all cores
-    __asm__("MBKPT");
-    // Halt this core
-    __asm__("trap 3");
-}
 
 void EXT_MEM_TEXT ebsp_send_string(const char* string)
 {
@@ -250,6 +222,29 @@ void EXT_MEM_TEXT ebsp_send_string(const char* string)
 
     // Unlock mutex
     e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
+}
+
+void EXT_MEM_TEXT bsp_abort(const char * format, ...)
+{
+    // Because of the way these arguments work we can not
+    // simply call ebsp_message here
+    // so this function contains a copy of ebsp_message
+
+    // Write the message to a buffer
+    char buf[128];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(&buf[0], sizeof(buf), format, args);
+    va_end(args);
+    ebsp_send_string(buf);
+    
+    // Abort all cores and notify host
+    _write_syncstate(STATE_ABORT);
+    // Experimental Epiphany feature that sends
+    // and abort signal to all cores
+    __asm__("MBKPT");
+    // Halt this core
+    __asm__("trap 3");
 }
 
 void EXT_MEM_TEXT ebsp_message(const char* format, ... )

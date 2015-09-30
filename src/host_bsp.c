@@ -267,14 +267,13 @@ int ebsp_spmd()
         for (int i = 0; i < state.nprocs; i++) {
             if (state.combuf.interrupts[i] != 0)
             {
-                fprintf(stderr, "WARNING: Interrupt occured on core %d: 0x%x\n",
-                        i,
-                        state.combuf.interrupts[i]);
+                uint32_t ipend = state.combuf.interrupts[i];
+                fprintf(stderr, "WARNING: Interrupt occured on core %d: 0x%x\n", i, ipend);
                 // Reset
                 state.combuf.interrupts[i] = 0;
                 _write_extmem((void*)&state.combuf.interrupts[i],
                         offsetof(ebsp_combuf, interrupts[i]),
-                        sizeof(int16_t));
+                        sizeof(uint16_t));
             }
         }
 

@@ -24,7 +24,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <e-lib.h>
 #include "../common.h"
 
-#define BUFFERSIZE 0x2000
+#define BUFFERSIZE 0x1000
 
 void dma_capture(unsigned* resultlist, unsigned count)
 {
@@ -38,10 +38,12 @@ void dma_capture(unsigned* resultlist, unsigned count)
         unsigned dmastatus = *dmastatusreg;
         unsigned dmaconfig = *dmaconfigreg;
 
-        if (dmastatus == prevstatus && dmaconfig == prevconfig && similarcount < 1000) {
+        if (dmastatus == prevstatus && dmaconfig == prevconfig && similarcount < 5000) {
             similarcount++;
             continue;
         }
+        if ((dmastatus & 0xf) == 0xb) // dma pauze state, ignore
+            continue;
 
         *resultlist++ = dmastatus;
         *resultlist++ = dmaconfig;
