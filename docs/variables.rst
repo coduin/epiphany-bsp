@@ -58,7 +58,7 @@ When we receive the data, we can for example write the result to the standard ou
     bsp_put((s + 1) % p, &b, &a, 0, sizeof(int));
     bsp_sync();
 
-ebsp_message("received: %i", a);
+    ebsp_message("received: %i", a);
 
 This results in the following output:::
 
