@@ -22,6 +22,7 @@ we also provide a complete reference of the API and a short introduction to the 
     mp
     host_client
     streaming
+    other_features
 
 .. toctree::
     :maxdepth: 2
