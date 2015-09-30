@@ -62,8 +62,6 @@ void EXT_MEM_TEXT bsp_begin()
     // by setting core0.sync_barrier[i] = 0
     *(coredata.sync_barrier_tgt[0]) = 0;
 
-   	// Disable interrupts globally
-	e_irq_global_mask(E_TRUE);
     // Attach interrupt handler
 	e_irq_attach(E_SYNC,         _int_isr);
 	e_irq_attach(E_SW_EXCEPTION, _int_isr);
@@ -74,14 +72,8 @@ void EXT_MEM_TEXT bsp_begin()
 	e_irq_attach(E_DMA1_INT,     _int_isr);
 	e_irq_attach(E_USER_INT,     _int_isr);
 	// Clear the IMASK that would block DMA1 interrupts
-	e_irq_mask(E_SYNC,         E_FALSE);
-	e_irq_mask(E_SW_EXCEPTION, E_FALSE);
-	e_irq_mask(E_MEM_FAULT,    E_FALSE);
-	e_irq_mask(E_TIMER0_INT,   E_FALSE);
-	e_irq_mask(E_TIMER1_INT,   E_FALSE);
-	e_irq_mask(E_DMA0_INT,     E_FALSE);
-	e_irq_mask(E_DMA1_INT,     E_FALSE);
-	e_irq_mask(E_USER_INT,     E_FALSE);
+    e_reg_write(E_REG_IMASK, 0); // clear all
+	//e_irq_mask(E_DMA1_INT,     E_FALSE);
 	// Enable interrupts globally
 	e_irq_global_mask(E_FALSE);
 
