@@ -25,8 +25,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <host_bsp.h>
 #include <stdio.h>
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
     // Initialize the BSP system
     bsp_init("e_hello.srec", argc, argv);
 

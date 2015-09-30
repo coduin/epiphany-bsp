@@ -38,14 +38,14 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 ########################################################
 
-all: hello e_hello primitives streaming dot_product streaming_dot_product memtest bspbench lu_decomposition memorybench
+all: cannon dot_product hello lu_decomposition primitives streaming streaming_dot_product
 
 ########################################################
 
 bin/%: %.c
 	@echo "CC $<"
 	@$(ARM_PLATFORM_PREFIX)gcc $(CFLAGS) $(INCLUDES) -o $@ $< $(LIBS) $(HOST_LIBS) $(HOST_LIB_NAMES)
-	
+
 bin/%.elf: %.c
 	@echo "CC $<"
 	@$(E_PLATFORM_PREFIX)gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
@@ -64,13 +64,6 @@ hello: bin/hello bin/hello/host_hello bin/hello/e_hello.elf bin/hello/e_hello.sr
 
 bin/hello:
 	@mkdir -p bin/hello
-
-########################################################
-
-e_hello: bin/e_hello bin/e_hello/host_e_hello bin/e_hello/e_e_hello.elf bin/e_hello/e_e_hello.srec
-
-bin/e_hello:
-	@mkdir -p bin/e_hello
 
 ########################################################
 
@@ -95,27 +88,6 @@ bin/lu_decomposition:
 
 ########################################################
 
-memtest: bin/memtest bin/memtest/host_memtest bin/memtest/e_memtest.elf bin/memtest/e_memtest.srec
-
-bin/memtest:
-	@mkdir -p bin/memtest
-
-########################################################
-
-bspbench: bin/bspbench bin/bspbench/host_bspbench bin/bspbench/e_bspbench.elf bin/bspbench/e_bspbench.srec
-
-bin/bspbench:
-	@mkdir -p bin/bspbench
-
-########################################################
-
-memorybench: bin/memorybench bin/memorybench/host_memorybench bin/memorybench/e_memorybench.elf bin/memorybench/e_memorybench.srec bin/memorybench/e_memorybench.s
-
-bin/memorybench:
-	@mkdir -p bin/memorybench
-
-########################################################
-
 cannon: bin/cannon bin/cannon/host_cannon bin/cannon/e_cannon.elf bin/cannon/e_cannon.srec cannon/common.h
 
 bin/cannon:
@@ -134,14 +106,6 @@ streaming: bin/streaming bin/streaming/host_streaming bin/streaming/e_streaming.
 
 bin/streaming:
 	@mkdir -p bin/streaming
-
-
-########################################################
-
-primes: bin/primes bin/primes/host_primes bin/primes/e_primes.elf bin/primes/e_primes.srec
-
-bin/primes:
-	@mkdir -p bin/primes
 
 ########################################################
 

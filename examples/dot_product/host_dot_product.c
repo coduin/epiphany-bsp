@@ -25,10 +25,9 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <host_bsp.h>
 #include <host_bsp_inspector.h>
 #include <stdlib.h>
-#include <stdio.h> 
+#include <stdio.h>
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
     bsp_init("e_dot_product.srec", argc, argv);
     bsp_begin(bsp_nprocs());
 
@@ -38,7 +37,7 @@ int main(int argc, char **argv)
     int* b = (int*)malloc(sizeof(int) * l);
     for (int i = 0; i < l; ++i) {
         a[i] = i;
-        b[i] = 2*i;
+        b[i] = 2 * i;
     }
 
     // partition and write to processors
@@ -48,18 +47,17 @@ int main(int argc, char **argv)
     int tag;
     int tagsize = sizeof(int);
     ebsp_set_tagsize(&tagsize);
-    for (int pid = 0; pid < bsp_nprocs(); pid++)
-    {
+    for (int pid = 0; pid < bsp_nprocs(); pid++) {
         tag = 1;
         ebsp_send_down(pid, &tag, &chunk, sizeof(int));
         tag = 2;
-        ebsp_send_down(pid, &tag, &a[pid*chunk], sizeof(int)*chunk);
+        ebsp_send_down(pid, &tag, &a[pid * chunk], sizeof(int) * chunk);
         tag = 3;
-        ebsp_send_down(pid, &tag, &b[pid*chunk], sizeof(int)*chunk);
+        ebsp_send_down(pid, &tag, &b[pid * chunk], sizeof(int) * chunk);
     }
-    
+
     // enable memory inspector
-    //ebsp_inspector_enable();
+    // ebsp_inspector_enable();
 
     // run dotproduct
     ebsp_spmd();
@@ -73,8 +71,7 @@ int main(int argc, char **argv)
     int sum = 0;
     printf("proc \t partial_sum\n");
     printf("---- \t -----------\n");
-    for (int i = 0; i < packets; i++)
-    {
+    for (int i = 0; i < packets; i++) {
         ebsp_get_tag(&status, &tag);
         ebsp_move(&result, sizeof(int));
         printf("%i: \t %i\n", tag, result);

@@ -35,31 +35,23 @@ int s = 0;
 int t = 0;
 int entries_per_col = 0;
 
-int proc_id(int s, int t)
-{
-    return s * M + t;
-}
+int proc_id(int s, int t) { return s * M + t; }
 
 // "local to global" index
-void ltg(int* i, int* j, int l)
-{
+void ltg(int* i, int* j, int l) {
     (*i) = s + (l % (dim / N)) * N;
     (*j) = t + (l % (dim / M)) * M;
 }
 
 // "global to local" index
-int gtl(int i, int j)
-{
+int gtl(int i, int j) {
     // here we assume correct processor
     return (i / M) * (dim / M) + (j / M);
 }
 
-float* a(int i, int j) {
-    return (float*)_LOC_MATRIX + gtl(i, j);
-}
+float* a(int i, int j) { return (float*)_LOC_MATRIX + gtl(i, j); }
 
-int main()
-{
+int main() {
     bsp_begin();
 
     int p = bsp_pid();
@@ -132,14 +124,12 @@ int main()
             // HORIZONTAL COMMUNICATION
             for (int j = 0; j < N; ++j) {
                 // put r_s in P(*,t)
-                bsp_hpput(proc_id(j, t),
-                         &rs, (void*)LOC_RS,
-                         s * sizeof(int), sizeof(int));
+                bsp_hpput(proc_id(j, t), &rs, (void*)LOC_RS, s * sizeof(int),
+                          sizeof(int));
 
                 // put a_(r_s, k) in P(*,t)
-                bsp_hpput(proc_id(j, t),
-                         &a_rk, (void*)LOC_ARK,
-                         s * sizeof(float), sizeof(float));
+                bsp_hpput(proc_id(j, t), &a_rk, (void*)LOC_ARK,
+                          s * sizeof(float), sizeof(float));
             }
 
             bsp_sync(); // (0) + (1)
@@ -158,15 +148,12 @@ int main()
             }
 
             // put r in P(s, *)
-            for(int j = 0; j < M; ++j) {
-                bsp_hpput(proc_id(s, j),
-                        &rs, (void*)LOC_R,
-                        0, sizeof(int));
+            for (int j = 0; j < M; ++j) {
+                bsp_hpput(proc_id(s, j), &rs, (void*)LOC_R, 0, sizeof(int));
             }
 
             bsp_sync(); // (2) + (3)
-        }
-        else {
+        } else {
             bsp_sync(); // (0) + (1)
             bsp_sync(); // (2) + (3)
         }
@@ -177,16 +164,14 @@ int main()
         int r = *((int*)LOC_R);
 
         if (k % N == s && t == 0) {
-            bsp_hpput(proc_id(r % N, 0),
-                    ((int*)LOC_PI + (k / N)), (void*)LOC_PI_IN,
-                    0, sizeof(int));
+            bsp_hpput(proc_id(r % N, 0), ((int*)LOC_PI + (k / N)),
+                      (void*)LOC_PI_IN, 0, sizeof(int));
         }
 
         if (r % N == s && t == 0) {
             // here offset is set to one in case k % N == r % N
-            bsp_hpput(proc_id(k % N, 0),
-                    ((int*)LOC_PI + (r / N)), (void*)LOC_PI_IN,
-                    sizeof(int), sizeof(int));
+            bsp_hpput(proc_id(k % N, 0), ((int*)LOC_PI + (r / N)),
+                      (void*)LOC_PI_IN, sizeof(int), sizeof(int));
         }
 
         bsp_sync(); // (4)
@@ -200,20 +185,18 @@ int main()
 
         if (k % N == s) { // need to swap rows with row r
             for (int j = t; j < dim; j += M) {
-                 bsp_hpput(proc_id(r % N, t),
-                        a(k, j), (void*)LOC_ROW_IN,
-                        sizeof(float) * (j - t) / M, sizeof(float));
+                bsp_hpput(proc_id(r % N, t), a(k, j), (void*)LOC_ROW_IN,
+                          sizeof(float) * (j - t) / M, sizeof(float));
             }
         }
 
         if (r % N == s) { // need to swap rows with row k
             for (int j = t; j < dim; j += M) {
-                 bsp_hpput(proc_id(k % N, t),
-                        a(r, j), (void*)LOC_COL_IN,
-                        sizeof(float) * (j - t) / M, sizeof(float));
+                bsp_hpput(proc_id(k % N, t), a(r, j), (void*)LOC_COL_IN,
+                          sizeof(float) * (j - t) / M, sizeof(float));
             }
         }
- 
+
         bsp_sync(); // (5) + (6)
 
         if (k % N == s) {
@@ -235,9 +218,8 @@ int main()
         if (k % N == s && k % M == t) {
             // put a_kk in P(*, t)
             for (int j = 0; j < N; ++j) {
-                 bsp_hpput(proc_id(j, t),
-                        a(k, k), (void*)LOC_ROW_IN,
-                        0, sizeof(float));
+                bsp_hpput(proc_id(j, t), a(k, k), (void*)LOC_ROW_IN, 0,
+                          sizeof(float));
             }
         }
 
@@ -262,9 +244,8 @@ int main()
             // put a_ik in P(s, *)
             for (int i = start_idx; i < dim; i += N) {
                 for (int sj = 0; sj < M; ++sj) {
-                    bsp_hpput(proc_id(s, sj),
-                            a(i, k), (void*)LOC_COL_IN,
-                            sizeof(float) * i, sizeof(float));
+                    bsp_hpput(proc_id(s, sj), a(i, k), (void*)LOC_COL_IN,
+                              sizeof(float) * i, sizeof(float));
                 }
             }
         }
@@ -274,9 +255,8 @@ int main()
             // put a_ki in P(*, t)
             for (int j = start_jdx; j < dim; j += M) {
                 for (int si = 0; si < N; ++si) {
-                    bsp_hpput(proc_id(si, t),
-                            a(k, j), (void*)LOC_ROW_IN,
-                            sizeof(float) * j, sizeof(float));
+                    bsp_hpput(proc_id(si, t), a(k, j), (void*)LOC_ROW_IN,
+                              sizeof(float) * j, sizeof(float));
                 }
             }
         }

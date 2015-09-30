@@ -24,23 +24,21 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #include <e_bsp.h>
 
-int main()
-{
+int main() {
     bsp_begin();
 
     int p = bsp_pid();
 
     int chunk = 0;
-    int *a = 0, *b = 0;
+    int* a = 0, * b = 0;
 
     char buffer[0x2000];
-    void *ptr = (void*)&buffer;
+    void* ptr = (void*)&buffer;
     int sizeleft = sizeof(buffer);
 
     int packets, accum_bytes, status, tag;
     bsp_qsize(&packets, &accum_bytes);
-    for (int i = 0; i < packets; i++)
-    {
+    for (int i = 0; i < packets; i++) {
         // We assume all packet sizes are multiples of 4
         // If not, the cores will crash because of unaligned memory accesses
         bsp_get_tag(&status, &tag);
@@ -59,12 +57,9 @@ int main()
 
     int sum = 0;
 
-    if (a == 0 || b == 0)
-    {
+    if (a == 0 || b == 0) {
         ebsp_message("Did not receive data from host");
-    }
-    else
-    {
+    } else {
         for (int i = 0; i < chunk; ++i)
             sum += a[i] * b[i];
     }

@@ -25,11 +25,10 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <e_bsp.h>
 #include <common.h>
 
-int main()
-{
+int main() {
     bsp_begin();
 
-    //int s = bsp_pid();
+    // int s = bsp_pid();
 
     float* upstream = 0;
     int chunk_size = ebsp_open_up_stream((void**)&upstream, 0);
