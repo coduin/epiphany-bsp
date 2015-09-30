@@ -328,21 +328,6 @@ int ebsp_spmd()
             }
         }
 
-        // Check messages
-        if (state.combuf.msgflag)
-        {
-            fprintf(stderr, "ERROR: Deprecated message: $%02d: %s\n",
-                    state.combuf.msgflag - 1,  // flag = pid+1
-                    state.combuf.msgbuf);
-            fflush(stdout);
-            // Reset flag to let epiphany cores continue
-            state.combuf.msgflag = 0;
-            // Write the int to the external combuf
-            _write_extmem((void*)&state.combuf.msgflag,
-                    offsetof(ebsp_combuf, msgflag),
-                    sizeof(int));
-        }
-
 #ifdef DEBUG
         if (iter % 1000 == 0) {
             printf("run %02d - sync %02d - finish %02d - continue %02d -- iteration %d\n",

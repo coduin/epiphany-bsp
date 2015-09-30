@@ -141,7 +141,6 @@ typedef struct
     // Epiphany --> ARM communication
     int8_t              syncstate[_NPROCS];
     int8_t*             syncstate_ptr;  // Location on epiphany core
-    volatile int8_t     msgflag;  // 0: no msg. 1+pid: msg
     char                msgbuf[128];  // shared by all cores (mutexed)
     uint16_t            interrupts[_NPROCS];
 
