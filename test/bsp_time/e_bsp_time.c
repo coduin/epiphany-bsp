@@ -27,21 +27,44 @@ see the files COPYING and COPYING.LESSER. If not, see
 int main()
 {
     bsp_begin();
-    float t_old = bsp_time();
-            // expect: ($00: Time runs forward)
-            // expect: ($00: Time runs forward)
-            // expect: ($00: Time runs forward)
-    for(int i=0; i<3; i++) {
+    float t_old, t_new;
+    int backward;
+
+    t_old = bsp_time();
+    backward = 0;
+    for (int i = 0; i < 30; i++) {
         bsp_sync();
-        float t_new = bsp_time();
-        if(bsp_pid() == 0) {
-            if(t_new > t_old)
-                ebsp_message("Time runs forward");
-            else
-                ebsp_message("Time runs backwards? %f->%f",t_old, t_new);
+        t_new = bsp_time();
+        if (t_new <= t_old) {
+            backward = 1;
+            ebsp_message("Time runs backwards? %f->%f",t_old, t_new);
         }
         t_old = t_new;
     }
+    if (backward == 0 && bsp_pid() == 0)
+        ebsp_message("Time runs forward");
+    // expect: ($00: Time runs forward)
+
+    t_old = ebsp_host_time();
+    backward = 0;
+    for (int i = 0; i < 30; i++) {
+        bsp_sync();
+
+        // do something because the host is allowed to be slightly slow
+        volatile int busyloop = 10000;
+        while (busyloop--) {};
+
+        t_new = ebsp_host_time();
+        if (t_new <= t_old) {
+            backward = 1;
+            ebsp_message("Host time does not run forward? %f->%f (high CPU load?)",t_old, t_new);
+        }
+        t_old = t_new;
+    }
+    if (backward == 0 && bsp_pid() == 0)
+        ebsp_message("Host time runs forward");
+    // expect: ($00: Host time runs forward)
+
     bsp_end();
     return 0;
 }
