@@ -107,6 +107,11 @@ void EXT_MEM_TEXT bsp_begin()
     // Initialize epiphany timer
     coredata.time_passed = 0.0f;
     ebsp_raw_time();
+
+    // If this core is not supposed to be used, make sure the workgroup barrier works
+    if (coredata.pid >= coredata.nprocs)
+        for (;;)
+            e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
 }
 
 void bsp_end()
