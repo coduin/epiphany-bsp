@@ -50,6 +50,9 @@ void EXT_MEM_TEXT bsp_begin()
     coredata.message_index = 0;
     coredata.last_dma_desc = NULL;
 
+    for (int s = 0; s < coredata.nprocs; s++)
+        coredata.coreids[s] = (uint16_t)e_coreid_from_coords(s / cols, s % cols);
+
     // Initialize the barrier and mutexes
     e_barrier_init(coredata.sync_barrier, coredata.sync_barrier_tgt);
     e_mutex_init(0, 0, &coredata.payload_mutex, MUTEXATTR_NULL);
