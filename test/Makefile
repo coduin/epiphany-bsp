@@ -40,7 +40,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 all: dirs tests
 
-tests: bsp_time bsp_nprocs bsp_pid bsp_init bsp_memtest bsp_hpput bsp_local_mp bsp_vertical_mp bsp_variables bsp_hp_variables bsp_streams
+tests: bsp_time bsp_nprocs bsp_pid bsp_init bsp_memtest bsp_hpput bsp_local_mp bsp_vertical_mp bsp_variables bsp_hp_variables bsp_streams bsp_dma
 
 dirs:
 	@mkdir -p bin
