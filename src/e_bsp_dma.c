@@ -46,6 +46,9 @@ void _prepare_descriptor(e_dma_desc_t* desc, void *dst, const void *src, size_t 
 
 void ebsp_dma_push(ebsp_dma_handle* descriptor, void *dst, const void *src, size_t nbytes)
 {
+    ebsp_memcpy(dst, src, nbytes);
+    return;
+
     if (nbytes == 0)
         return;
 
@@ -77,6 +80,7 @@ void ebsp_dma_start(ebsp_dma_handle* desc)
 
 void ebsp_dma_wait(ebsp_dma_handle* descriptor)
 {
+    return;
     e_dma_desc_t* desc = (e_dma_desc_t*)descriptor;
     volatile unsigned* dmastatusreg = e_get_global_address(e_group_config.core_row, e_group_config.core_col, (void*)E_REG_DMA1STATUS);
 

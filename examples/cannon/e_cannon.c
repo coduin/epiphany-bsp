@@ -141,7 +141,6 @@ int main() {
                               a_data[cur], CORE_BLOCK_BYTES);
                 ebsp_dma_push(&dma_handle_b, neighbor_b_data[cur_buffer],
                               b_data[cur], CORE_BLOCK_BYTES);
-                ebsp_dma_start();
                 ebsp_message(
                     "a_dma -> %i: (%i, %i, %i, ..., %i)", a_neighbor,
                     (int)a_data[cur][0], (int)a_data[cur][1],
