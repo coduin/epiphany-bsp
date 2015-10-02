@@ -103,6 +103,24 @@ int main()
         ebsp_message("PASS: buffers copied succesfully");
     // expect: ($00: PASS: buffers copied succesfully)
 
+    ebsp_barrier();
+
+    // Test small transfers: first push a large transfer to make
+    // sure the DMA is busy. Then attach many small operations
+    ebsp_dma_push(&handle[0], localbuffer, remotebuffer[0], BUFFERSIZE);
+    for (int i = 1; i < BUFFERCOUNT; i++)
+        ebsp_dma_push(&handle[i], localbuffer, remotebuffer[i], 1);
+
+    for (int i = 0; i < BUFFERCOUNT; i++) {
+        ebsp_dma_wait(&handle[i]);
+    }
+
+    ebsp_barrier();
+
+    if (s == 0)
+        ebsp_message("PASS: Test complete");
+    // expect: ($00: PASS: Test complete)
+
     bsp_end();
 
     return 0;
