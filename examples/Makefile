@@ -1,6 +1,9 @@
+# Root directory of epiphany-bsp repository
+EBSP=..
+
 ESDK=${EPIPHANY_HOME}
 ELDF=${ESDK}/bsps/current/fast.ldf
-ELDF=../ebsp_fast.ldf
+ELDF=${EBSP}/ebsp_fast.ldf
 
 # ARCH will be either x86_64, x86, or armv7l (parallella)
 ARCH=$(shell uname -m)
@@ -19,11 +22,11 @@ CFLAGS=-std=c99 -Wall -O3 -ffast-math -fno-tree-loop-distribute-patterns
 
 #First include directory is only for cross-compiling
 INCLUDES = -I/usr/include/esdk \
-		   -I../include\
+		   -I${EBSP}/include\
 		   -I${ESDK}/tools/host/include
 
 LIBS = \
-	 -L../lib
+	 -L${EBSP}/lib
 
 HOST_LIBS = \
 	 -L /usr/arm-linux-gnueabihf/lib \
