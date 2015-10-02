@@ -81,8 +81,15 @@ typedef struct {
     // Location of local copy of combuf.extmem_in_streams
     ebsp_stream_descriptor* local_streams;
 
-    // End of chain of DMA descriptors
-    ebsp_dma_handle*   last_dma_desc;
+    // Start and end of chain of DMA descriptors
+    // cur_dma_desc is updated in the interrupt when the DMA finishes a task
+    // last_dma_desc is updated in ebsp_dma_push
+    e_dma_desc_t*   cur_dma_desc;
+    e_dma_desc_t*   last_dma_desc;
+
+    // Global-space pointer to local DMA1CONFIG and DMA1STATUS cpu registers
+    unsigned*       dma1config;
+    unsigned*       dma1status;
 
 } ebsp_core_data;
 

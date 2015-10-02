@@ -46,9 +46,6 @@ void _prepare_descriptor(e_dma_desc_t* desc, void *dst, const void *src, size_t 
 
 void ebsp_dma_push(ebsp_dma_handle* descriptor, void *dst, const void *src, size_t nbytes)
 {
-    ebsp_memcpy(dst, src, nbytes);
-    return;
-
     if (nbytes == 0)
         return;
 
@@ -57,67 +54,72 @@ void ebsp_dma_push(ebsp_dma_handle* descriptor, void *dst, const void *src, size
     // Set the contents of the descriptor
     _prepare_descriptor(desc, dst, src, nbytes);
 
-    // Change the previous descriptor to chain to this one if it is a different one
-    e_dma_desc_t* last = (e_dma_desc_t*)coredata.last_dma_desc;
+    // Take the end of the current descriptor chain
+    e_dma_desc_t* last = coredata.last_dma_desc;
 
     if (last == NULL) {
-        coredata.last_dma_desc = descriptor;
+        // No current chain, replace it by this one
+        coredata.last_dma_desc = desc;
     }
     else if (last != desc) {
-        unsigned newconfig = (last->config & 0x0000ffff) | ((unsigned)desc << 16) | E_DMA_CHAIN;
+        // Attach desc to last
+        unsigned newconfig = (last->config & 0x0000ffff) | ((unsigned)desc << 16);
         last->config = newconfig;
-        coredata.last_dma_desc = descriptor;
+        coredata.last_dma_desc = desc;
+    }
+
+    // Start DMA if not started yet
+    if (coredata.cur_dma_desc == 0) {
+        // Start the DMA engine using the kickstart bit
+        coredata.cur_dma_desc = desc;
+        unsigned kickstart = ((unsigned)desc << 16) | E_DMA_STARTUP;
+        *coredata.dma1config = kickstart;
     }
 }
 
-void ebsp_dma_start(ebsp_dma_handle* desc)
+void __attribute__((interrupt)) _dma_interrupt(int unusedargument)
 {
-    // Check if the DMA is idle and start it if needed
-    volatile unsigned* dmastatus = e_get_global_address(e_group_config.core_row, e_group_config.core_col, (void*)E_REG_DMA1STATUS);
-    if ((*dmastatus & 0xf) == 0)
-        e_dma_start((e_dma_desc_t*)desc, E_DMA_1);
+    // If DMA is in chaining mode, an interrupt will be fired after a chain
+    // element is completed. At this point in the interrupt, the DMA will
+    // already be busy doing the next element of the chain or even the one
+    // after that if it fired two interrupts really quickly after each other.
+    //
+    // The DMA should not be used in chaining mode, or the whole method
+    // does not work. It seems like the codeblock below is a solution
+    // but it fails when there are many tiny dma transfers in the chain
+    // and the DMA fires many interrupts that will be lost in obliviion
+    // because this function is still running.
+    // We can not lose any interrupts, because we need to advance the
+    // `cur_dma_desc` pointer at each interrupt, even for chains
+    //
+    // unsigned status = *coredata.dma1status;
+    // if (status & 0xf)
+    //     return;
+
+    // Grab the current task
+    e_dma_desc_t* desc = coredata.cur_dma_desc;
+    if (desc == 0) { // should not happen
+        combuf->interrupts[coredata.pid] = 0x80; // Use (1 << E_DMA1_INT) as error message
+        return;
+    }
+
+    // Mark 'desc' as finished
+    desc->config &= ~(E_DMA_ENABLE);
+
+    // Go to the 'next' task
+    e_dma_desc_t* next = (e_dma_desc_t*)(desc->config >> 16);
+    coredata.cur_dma_desc = next;
+
+    if (next) {
+        // Start the DMA engine using the kickstart bit
+        unsigned kickstart = ((unsigned)next << 16) | E_DMA_STARTUP;
+        *coredata.dma1config = kickstart;
+    }
 }
 
 void ebsp_dma_wait(ebsp_dma_handle* descriptor)
 {
-    return;
-    e_dma_desc_t* desc = (e_dma_desc_t*)descriptor;
-    volatile unsigned* dmastatusreg = e_get_global_address(e_group_config.core_row, e_group_config.core_col, (void*)E_REG_DMA1STATUS);
-
-    // There is a chain of DMA tasks. This function loops until 'descriptor'
-    // is no longer one of the elements of this chain
-
-    int task_in_queue = 1;
-    while(task_in_queue)
-    {
-        unsigned dmastatus = *dmastatusreg;
-
-        // Check if DMA is idle, i.e. empty chain
-        if ((dmastatus & 0xf) == 0)
-            return;
-
-        // DMA not idle, so it is working on a descriptor
-        e_dma_desc_t* cur = (e_dma_desc_t*)(dmastatus >> 16);
-
-        // Follow path to see if 'desc' is in the chain
-        task_in_queue = 0;
-        for(;;) {
-            // This should not happen
-            if (cur == 0)
-                break;
-
-            // Found the task. This means we have to wait
-            if (cur == desc) {
-                task_in_queue = 1;
-                break;
-            }
-
-            // End of chain: there is no next task
-            if ((cur->config & E_DMA_CHAIN) == 0)
-                break;
-
-            cur = (e_dma_desc_t*)(cur->config >> 16);
-        }
-    }
+    volatile unsigned* config = &descriptor->config;
+    while (*config & E_DMA_ENABLE) {}
 }
 

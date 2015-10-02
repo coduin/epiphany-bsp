@@ -24,41 +24,84 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <e-lib.h>
 #include "../common.h"
 
-#define BUFFERSIZE 0x1000
+#define BUFFERCOUNT 4
+#define BUFFERSIZE 0x400
 
 int main()
 {
     bsp_begin();
     int s = bsp_pid();
 
-    // Allocate local [0] and remote [1] buffer
-    char* buffer[2];
-    buffer[0] = ebsp_ext_malloc(BUFFERSIZE);
-    buffer[1] = ebsp_malloc(BUFFERSIZE);
+    // Allocate buffers
+    char* localbuffer = ebsp_malloc(BUFFERSIZE);
+    char* remotebuffer[8];
+    for (int i = 0; i < BUFFERCOUNT; i++) {
+        remotebuffer[i] = ebsp_ext_malloc(BUFFERSIZE);
+    }
     
     // Fill buffers with data
     for (int i = 0; i < BUFFERSIZE; i++)
-    {
-        buffer[0][i] = i & 0xff;
-        buffer[1][i] = ~(i & 0xff);
-    }
+        localbuffer[i] = 0;
+    for (int i = 0; i < BUFFERCOUNT; i++)
+        for (int j = 0; j < BUFFERSIZE; j++)
+            remotebuffer[i][j] = (char)(i+1);
+
+    char valueFirst[BUFFERCOUNT];
+    char valueAtEnd[BUFFERCOUNT];
+
+    for (int i = 0; i < BUFFERCOUNT; i++)
+        valueFirst[i] = valueAtEnd[i] = 0xff;
 
     // DMA handles
-    ebsp_dma_handle handle[8];
+    ebsp_dma_handle handle[BUFFERCOUNT];
 
-    // Push some local --> remote transfer tasks
-    for (int i = 0; i < 8; i++)
-        ebsp_dma_push(&handle[i], buffer[0], buffer[1], BUFFERSIZE);
+    if (s == 0)
+        ebsp_message("Starting DMA transfers");
+        // expect: ($00: Starting DMA transfers)
+    ebsp_barrier();
+
+    // Push some remote->local tasks
+    for (int i = 0; i < BUFFERCOUNT; i++)
+        ebsp_dma_push(&handle[i], localbuffer, remotebuffer[i], BUFFERSIZE);
 
     // Wait for the DMAs to finish
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < BUFFERCOUNT; i++) {
+        // First check if data is NOT copied too soon
+        valueFirst[i] = localbuffer[BUFFERSIZE-1];
+
+        // Wait for it to finish
         ebsp_dma_wait(&handle[i]);
+
+        // Check if the data is copied now
+        valueAtEnd[i] = localbuffer[BUFFERSIZE-1];
+    }
 
     ebsp_barrier();
 
-    if (s==0)
-        ebsp_message("TEST PASS");
-    // expect: ($00: TEST PASS)
+    // Output results
+    int failed = 0;
+    for (int i = 0; i < BUFFERCOUNT; i++) {
+        if (valueFirst[i] != (char)i) {
+            ebsp_message("ERROR: buffer %d copied too soon (contents %d)", i, valueFirst[i]);
+            failed = 1;
+        }
+    }
+    if (!failed && s == 0)
+        ebsp_message("PASS: buffers not copied too soon");
+    // expect: ($00: PASS: buffers not copied too soon)
+
+    ebsp_barrier();
+
+    failed = 0;
+    for (int i = 0; i < BUFFERCOUNT; i++) {
+        if (valueAtEnd[i] != (char)(i+1)) {
+            ebsp_message("ERROR: buffer %d not copied at end", i);
+            failed = 1;
+        }
+    }
+    if (!failed && s == 0)
+        ebsp_message("PASS: buffers copied succesfully");
+    // expect: ($00: PASS: buffers copied succesfully)
 
     bsp_end();
 

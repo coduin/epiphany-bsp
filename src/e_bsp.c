@@ -32,6 +32,7 @@ ebsp_core_data coredata;
 void _write_syncstate(int8_t state);
 
 void _int_isr(int);
+void _dma_interrupt(int);
 
 void EXT_MEM_TEXT bsp_begin()
 {
@@ -48,7 +49,10 @@ void EXT_MEM_TEXT bsp_begin()
     coredata.tagsize_next = coredata.tagsize;
     coredata.read_queue_index = 0;
     coredata.message_index = 0;
+    coredata.cur_dma_desc = NULL;
     coredata.last_dma_desc = NULL;
+    coredata.dma1config = e_get_global_address(row, col, (void*)E_REG_DMA1CONFIG);
+    coredata.dma1status = e_get_global_address(row, col, (void*)E_REG_DMA1STATUS);
 
     for (int s = 0; s < coredata.nprocs; s++)
         coredata.coreids[s] = (uint16_t)e_coreid_from_coords(s / cols, s % cols);
@@ -64,7 +68,7 @@ void EXT_MEM_TEXT bsp_begin()
     // then behaviour was undefined. The following line should fix this
     // by setting core0.sync_barrier[i] = 0
     *(coredata.sync_barrier_tgt[0]) = 0;
-
+    
     // Disable interrupts globally
     e_irq_global_mask(E_TRUE);
     // Attach interrupt handler
@@ -75,7 +79,7 @@ void EXT_MEM_TEXT bsp_begin()
     e_irq_attach(E_TIMER1_INT,   _int_isr); //4
     e_irq_attach(E_MESSAGE_INT,  _int_isr); //5
     e_irq_attach(E_DMA0_INT,     _int_isr); //6
-    e_irq_attach(E_DMA1_INT,     _int_isr); //7
+    e_irq_attach(E_DMA1_INT,     _dma_interrupt); //7
     e_irq_attach(E_USER_INT,     _int_isr); //9 (8 is WAND)
     // Clear the IMASK that would block DMA1 interrupts
     unsigned prev = e_reg_read(E_REG_IMASK);
