@@ -452,6 +452,9 @@ void* ebsp_malloc(unsigned int nbytes);
  * Free allocated external or local memory.
  * @param ptr A pointer to memory previously allocated by ebsp_ext_malloc()
  *            or by ebsp_malloc()
+ *
+ * Note that the malloc functions can return null pointers on error, and
+ * ebsp_free will crash on null pointers.
  */
 void ebsp_free(void* ptr);
 

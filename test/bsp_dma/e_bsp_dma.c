@@ -41,64 +41,83 @@ int main()
         int BUFFERSIZE = bufferTestSizes[run];
 
         // Allocate buffers
+        int allocationSucces = 1;
+
         char* localbuffer = ebsp_malloc(BUFFERSIZE);
+        if (!localbuffer)
+            allocationSucces = 0;
+
         char* remotebuffer[8];
         for (int i = 0; i < BUFFERCOUNT; i++) {
             remotebuffer[i] = ebsp_ext_malloc(BUFFERSIZE);
+            if (!remotebuffer[i])
+                allocationSucces = 0;
         }
 
-        // Fill buffers with data
-        for (int i = 0; i < BUFFERSIZE; i++)
-            localbuffer[i] = 0;
-        for (int i = 0; i < BUFFERCOUNT; i++)
-            for (int j = 0; j < BUFFERSIZE; j++)
-                remotebuffer[i][j] = (char)(i+1);
+        if (allocationSucces)
+        {
+            // Fill buffers with data
+            for (int i = 0; i < BUFFERSIZE; i++)
+                localbuffer[i] = 0;
+            for (int i = 0; i < BUFFERCOUNT; i++)
+                for (int j = 0; j < BUFFERSIZE; j++)
+                    remotebuffer[i][j] = (char)(i+1);
 
-        char valueFirst[BUFFERCOUNT];
-        char valueAtEnd[BUFFERCOUNT];
+            char valueFirst[BUFFERCOUNT];
+            char valueAtEnd[BUFFERCOUNT];
 
-        for (int i = 0; i < BUFFERCOUNT; i++)
-            valueFirst[i] = valueAtEnd[i] = 0xff;
+            for (int i = 0; i < BUFFERCOUNT; i++)
+                valueFirst[i] = valueAtEnd[i] = 0xff;
 
-        ebsp_barrier();
+            ebsp_barrier();
 
-        // Push some remote->local tasks
-        for (int i = 0; i < BUFFERCOUNT; i++)
-            ebsp_dma_push(&handle[i], localbuffer, remotebuffer[i], BUFFERSIZE);
+            // Push some remote->local tasks
+            for (int i = 0; i < BUFFERCOUNT; i++)
+                ebsp_dma_push(&handle[i], localbuffer, remotebuffer[i], BUFFERSIZE);
 
-        // Wait for the DMAs to finish
-        for (int i = 0; i < BUFFERCOUNT; i++) {
-            // First check if data is NOT copied too soon
-            valueFirst[i] = localbuffer[BUFFERSIZE-1];
+            // Wait for the DMAs to finish
+            for (int i = 0; i < BUFFERCOUNT; i++) {
+                // First check if data is NOT copied too soon
+                valueFirst[i] = localbuffer[BUFFERSIZE-1];
 
-            // Wait for it to finish
-            ebsp_dma_wait(&handle[i]);
+                // Wait for it to finish
+                ebsp_dma_wait(&handle[i]);
 
-            // Check if the data is copied now
-            valueAtEnd[i] = localbuffer[BUFFERSIZE-1];
-        }
+                // Check if the data is copied now
+                valueAtEnd[i] = localbuffer[BUFFERSIZE-1];
+            }
 
-        ebsp_barrier();
+            ebsp_barrier();
 
-        // Output results
-        for (int i = 0; i < BUFFERCOUNT; i++) {
-            if (valueFirst[i] != (char)i) {
-                ebsp_message("ERROR: buffer %d copied too soon (contents %d)", i, valueFirst[i]);
-                globalPass = 0;
+            // Output results
+            for (int i = 0; i < BUFFERCOUNT; i++) {
+                if (valueFirst[i] != (char)i) {
+                    globalPass = 0;
+                    ebsp_message("ERROR: buffer %d copied too soon (contents %d)",
+                            i, valueFirst[i]);
+                }
+            }
+
+            for (int i = 0; i < BUFFERCOUNT; i++) {
+                if (valueAtEnd[i] != (char)(i+1)) {
+                    globalPass = 0;
+                    ebsp_message("ERROR: buffer %d not copied at end", i);
+                }
             }
         }
-
-        for (int i = 0; i < BUFFERCOUNT; i++) {
-            if (valueAtEnd[i] != (char)(i+1)) {
-                ebsp_message("ERROR: buffer %d not copied at end", i);
-                globalPass = 0;
-            }
+        else
+        {
+            globalPass = 0;
+            ebsp_message("ERROR: ebsp_malloc(0x%x) or ebsp_ext_malloc(0x%x) failed",
+                    BUFFERSIZE, BUFFERSIZE);
         }
 
         // Free buffers
-        ebsp_free(localbuffer);
+        if (localbuffer)
+            ebsp_free(localbuffer);
         for (int i = 0; i < BUFFERCOUNT; i++)
-            ebsp_free(remotebuffer[i]);
+            if (remotebuffer[i])
+                ebsp_free(remotebuffer[i]);
     }
     
     if (globalPass && s == 0)
