@@ -28,14 +28,15 @@ see the files COPYING and COPYING.LESSER. If not, see
 int main() {
     bsp_begin();
 
-    // int s = bsp_pid();
+    int s = bsp_pid();
 
     int* upstream = 0;
     int* upstreamDouble = 0;
     int chunk_size = ebsp_open_up_stream((void**)&upstream, 0);
-    CALL_ORDERED(ebsp_open_up_stream((void**)&upstreamDouble, 1));
-    CALL_ORDERED(ebsp_open_up_stream((void**)&upstreamDouble, 1));
-    // expect_for_pid: ("BSP ERROR: tried creating opened stream")
+    ebsp_open_up_stream((void**)&upstreamDouble, 1);
+    if (s == 0)
+        ebsp_open_up_stream((void**)&upstreamDouble, 1);
+    // expect: ("$00: BSP ERROR: tried creating opened stream")
     int chunks = 4;
 
     int* downchunk;
@@ -46,12 +47,15 @@ int main() {
     ebsp_open_down_stream((void**)&downchunkB, 3);
     ebsp_open_down_stream((void**)&downchunkDouble, 4);
 
-    CALL_ORDERED(ebsp_open_down_stream((void**)0, 5));
-    // expect_for_pid: ("BSP ERROR: stream does not exist")
-    CALL_ORDERED(ebsp_open_up_stream((void**)0, 5));
-    // expect_for_pid: ("BSP ERROR: stream does not exist")
-    CALL_ORDERED(ebsp_open_down_stream((void**)0, 1));
-    // expect_for_pid: ("BSP ERROR: mixed up and down streams")
+    if (s == 0)
+        ebsp_open_down_stream((void**)0, 5);
+    // expect: ("$00: BSP ERROR: stream does not exist")
+    if (s == 0)
+        ebsp_open_up_stream((void**)0, 5);
+    // expect: ("$00: BSP ERROR: stream does not exist")
+    if (s == 0)
+        ebsp_open_down_stream((void**)0, 1);
+    // expect: ("$00: BSP ERROR: stream does not exist")
 
     for (int i = 0; i < chunks; ++i) {
         ebsp_move_chunk_down((void**)&downchunk, 2, 0);
@@ -77,14 +81,18 @@ int main() {
     ebsp_close_down_stream(3);
     ebsp_close_down_stream(4);
 
-    CALL_ORDERED(ebsp_close_up_stream(0));
-    // expect_for_pid: ("BSP ERROR: tried to close closed stream")
-    CALL_ORDERED(ebsp_close_down_stream(2));
-    // expect_for_pid: ("BSP ERROR: tried to close closed stream")
-    CALL_ORDERED(ebsp_close_down_stream(5));
-    // expect_for_pid: ("BSP ERROR: stream does not exist")
-    CALL_ORDERED(ebsp_close_up_stream(5));
-    // expect_for_pid: ("BSP ERROR: stream does not exist")
+    if (s == 0)
+        ebsp_close_up_stream(0);
+    // expect: ("$00: BSP ERROR: tried to close closed stream")
+    if (s == 0)
+        ebsp_close_down_stream(2);
+    // expect: ($00: "BSP ERROR: tried to close closed stream")
+    if (s == 0)
+        ebsp_close_down_stream(5);
+    // expect: ("$00: BSP ERROR: stream does not exist")
+    if (s == 0)
+        ebsp_close_up_stream(5);
+    // expect: ("$00: BSP ERROR: stream does not exist")
 
     bsp_end();
 

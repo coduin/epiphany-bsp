@@ -37,10 +37,10 @@ int main() {
 
     bsp_push_reg(teststr, sizeof(int));
 
-    if (bsp_pid() ==
-        2) // Only core 2 will do both registrations in the same sync
-        bsp_sync(); // expect: ($02: BSP ERROR: multiple bsp_push_reg calls
-                    // within one sync)
+    // Only core 2 will do both registrations in the same sync
+    if (bsp_pid() == 2)
+        bsp_sync();
+    // expect: ($02: BSP ERROR: multiple bsp_push_reg calls within one sync)
 
     if (bsp_pid() == 1) {
         bsp_hpput(0, &var, &var, 0, sizeof(int));
