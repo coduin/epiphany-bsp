@@ -24,8 +24,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #include <e_bsp.h>
 
-int main()
-{
+int main() {
     bsp_begin();
     float t_old, t_new;
     int backward;
@@ -37,7 +36,7 @@ int main()
         t_new = bsp_time();
         if (t_new <= t_old) {
             backward = 1;
-            ebsp_message("Time runs backwards? %f->%f",t_old, t_new);
+            ebsp_message("Time runs backwards? %f->%f", t_old, t_new);
         }
         t_old = t_new;
     }
@@ -52,12 +51,15 @@ int main()
 
         // do something because the host is allowed to be slightly slow
         volatile int busyloop = 10000;
-        while (busyloop--) {};
+        while (busyloop--) {
+        };
 
         t_new = ebsp_host_time();
         if (t_new <= t_old) {
             backward = 1;
-            ebsp_message("Host time does not run forward? %f->%f (high CPU load?)",t_old, t_new);
+            ebsp_message(
+                "Host time does not run forward? %f->%f (high CPU load?)",
+                t_old, t_new);
         }
         t_old = t_new;
     }

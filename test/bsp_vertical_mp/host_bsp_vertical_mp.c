@@ -25,8 +25,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdio.h>
 #include <stdlib.h>
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
     bsp_init("e_bsp_vertical_mp.srec", argc, argv);
     bsp_begin(bsp_nprocs());
 

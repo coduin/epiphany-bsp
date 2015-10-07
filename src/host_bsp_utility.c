@@ -28,56 +28,42 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <string.h>
 #include <stddef.h>
 
-#include <unistd.h>  // readlink, for getting the path to the executable
+#include <unistd.h> // readlink, for getting the path to the executable
 
-void ebsp_set_sync_callback(void (*cb)())
-{
-    state.sync_callback = cb;
-}
+void ebsp_set_sync_callback(void (*cb)()) { state.sync_callback = cb; }
 
-void ebsp_set_end_callback(void (*cb)())
-{
-    state.end_callback = cb;
-}
-
+void ebsp_set_end_callback(void (*cb)()) { state.end_callback = cb; }
 
 // Converting between epiphany and arm pointers
 // Used for pointers returned from ebsp_ext_malloc
 
-void* _arm_to_e_pointer(void* ptr)
-{
-    return (void*)((unsigned)ptr
-            - (unsigned)state.host_combuf_addr
-            + E_COMBUF_ADDR);
+void* _arm_to_e_pointer(void* ptr) {
+    return (void*)((unsigned)ptr - (unsigned)state.host_combuf_addr +
+                   E_COMBUF_ADDR);
 }
 
-void* _e_to_arm_pointer(void* ptr)
-{
-    return (void*)((unsigned)ptr
-            - E_COMBUF_ADDR
-            + (unsigned)state.host_combuf_addr);
+void* _e_to_arm_pointer(void* ptr) {
+    return (void*)((unsigned)ptr - E_COMBUF_ADDR +
+                   (unsigned)state.host_combuf_addr);
 }
 
-
-void _update_remote_timer()
-{
+void _update_remote_timer() {
     // Current time. Repeat these lines every iteration
     clock_gettime(CLOCK_MONOTONIC, &state.ts_end);
 
-    float time_elapsed = (state.ts_end.tv_sec - state.ts_start.tv_sec +
-            (state.ts_end.tv_nsec - state.ts_start.tv_nsec) * 1.0e-9);
+    float time_elapsed =
+        (state.ts_end.tv_sec - state.ts_start.tv_sec +
+         (state.ts_end.tv_nsec - state.ts_start.tv_nsec) * 1.0e-9);
 
-    _write_extmem(&time_elapsed,
-            offsetof(ebsp_combuf, remotetimer),
-            sizeof(float));
+    _write_extmem(&time_elapsed, offsetof(ebsp_combuf, remotetimer),
+                  sizeof(float));
 }
 
 //------------------
 // Private functions
 //------------------
 
-void _microsleep(int microseconds)
-{
+void _microsleep(int microseconds) {
     struct timespec request, remain;
     request.tv_sec = (int)(microseconds / 1000000);
     request.tv_nsec = (microseconds - 1000000 * request.tv_sec) * 1000;
@@ -85,8 +71,7 @@ void _microsleep(int microseconds)
         fprintf(stderr, "ERROR: clock_nanosleep was interrupted.\n");
 }
 
-void _get_p_coords(int pid, int* row, int* col)
-{
+void _get_p_coords(int pid, int* row, int* col) {
     (*row) = pid / state.cols;
     (*col) = pid % state.cols;
 }
@@ -94,20 +79,18 @@ void _get_p_coords(int pid, int* row, int* col)
 // Get the directory that the application is running in
 // and store it in state.e_directory
 // It will include a trailing slash
-void init_application_path()
-{
+void init_application_path() {
     char path[1024];
     if (readlink("/proc/self/exe", path, 1024) > 0) {
-        char * slash = strrchr(path, '/');
-        if (slash)
-        {
-            int count = slash-path + 1;
+        char* slash = strrchr(path, '/');
+        if (slash) {
+            int count = slash - path + 1;
             memcpy(state.e_directory, path, count);
-            state.e_directory[count+1] = 0;
+            state.e_directory[count + 1] = 0;
         }
     } else {
         fprintf(stderr, "ERROR: Could not find process directory.\n");
-        memcpy(state.e_directory, "./", 3);  // including terminating 0
+        memcpy(state.e_directory, "./", 3); // including terminating 0
     }
     return;
 }

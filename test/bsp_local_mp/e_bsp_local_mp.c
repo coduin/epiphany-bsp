@@ -23,8 +23,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <e_bsp.h>
 #include "../common.h"
 
-int main()
-{
+int main() {
     bsp_begin();
     int s = bsp_pid();
     int p = bsp_nprocs();
@@ -44,11 +43,11 @@ int main()
     // test: can set and get tagsize from core
     EBSP_MSG_ORDERED("%i", ebsp_get_tagsize());
     // expect_for_pid: (8)
-    
+
     // test: old value for tagsize gets written back to arg
     EBSP_MSG_ORDERED("%i", tagsize);
     // expect_for_pid: (4)
- 
+
     int tag = 0;
     int payload = 0;
     bsp_send((s + 1) % p, &tag, &payload, sizeof(int));
@@ -62,13 +61,13 @@ int main()
     // test: can obtain the number of packages
     EBSP_MSG_ORDERED("%i", packets);
     // expect_for_pid: (2)
-    
+
     // test: can obtain the number of total bytes
     EBSP_MSG_ORDERED("%i", accum_bytes);
     // expect_for_pid: (8)
 
     bsp_sync();
- 
+
     tag = 2;
     payload = 42;
     bsp_send((s + 1) % p, &tag, &payload, sizeof(int));

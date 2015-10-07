@@ -57,7 +57,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #pragma once
 #include <e-hal.h>
 
-/** 
+/**
  * Write data to the Epiphany processor.
  * @param pid The pid of the target processor
  * @param src A pointer to the source data
@@ -107,15 +107,15 @@ int ebsp_read(int pid, off_t src, void* dst, int size);
  * @remarks The `argc` and `argv` parameters are ignored in the current
  * implementation.
  */
-int bsp_init(const char* e_name, int argc, char **argv);
+int bsp_init(const char* e_name, int argc, char** argv);
 
 /**
  * Set the callback for syncing.
  * @param cb A function pointer to the callback function
- * 
+ *
  * Synchronization callbacks are currently not implemented.
  * In a future release there will be an option to call ebsp_host_sync
- * in the Epiphany program. This will synchronize with the host processor and 
+ * in the Epiphany program. This will synchronize with the host processor and
  * trigger this callback.
  */
 void ebsp_set_sync_callback(void (*cb)());
@@ -181,7 +181,7 @@ int bsp_end();
 /**
  * Returns the number of available processors (Epiphany cores).
  * @return The number of available processors
- * 
+ *
  * This function may be called after bsp_init().
  */
 int bsp_nprocs();
@@ -198,7 +198,7 @@ int bsp_nprocs();
  * It is not possible to send messages with different tag sizes. Doing so
  * will result in undefined behaviour.
  */
-void ebsp_set_tagsize(int *tag_bytes);
+void ebsp_set_tagsize(int* tag_bytes);
 
 /**
  * Send a message to the Epiphany cores.
@@ -213,7 +213,7 @@ void ebsp_set_tagsize(int *tag_bytes);
  * The size of the buffer pointed to by tag has to be `tagsize`, and must be
  * the same for every message being sent.
  */
-void ebsp_send_down(int pid, const void *tag, const void *payload, int nbytes);
+void ebsp_send_down(int pid, const void* tag, const void* payload, int nbytes);
 
 /**
  * Get the tagsize as set by the Epiphany program.
@@ -234,7 +234,7 @@ int ebsp_get_tagsize();
  *
  * Use only for gathering result messages at the end of a BSP program.
  */
-void ebsp_qsize(int *packets, int *accum_bytes);
+void ebsp_qsize(int* packets, int* accum_bytes);
 
 /**
  * Peek the next message.
@@ -245,7 +245,7 @@ void ebsp_qsize(int *packets, int *accum_bytes);
  *
  * Use only for gathering result messages at the end of a BSP program.
  */
-void ebsp_get_tag(int *status, void *tag);
+void ebsp_get_tag(int* status, void* tag);
 
 /**
  * Get the next message from the message queue and pop the message.
@@ -259,7 +259,7 @@ void ebsp_get_tag(int *status, void *tag);
  *
  * Use only for gathering result messages at the end of a BSP program.
  */
-void ebsp_move(void *payload, int buffer_size);
+void ebsp_move(void* payload, int buffer_size);
 
 /**
  * Get the next message, with tag, from the queue and pop the message.
@@ -273,18 +273,20 @@ void ebsp_move(void *payload, int buffer_size);
  *
  * Use only for gathering result messages at the end of a BSP program.
  */
-int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
+int ebsp_hpmove(void** tag_ptr_buf, void** payload_ptr_buf);
 
 /**
  * Initialize streaming of nbytes from *src to core dst_core_id.
  * This splits the input into chunks of size chunksize (at most), adds headers,
  * writes the result to extmem and sends a message to the e_core.
  */
-void ebsp_create_down_stream(const void* src, int dst_core_id, int nbytes, int chunksize);
+void ebsp_create_down_stream(const void* src, int dst_core_id, int nbytes,
+                             int chunksize);
 
 /**
  * Initialize streaming of at most max_nbytes from core dst_core_id
- * to an buffer in extmem. Each chunk of data can contain at most chunksize bytes.
+ * to an buffer in extmem. Each chunk of data can contain at most chunksize
+ * bytes.
  */
 void* ebsp_create_up_stream(int dst_core_id, int max_nbytes, int chunksize);
 

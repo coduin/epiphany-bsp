@@ -23,8 +23,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <e_bsp.h>
 #include "../common.h"
 
-int main()
-{
+int main() {
     bsp_begin();
 
     int s = bsp_pid();
@@ -59,7 +58,6 @@ int main()
 
     bsp_sync();
 
-    
     int payload = payload_in[0] + 1000;
     int tag = s;
     ebsp_send_up(&tag, &payload, sizeof(int));

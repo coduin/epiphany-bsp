@@ -24,41 +24,42 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #include <e_bsp.h>
 
-int main()
-{
+int main() {
     bsp_begin();
     int var = bsp_pid();
-    int* unregistered_var=(int*)0x7000;
+    int* unregistered_var = (int*)0x7000;
     char teststr[] = "Default test string!";
     char goodstr[] = "Replacement string.";
     bsp_push_reg(&var, sizeof(int));
 
-    if(bsp_pid() != 2)
+    if (bsp_pid() != 2)
         bsp_sync();
 
     bsp_push_reg(teststr, sizeof(int));
 
-    if(bsp_pid() == 2) //Only core 2 will do both registrations in the same sync
-        bsp_sync();     // expect: ($02: BSP ERROR: multiple bsp_push_reg calls within one sync)
+    if (bsp_pid() ==
+        2) // Only core 2 will do both registrations in the same sync
+        bsp_sync(); // expect: ($02: BSP ERROR: multiple bsp_push_reg calls
+                    // within one sync)
 
-    if(bsp_pid() == 1) {
+    if (bsp_pid() == 1) {
         bsp_hpput(0, &var, &var, 0, sizeof(int));
-        bsp_hpput(0, &var, unregistered_var, 0, sizeof(int));//Error
-            // expect: ($01: BSP ERROR: could not find bsp var 0x7000)
+        bsp_hpput(0, &var, unregistered_var, 0, sizeof(int)); // Error
+        // expect: ($01: BSP ERROR: could not find bsp var 0x7000)
     }
-    if(bsp_pid() == 0) {
-        bsp_hpput(1, goodstr, teststr, 0, 19*sizeof(char));
+    if (bsp_pid() == 0) {
+        bsp_hpput(1, goodstr, teststr, 0, 19 * sizeof(char));
     }
 
     bsp_sync();
-    
-    if(bsp_pid() == 0)
+
+    if (bsp_pid() == 0)
         ebsp_message("%d", var);
-            // expect: ($00: 1)
+    // expect: ($00: 1)
     bsp_sync();
-    if(bsp_pid() == 1)
+    if (bsp_pid() == 1)
         ebsp_message(teststr);
-            // expect: ($01: Replacement string.!)
+    // expect: ($01: Replacement string.!)
 
     bsp_end();
     return 0;

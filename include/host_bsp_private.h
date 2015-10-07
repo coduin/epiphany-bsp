@@ -35,8 +35,7 @@ see the files COPYING and COPYING.LESSER. If not, see
  *  Global BSP state
  */
 
-typedef struct
-{
+typedef struct {
     // The number of processors available
     int nprocs;
 
@@ -88,9 +87,7 @@ extern bsp_state_t state;
 /*
  *  host_bsp
  */
-int bsp_init(const char* _e_name,
-        int argc,
-        char **argv);
+int bsp_init(const char* _e_name, int argc, char** argv);
 int bsp_begin(int nprocs);
 int ebsp_spmd();
 int bsp_end();
@@ -110,24 +107,28 @@ int _write_extmem(void* src, off_t offset, int size);
 /*
  *  host_bsp_buffer
  */
-void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int max_chunksize);
-void ebsp_send_buffered_raw(void* src, int dst_core_id, int nbytes, int max_chunksize);
+void ebsp_send_buffered(void* src, int dst_core_id, int nbytes,
+                        int max_chunksize);
+void ebsp_send_buffered_raw(void* src, int dst_core_id, int nbytes,
+                            int max_chunksize);
 void* ebsp_get_buffered(int src_core_id, int nbytes, int max_chunksize);
-void _ebsp_add_stream(int dst_core_id, void* extmem_in_buffer, int nbytes, int max_chunksize, int is_instream);
-void ebsp_create_down_stream_raw(const void* src, int dst_core_id, int nbytes, int max_chunksize);
+void _ebsp_add_stream(int dst_core_id, void* extmem_in_buffer, int nbytes,
+                      int max_chunksize, int is_instream);
+void ebsp_create_down_stream_raw(const void* src, int dst_core_id, int nbytes,
+                                 int max_chunksize);
 
 /*
  *  host_bsp_mp
  */
-void ebsp_set_tagsize(int *tag_bytes);
-void ebsp_send_down(int pid, const void *tag, const void *payload, int nbytes);
+void ebsp_set_tagsize(int* tag_bytes);
+void ebsp_send_down(int pid, const void* tag, const void* payload, int nbytes);
 int ebsp_get_tagsize();
-void ebsp_qsize(int *packets, int *accum_bytes);
+void ebsp_qsize(int* packets, int* accum_bytes);
 ebsp_message_header* _next_queue_message();
 void _pop_queue_message();
-void ebsp_get_tag(int *status, void *tag);
-void ebsp_move(void *payload, int buffer_size);
-int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
+void ebsp_get_tag(int* status, void* tag);
+void ebsp_move(void* payload, int buffer_size);
+int ebsp_hpmove(void** tag_ptr_buf, void** payload_ptr_buf);
 
 /*
  *  host_bsp_utility

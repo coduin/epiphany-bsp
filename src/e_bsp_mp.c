@@ -28,33 +28,30 @@ see the files COPYING and COPYING.LESSER. If not, see
 const char err_send_overflow[] EXT_MEM_RO =
     "BSP ERROR: too many bsp_send requests per sync";
 
-int ebsp_get_tagsize()
-{
-    return coredata.tagsize;
-}
+int ebsp_get_tagsize() { return coredata.tagsize; }
 
-void EXT_MEM_TEXT bsp_set_tagsize(int *tag_bytes)
-{
+void EXT_MEM_TEXT bsp_set_tagsize(int* tag_bytes) {
     coredata.tagsize_next = *tag_bytes;
     combuf->tagsize = *tag_bytes;
     *tag_bytes = coredata.tagsize;
 }
 
-void EXT_MEM_TEXT bsp_send(int pid, const void *tag, const void *payload, int nbytes)
-{
+void EXT_MEM_TEXT
+bsp_send(int pid, const void* tag, const void* payload, int nbytes) {
     unsigned int index;
     unsigned int payload_offset;
     unsigned int total_nbytes = coredata.tagsize + nbytes;
 
-    ebsp_message_queue* q = &combuf->message_queue[coredata.read_queue_index ^ 1];
+    ebsp_message_queue* q =
+        &combuf->message_queue[coredata.read_queue_index ^ 1];
 
     e_mutex_lock(0, 0, &coredata.payload_mutex);
 
     index = q->count;
     payload_offset = combuf->data_payloads.buffer_size;
 
-    if ((payload_offset + total_nbytes > MAX_PAYLOAD_SIZE)
-            || (index >= MAX_MESSAGES)) {
+    if ((payload_offset + total_nbytes > MAX_PAYLOAD_SIZE) ||
+        (index >= MAX_MESSAGES)) {
         index = -1;
         payload_offset = -1;
     } else {
@@ -83,8 +80,7 @@ void EXT_MEM_TEXT bsp_send(int pid, const void *tag, const void *payload, int nb
 
 // Gets the next message from the queue, does not pop
 // Returns 0 if no message
-ebsp_message_header* EXT_MEM_TEXT _next_queue_message()
-{
+ebsp_message_header* EXT_MEM_TEXT _next_queue_message() {
     ebsp_message_queue* q = &combuf->message_queue[coredata.read_queue_index];
     int qsize = q->count;
 
@@ -97,13 +93,9 @@ ebsp_message_header* EXT_MEM_TEXT _next_queue_message()
     return 0;
 }
 
-void _pop_queue_message()
-{
-    coredata.message_index++;
-}
+void _pop_queue_message() { coredata.message_index++; }
 
-void EXT_MEM_TEXT bsp_qsize(int *packets, int *accum_bytes)
-{
+void EXT_MEM_TEXT bsp_qsize(int* packets, int* accum_bytes) {
     *packets = 0;
     *accum_bytes = 0;
 
@@ -121,8 +113,7 @@ void EXT_MEM_TEXT bsp_qsize(int *packets, int *accum_bytes)
     return;
 }
 
-void EXT_MEM_TEXT bsp_get_tag(int *status, void *tag)
-{
+void EXT_MEM_TEXT bsp_get_tag(int* status, void* tag) {
     ebsp_message_header* m = _next_queue_message();
     if (m == 0) {
         *status = -1;
@@ -132,14 +123,13 @@ void EXT_MEM_TEXT bsp_get_tag(int *status, void *tag)
     ebsp_memcpy(tag, m->tag, coredata.tagsize);
 }
 
-void EXT_MEM_TEXT bsp_move(void *payload, int buffer_size)
-{
+void EXT_MEM_TEXT bsp_move(void* payload, int buffer_size) {
     ebsp_message_header* m = _next_queue_message();
     _pop_queue_message();
-    if (m == 0)  // This part is not defined by the BSP standard
+    if (m == 0) // This part is not defined by the BSP standard
         return;
 
-    if (buffer_size == 0)  // Specified by BSP standard
+    if (buffer_size == 0) // Specified by BSP standard
         return;
 
     if (m->nbytes < buffer_size)
@@ -148,8 +138,7 @@ void EXT_MEM_TEXT bsp_move(void *payload, int buffer_size)
     ebsp_memcpy(payload, m->payload, buffer_size);
 }
 
-int EXT_MEM_TEXT bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
-{
+int EXT_MEM_TEXT bsp_hpmove(void** tag_ptr_buf, void** payload_ptr_buf) {
     ebsp_message_header* m = _next_queue_message();
     _pop_queue_message();
 
@@ -161,8 +150,8 @@ int EXT_MEM_TEXT bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
     return m->nbytes;
 }
 
-void EXT_MEM_TEXT ebsp_send_up(const void *tag, const void *payload, int nbytes)
-{
+void EXT_MEM_TEXT
+ebsp_send_up(const void* tag, const void* payload, int nbytes) {
     coredata.read_queue_index = 1;
     return bsp_send(-1, tag, payload, nbytes);
 }

@@ -27,25 +27,26 @@ see the files COPYING and COPYING.LESSER. If not, see
 #define local_mask (0xfff00000)
 extern unsigned dma_data_size[8];
 
-void _prepare_descriptor(e_dma_desc_t* desc, void *dst, const void *src, size_t nbytes)
-{
+void _prepare_descriptor(e_dma_desc_t* desc, void* dst, const void* src,
+                         size_t nbytes) {
     // Alignment
-    unsigned index = (((unsigned) dst) | ((unsigned) src) | ((unsigned) nbytes)) & 7;
+    unsigned index =
+        (((unsigned)dst) | ((unsigned)src) | ((unsigned)nbytes)) & 7;
     unsigned shift = dma_data_size[index] >> 5;
 
-    desc->config = E_DMA_MASTER | E_DMA_ENABLE | E_DMA_IRQEN | dma_data_size[index];
+    desc->config =
+        E_DMA_MASTER | E_DMA_ENABLE | E_DMA_IRQEN | dma_data_size[index];
     if ((((unsigned)dst) & local_mask) == 0)
         desc->config |= E_DMA_MSGMODE;
-    desc->inner_stride  = 0x00010001 << shift;
-    desc->count         = 0x00010000 | (nbytes >> shift);
-    desc->outer_stride  = 0;
-    desc->src_addr      = (void*)src;
-    desc->dst_addr      = (void*)dst;
+    desc->inner_stride = 0x00010001 << shift;
+    desc->count = 0x00010000 | (nbytes >> shift);
+    desc->outer_stride = 0;
+    desc->src_addr = (void*)src;
+    desc->dst_addr = (void*)dst;
 }
 
-
-void ebsp_dma_push(ebsp_dma_handle* descriptor, void *dst, const void *src, size_t nbytes)
-{
+void ebsp_dma_push(ebsp_dma_handle* descriptor, void* dst, const void* src,
+                   size_t nbytes) {
     if (nbytes == 0)
         return;
 
@@ -60,10 +61,10 @@ void ebsp_dma_push(ebsp_dma_handle* descriptor, void *dst, const void *src, size
     if (last == NULL) {
         // No current chain, replace it by this one
         coredata.last_dma_desc = desc;
-    }
-    else if (last != desc) {
+    } else if (last != desc) {
         // Attach desc to last
-        unsigned newconfig = (last->config & 0x0000ffff) | ((unsigned)desc << 16);
+        unsigned newconfig =
+            (last->config & 0x0000ffff) | ((unsigned)desc << 16);
         last->config = newconfig;
         coredata.last_dma_desc = desc;
     }
@@ -77,8 +78,7 @@ void ebsp_dma_push(ebsp_dma_handle* descriptor, void *dst, const void *src, size
     }
 }
 
-void __attribute__((interrupt)) _dma_interrupt(int unusedargument)
-{
+void __attribute__((interrupt)) _dma_interrupt(int unusedargument) {
     // If DMA is in chaining mode, an interrupt will be fired after a chain
     // element is completed. At this point in the interrupt, the DMA will
     // already be busy doing the next element of the chain or even the one
@@ -99,7 +99,8 @@ void __attribute__((interrupt)) _dma_interrupt(int unusedargument)
     // Grab the current task
     e_dma_desc_t* desc = coredata.cur_dma_desc;
     if (desc == 0) { // should not happen
-        combuf->interrupts[coredata.pid] = 0x80; // Use (1 << E_DMA1_INT) as error message
+        combuf->interrupts[coredata.pid] =
+            0x80; // Use (1 << E_DMA1_INT) as error message
         return;
     }
 
@@ -117,9 +118,9 @@ void __attribute__((interrupt)) _dma_interrupt(int unusedargument)
     }
 }
 
-void ebsp_dma_wait(ebsp_dma_handle* descriptor)
-{
+void ebsp_dma_wait(ebsp_dma_handle* descriptor) {
     volatile unsigned* config = &descriptor->config;
-    while (*config & E_DMA_ENABLE) {}
+    while (*config & E_DMA_ENABLE) {
+    }
 }
 

@@ -25,8 +25,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdio.h>
 #include <host_bsp.h>
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
     bsp_init("e_bsp_nprocs.srec", argc, argv);
 
     int tagsize = sizeof(int);
