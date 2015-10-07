@@ -79,18 +79,15 @@ typedef struct
     struct timespec ts_start, ts_end;
 
     // Buffer
-    ebsp_stream_descriptor buffered_streams[_NPROCS][MAX_N_STREAMS];
+    ebsp_stream_descriptor buffered_streams[NPROCS][MAX_N_STREAMS];
 
 } bsp_state_t;
 
 extern bsp_state_t state;
 
-
-
 /*
  *  host_bsp
  */
-
 int bsp_init(const char* _e_name,
         int argc,
         char **argv);
@@ -99,11 +96,9 @@ int ebsp_spmd();
 int bsp_end();
 int bsp_nprocs();
 
-
 /*
  *  host_bsp_memory
  */
-
 void ebsp_malloc_init();
 void* ebsp_ext_malloc(unsigned int nbytes);
 void ebsp_free(void* ptr);
@@ -112,21 +107,18 @@ int ebsp_read(int pid, off_t src, void* dst, int size);
 int _write_core_syncstate(int pid, int syncstate);
 int _write_extmem(void* src, off_t offset, int size);
 
-
 /*
  *  host_bsp_buffer
  */
-
 void ebsp_send_buffered(void* src, int dst_core_id, int nbytes, int max_chunksize);
 void ebsp_send_buffered_raw(void* src, int dst_core_id, int nbytes, int max_chunksize);
 void* ebsp_get_buffered(int src_core_id, int nbytes, int max_chunksize);
 void _ebsp_add_stream(int dst_core_id, void* extmem_in_buffer, int nbytes, int max_chunksize, int is_instream);
-
+void ebsp_create_down_stream_raw(const void* src, int dst_core_id, int nbytes, int max_chunksize);
 
 /*
  *  host_bsp_mp
  */
-
 void ebsp_set_tagsize(int *tag_bytes);
 void ebsp_send_down(int pid, const void *tag, const void *payload, int nbytes);
 int ebsp_get_tagsize();
@@ -137,11 +129,9 @@ void ebsp_get_tag(int *status, void *tag);
 void ebsp_move(void *payload, int buffer_size);
 int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
 
-
 /*
  *  host_bsp_utility
  */
-
 void ebsp_set_sync_callback(void (*cb)());
 void ebsp_set_end_callback(void (*cb)());
 void* _arm_to_e_pointer(void* ptr);
@@ -150,6 +140,3 @@ void _update_remote_timer();
 void _microsleep(int microseconds);
 void _get_p_coords(int pid, int* row, int* col);
 void init_application_path();
-
-
-

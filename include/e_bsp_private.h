@@ -44,7 +44,7 @@ typedef struct {
     int32_t         pid;
     int32_t         nprocs;
 
-    uint16_t        coreids[_NPROCS]; // pid to coreid mapping
+    uint16_t        coreids[NPROCS]; // pid to coreid mapping
 
     // time_passed is epiphany cpu time (so not walltime) in seconds
     float           time_passed;
@@ -60,8 +60,8 @@ typedef struct {
     uint32_t        message_index;
 
     // bsp_sync barrier
-    volatile e_barrier_t sync_barrier[_NPROCS];
-    e_barrier_t*    sync_barrier_tgt[_NPROCS];
+    volatile e_barrier_t sync_barrier[NPROCS];
+    e_barrier_t*    sync_barrier_tgt[NPROCS];
 
     // if this core has done a bsp_push_reg
     int8_t          var_pushed;
@@ -91,6 +91,7 @@ typedef struct {
     unsigned*       dma1config;
     unsigned*       dma1status;
 
+    unsigned        local_nstreams;
 } ebsp_core_data;
 
 extern ebsp_core_data coredata;
@@ -107,3 +108,4 @@ void ebsp_dma_wait(ebsp_dma_handle* desc);
 
 // Always use this instead of memcpy
 void ebsp_memcpy(void* dst, const void *src, size_t nbytes);
+

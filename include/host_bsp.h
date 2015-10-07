@@ -280,14 +280,7 @@ int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
  * This splits the input into chunks of size chunksize (at most), adds headers,
  * writes the result to extmem and sends a message to the e_core.
  */
-void ebsp_create_down_stream(void* src, int dst_core_id, int nbytes, int chunksize);
-
-/**
- * Initialize streaming of nbytes from *src to core dst_core_id
- * This assumes *src contains headers already and writes it directly to extmem.
- * Finally a message is sent to the relevant e_core.
- */
-void ebsp_create_down_stream_raw(void* src, int dst_core_id, int nbytes, int max_chunksize);
+void ebsp_create_down_stream(const void* src, int dst_core_id, int nbytes, int chunksize);
 
 /**
  * Initialize streaming of at most max_nbytes from core dst_core_id

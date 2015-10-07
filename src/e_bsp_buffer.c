@@ -25,6 +25,8 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include "e_bsp_private.h"
 #include <string.h>
 
+const char err_no_such_stream[] EXT_MEM_RO =
+    "BSP ERROR: stream does not exist";
 
 const char err_mixed_up_down[] EXT_MEM_RO =
     "BSP ERROR: mixed up and down streams";
@@ -38,12 +40,8 @@ const char err_open_opened[] EXT_MEM_RO =
 const char err_jump_out_of_bounds[] EXT_MEM_RO =
     "BSP ERROR: tried jumping past bounds of stream";
 
-const char err_open_empty[] EXT_MEM_RO =
-    "BSP ERROR: tried opening empty stream";
-
 const char err_create_opened[] EXT_MEM_RO =
     "BSP ERROR: tried creating opened stream";
-
 
 void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes)
 {
@@ -56,6 +54,11 @@ void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes)
 
 int ebsp_open_up_stream(void** address, unsigned stream_id)
 {
+    if (stream_id >= coredata.local_nstreams) {
+        ebsp_message(err_no_such_stream);
+        return 0;
+    }
+
     ebsp_stream_descriptor* stream = &coredata.local_streams[stream_id];
 
     if (stream->is_down_stream)
@@ -85,6 +88,11 @@ int ebsp_open_up_stream(void** address, unsigned stream_id)
 
 void ebsp_close_up_stream(unsigned stream_id)
 {
+    if (stream_id >= coredata.local_nstreams) {
+        ebsp_message(err_no_such_stream);
+        return;
+    }
+
     ebsp_stream_descriptor* out_stream = &coredata.local_streams[stream_id];
 
     if (out_stream->is_down_stream) {
@@ -92,14 +100,15 @@ void ebsp_close_up_stream(unsigned stream_id)
         return;
     }
 
-    // wait for data transfer to finish before closing
-    ebsp_dma_handle* desc = (ebsp_dma_handle*)&out_stream->e_dma_desc;
-    ebsp_dma_wait(desc);
-
     if (out_stream->current_buffer == NULL) {
         ebsp_message(err_close_closed);
         return;
     }
+
+    // wait for data transfer to finish before closing
+    ebsp_dma_handle* desc = (ebsp_dma_handle*)&out_stream->e_dma_desc;
+    ebsp_dma_wait(desc);
+
 
     ebsp_free(out_stream->current_buffer);
     out_stream->current_buffer = NULL;
@@ -113,6 +122,11 @@ void ebsp_close_up_stream(unsigned stream_id)
 
 int ebsp_move_chunk_up(void** address, unsigned stream_id, int prealloc)
 {
+    if (stream_id >= coredata.local_nstreams) {
+        ebsp_message(err_no_such_stream);
+        return 0;
+    }
+    
     ebsp_stream_descriptor* stream = &coredata.local_streams[stream_id];
 
     if (stream->is_down_stream) {
@@ -204,6 +218,11 @@ void _ebsp_write_chunk(ebsp_stream_descriptor* stream, void* target)
 
 int ebsp_open_down_stream(void** address, unsigned stream_id)
 {
+    if (stream_id >= coredata.local_nstreams) {
+        ebsp_message(err_no_such_stream);
+        return 0;
+    }
+
     ebsp_stream_descriptor* stream = &coredata.local_streams[stream_id];
 
     if (!stream->is_down_stream) 
@@ -233,22 +252,27 @@ int ebsp_open_down_stream(void** address, unsigned stream_id)
 
 void ebsp_close_down_stream(unsigned stream_id)
 {
+    if (stream_id >= coredata.local_nstreams) {
+        ebsp_message(err_no_such_stream);
+        return;
+    }
+
     ebsp_stream_descriptor* in_stream = &coredata.local_streams[stream_id];
 
-    ebsp_dma_handle* desc = (ebsp_dma_handle*)&in_stream->e_dma_desc;
-
-    ebsp_dma_wait(desc);
-
-    if (! (in_stream->is_down_stream) ) 
+    if (!(in_stream->is_down_stream) ) 
     {
         ebsp_message(err_mixed_up_down);
         return;
     }
+
     if (in_stream->current_buffer == NULL)
     {
         ebsp_message(err_close_closed);
         return;
     }
+
+    ebsp_dma_handle* desc = (ebsp_dma_handle*)&in_stream->e_dma_desc;
+    ebsp_dma_wait(desc);
 
     ebsp_free(in_stream->current_buffer);
     in_stream->current_buffer = NULL;
@@ -261,6 +285,11 @@ void ebsp_close_down_stream(unsigned stream_id)
 
 int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc)
 {
+    if (stream_id >= coredata.local_nstreams) {
+        ebsp_message(err_no_such_stream);
+        return 0;
+    }
+
     ebsp_stream_descriptor* stream = &coredata.local_streams[stream_id];
 
     ebsp_dma_handle* desc = (ebsp_dma_handle*)(&(stream->e_dma_desc));
@@ -337,6 +366,11 @@ int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc)
 
 void ebsp_reset_down_cursor(int stream_id)
 {
+    if (stream_id >= coredata.local_nstreams) {
+        ebsp_message(err_no_such_stream);
+        return;
+    }
+
     ebsp_stream_descriptor* in_stream = &coredata.local_streams[stream_id];
 
     size_t chunk_size = -1;
@@ -351,7 +385,13 @@ void ebsp_reset_down_cursor(int stream_id)
 }
 
 
-void ebsp_move_down_cursor(int stream_id, int jump_n_chunks) {
+void ebsp_move_down_cursor(int stream_id, int jump_n_chunks)
+{
+    if (stream_id >= coredata.local_nstreams) {
+        ebsp_message(err_no_such_stream);
+        return;
+    }
+
     ebsp_stream_descriptor* in_stream = &coredata.local_streams[stream_id];
     
     if (jump_n_chunks > 0) //jump forward
@@ -383,6 +423,3 @@ void ebsp_move_down_cursor(int stream_id, int jump_n_chunks) {
         }
     }
 }
-
-
-

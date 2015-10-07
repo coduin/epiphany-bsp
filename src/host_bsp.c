@@ -80,7 +80,7 @@ int bsp_init(const char* _e_name,
     state.nprocs = state.platform.rows * state.platform.cols;
 
     // Initialize buffering
-    for (int p = 0; p < _NPROCS; p++) {
+    for (int p = 0; p < NPROCS; p++) {
         state.combuf.n_streams[p] = 0;
     }
     
@@ -96,7 +96,7 @@ int bsp_begin(int nprocs)
     // Then the functions that DID succeed should be undone again
     // So at e_load_group failure it cleanup the e_open result
 
-    if (nprocs < 1 || nprocs > _NPROCS) {
+    if (nprocs < 1 || nprocs > NPROCS) {
         fprintf(stderr, "ERROR: bsp_begin called with nprocs = %d.\n", nprocs);
         return 0;
     }
@@ -165,15 +165,15 @@ int ebsp_spmd()
 {
  
     // Write stream structs to combuf + extmem
-    for( int p = 0; p < _NPROCS; p++ )
+    for( int p = 0; p < NPROCS; p++ )
     {
         int nbytes = state.combuf.n_streams[p]*sizeof(ebsp_stream_descriptor);
         void* stream_descriptors = ebsp_ext_malloc(nbytes);
         memcpy(stream_descriptors, state.buffered_streams[p], nbytes);
         state.combuf.extmem_streams[p] = _arm_to_e_pointer(stream_descriptors);
 
-        //TODO void*               extmem_current_out_chunk[_NPROCS];
-        //TODO int                 out_buffer_size[_NPROCS];
+        //TODO void*               extmem_current_out_chunk[NPROCS];
+        //TODO int                 out_buffer_size[NPROCS];
     }
 
     // Write communication buffer containing nprocs,
@@ -358,7 +358,7 @@ int ebsp_spmd()
                 state.combuf.syncstate[i] = STATE_CONTINUE;
             _write_extmem(&state.combuf.syncstate,
                     offsetof(ebsp_combuf, syncstate),
-                    _NPROCS * sizeof(int));
+                    NPROCS * sizeof(int));
             // Now write it to all cores to continue their execution
             for (int i = 0; i < state.nprocs_used; i++)
                 _write_core_syncstate(i, STATE_CONTINUE);

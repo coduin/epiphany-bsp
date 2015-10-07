@@ -53,6 +53,7 @@ void EXT_MEM_TEXT bsp_begin()
     coredata.last_dma_desc = NULL;
     coredata.dma1config = e_get_global_address(row, col, (void*)E_REG_DMA1CONFIG);
     coredata.dma1status = e_get_global_address(row, col, (void*)E_REG_DMA1STATUS);
+    coredata.local_nstreams = combuf->n_streams[coredata.pid];
 
     for (int s = 0; s < coredata.nprocs; s++)
         coredata.coreids[s] = (uint16_t)e_coreid_from_coords(s / cols, s % cols);

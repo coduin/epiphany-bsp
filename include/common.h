@@ -27,7 +27,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 // #define DEBUG
 
-#define _NPROCS 16
+#define NPROCS 16
 
 // Every variable that is registered with bsp_push_reg
 // gives 16 addresses (the locations on the different cores).
@@ -139,24 +139,24 @@ typedef struct {
 typedef struct
 {
     // Epiphany --> ARM communication
-    int8_t              syncstate[_NPROCS];
+    int8_t              syncstate[NPROCS];
     int8_t*             syncstate_ptr;  // Location on epiphany core
     char                msgbuf[128];  // shared by all cores (mutexed)
-    uint16_t            interrupts[_NPROCS];
+    uint16_t            interrupts[NPROCS];
 
     // ARM --> Epiphany
     float               remotetimer;
     int32_t             nprocs;
     int32_t             tagsize;  // Only for initial and final messages
-    int                 n_streams[_NPROCS];
-    void*               extmem_streams[_NPROCS];
+    int                 n_streams[NPROCS];
+    void*               extmem_streams[NPROCS];
     //void*               extmem_current_out_chunk[_NPROCS];
     //int                 out_buffer_size[_NPROCS];
 
     // Epiphany <--> Epiphany
-    void*               bsp_var_list[MAX_BSP_VARS][_NPROCS];
+    void*               bsp_var_list[MAX_BSP_VARS][NPROCS];
     uint32_t            bsp_var_counter;
-    ebsp_data_request   data_requests[_NPROCS][MAX_DATA_REQUESTS];
+    ebsp_data_request   data_requests[NPROCS][MAX_DATA_REQUESTS];
     ebsp_message_queue  message_queue[2];
     ebsp_payload_buffer data_payloads;  // used for put/get/send
 } ebsp_combuf;

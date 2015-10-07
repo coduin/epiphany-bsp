@@ -4,3 +4,10 @@
             ebsp_message(fmt, __VA_ARGS__);\
         ebsp_barrier();\
     }
+
+#define CALL_ORDERED(fn)\
+    for(int i = 0; i < bsp_nprocs(); ++i) {\
+        if(i == bsp_pid())\
+            fn;\
+        ebsp_barrier();\
+    }

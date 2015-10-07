@@ -29,8 +29,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 extern bsp_state_t state;
 
-
-void ebsp_create_down_stream(void* src, int dst_core_id, int nbytes, int max_chunksize)
+void ebsp_create_down_stream(const void* src, int dst_core_id, int nbytes, int max_chunksize)
 {
     int nchunks = (nbytes + max_chunksize - 1)/max_chunksize; // nbytes/chunksize rounded up
 
@@ -78,7 +77,7 @@ void ebsp_create_down_stream(void* src, int dst_core_id, int nbytes, int max_chu
     _ebsp_add_stream(dst_core_id, extmem_in_buffer, nbytes_including_headers, max_chunksize, 1);
 }
 
-void ebsp_create_down_stream_raw(void* src, int dst_core_id, int nbytes, int max_chunksize)
+void ebsp_create_down_stream_raw(const void* src, int dst_core_id, int nbytes, int max_chunksize)
 {
     // 1) malloc in extmem
     void* extmem_in_buffer = ebsp_ext_malloc(nbytes);
@@ -133,5 +132,3 @@ void _ebsp_add_stream(int core_id, void* extmem_buffer, int nbytes, int max_chun
     state.buffered_streams[core_id][state.combuf.n_streams[core_id]] = x;
     state.combuf.n_streams[core_id]++;
 }
-
-
