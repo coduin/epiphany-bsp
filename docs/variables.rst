@@ -8,15 +8,15 @@
 BSP Variables
 =============
 
-Introduction
-------------
+Registering, putting and getting
+--------------------------------
 
 If we want to write more interesting EBSP programs, we need to have a way to communicate between the different Epiphany cores. In EBSP communication happens in one of two ways: using message passing, which we will introduce later, or via *registered variables*. An EBSP variable exists on every processor, but it does not have to have the same size on every Epiphany core.
 
 Variable registration
 ^^^^^^^^^^^^^^^^^^^^^
 
-We register a variable by calling `bsp_push_reg`:::
+We register a variable by calling `bsp_push_reg`::
 
     int a = 0;
     bsp_push_reg(&a, sizeof(int));
@@ -29,7 +29,7 @@ To ensure that all cores have registered a variable, we perform a barrier synchr
 Putting and getting values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Registered variables can be written to or read from by other cores. In BSP this is refered to as *putting* something in a variable, or *getting* the value of a variable. To write for example our processor ID to the *next core* we can write:::
+Registered variables can be written to or read from by other cores. In BSP this is refered to as *putting* something in a variable, or *getting* the value of a variable. To write for example our processor ID to the *next core* we can write::
 
     int b = s;
     bsp_put((s + 1) % p, &b, &a, 0, sizeof(int));
@@ -60,7 +60,7 @@ When we receive the data, we can for example write the result to the standard ou
 
     ebsp_message("received: %i", a);
 
-This results in the following output:::
+This results in the following output::
 
     $01: received: 0
     $02: received: 1
@@ -70,7 +70,7 @@ This results in the following output:::
 
 Where we have suppressed the output from the other cores. As we see we are correctly receiving the processor id of the previous cores!
 
-An alternative way of communication is *getting* the value of a registered variable from a remote core. The syntax is very similar:::
+An alternative way of communication is *getting* the value of a registered variable from a remote core. The syntax is very similar::
 
     a = s;
     int b = 0;
@@ -85,7 +85,7 @@ The arguments for `bsp_get` are:
 4. A pointer to the local destination.
 5. The number of bytes to copy.
 
-And again, we perform a barrier synchronisation to ensure the data has been transferred. If you are familiar with concurrent programming, then you might think we are at risk of a `race condition <https://en.wikipedia.org/wiki/Race_condition>`_! What if processor `s` reaches the `bsp_get` statement before processor `(s + 1) % p` has set the value for `a` equal to its process number? Do we then obtain zero? In this case, we do not have to worry -- no data transfer is initialized until each core has reached `bsp_sync`. Indeed we receive the correct output:::
+And again, we perform a barrier synchronisation to ensure the data has been transferred. If you are familiar with concurrent programming, then you might think we are at risk of a `race condition <https://en.wikipedia.org/wiki/Race_condition>`_! What if processor `s` reaches the `bsp_get` statement before processor `(s + 1) % p` has set the value for `a` equal to its process number? Do we then obtain zero? In this case, we do not have to worry -- no data transfer is initialized until each core has reached `bsp_sync`. Indeed we receive the correct output::
 
     $01: received: 2
     $03: received: 4
@@ -123,7 +123,7 @@ To facilitate writing code using only unbuffered communication we will expose an
 
 When writing or reading large amounts of data in between different `bsp_sync` calls, the `hp...` functions are much more efficient in terms of local memory usage (which is very valuable because of the small size) as well as running speed. However, extra care is needed to effectively synchronize between threads. For example, if we remove any of the two `bsp_sync` calls in the previous example program, there will be a race condition.
 
-We test the program, and see that the output is indeed identical to before:::
+We test the program, and see that the output is indeed identical to before::
 
     $01: received: 0
     $08: received: 7
@@ -132,8 +132,8 @@ We test the program, and see that the output is indeed identical to before:::
     ...
 
 
-Interface
----------
+Interface (Variables)
+---------------------
 
 Epiphany
 ^^^^^^^^

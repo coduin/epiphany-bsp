@@ -8,8 +8,8 @@
 Communicating with the Epiphany
 ===============================
 
-Introduction
-------------
+Communication: up and down
+--------------------------
 
 Writing kernels for the Epiphany is only useful when you can provide them with data to process. The easiest way to send data from the host program running on the host processor to the Epiphany cores is completely analogous to message passing between cores. So far the code we have written on the host only initializes the BSP system, starts the SPMD program on the Epiphany, and finalizes the system afterwards. Before the call to `ebsp_spmd` we can prepare messages containing e.g. initial data for the Epiphany cores. This works completely identically to inter-core message passing, using `ebsp_set_tagsize` instead of `bsp_set_tagsize`, and `ebsp_send_down` instead of `bsp_send`::
 
@@ -113,20 +113,32 @@ Message passing is a nice way to get initial data to the Epiphany cores, and to 
 This would write 4 integers to each core starting at `0x5000`. Similarly, `ebsp_read` can be used to retrieve data from the cores. We would not recommend this approach for users just beginning with the Parallella and EBSP in particular. A better approach to move large amounts of data from and to the Epiphany processor uses *data streams*, which will be introduced in the next EBSP release. This allows data to be moved in predetermined *chunks*, which are acted upon independently. We will explain this approach in detail in a future blogpost.
 
 
-Examples
---------
-
-...
-
-Interface
-------------------
+Interface (Vertical communication)
+----------------------------------
 
 Host
 ^^^^
 
-...
+.. doxygenfunction:: ebsp_qsize
+   :project: ebsp
+
+.. doxygenfunction:: ebsp_set_tagsize
+   :project: ebsp
+
+.. doxygenfunction:: ebsp_get_tagsize
+   :project: ebsp
+
+.. doxygenfunction:: ebsp_send_down
+   :project: ebsp
+
+.. doxygenfunction:: ebsp_write
+   :project: ebsp
+
+.. doxygenfunction:: ebsp_read
+   :project: ebsp
 
 Epiphany
 ^^^^^^^^
 
-...
+.. doxygenfunction:: ebsp_send_up
+   :project: ebsp

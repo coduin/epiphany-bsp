@@ -73,8 +73,11 @@ Running this program should result in output similar to the following:::
 
 The output has the form `$[pid]: output`. As we see, indeed the EBSP kernel is being run on every core! Note that there are no guarantees about which core gets to the `ebsp_message` statement first, and therefore the output need not be in order of processor number.
 
-Interface
----------
+Interface (Basics)
+------------------
+
+Host
+^^^^
 
 .. doxygenfunction:: bsp_init
    :project: ebsp
@@ -86,4 +89,22 @@ Interface
    :project: ebsp
 
 .. doxygenfunction:: bsp_end
+   :project: ebsp
+
+Epiphany
+^^^^^^^^
+
+.. doxygenfunction:: bsp_begin
+   :project: ebsp
+
+.. doxygenfunction:: bsp_pid
+   :project: ebsp
+
+.. doxygenfunction:: bsp_nprocs
+   :project: ebsp
+
+.. doxygenfunction:: bsp_end
+   :project: ebsp
+
+.. doxygenfunction:: ebsp_message
    :project: ebsp

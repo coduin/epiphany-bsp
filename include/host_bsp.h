@@ -1,9 +1,7 @@
 /*
-File: host_bsp.h
-
 This file is part of the Epiphany BSP library.
 
-Copyright (C) 2014 Buurlage Wits
+Copyright (C) 2014-2015 Buurlage Wits
 Support e-mail: <info@buurlagewits.nl>
 
 This program is free software: you can redistribute it and/or modify
@@ -199,6 +197,9 @@ int bsp_nprocs();
  *
  * It is not possible to send messages with different tag sizes. Doing so
  * will result in undefined behaviour.
+ *
+ * @remarks The tagsize set using this function is also used for inter-core
+ * messages.
  */
 void ebsp_set_tagsize(int* tag_bytes);
 
