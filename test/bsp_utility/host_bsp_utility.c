@@ -1,6 +1,4 @@
 /*
-File: host_bsp_utility.c
-
 This file is part of the Epiphany BSP library.
 
 Copyright (C) 2014-2015 Buurlage Wits
