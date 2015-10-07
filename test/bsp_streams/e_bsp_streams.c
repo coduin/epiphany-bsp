@@ -36,7 +36,7 @@ int main() {
     ebsp_open_up_stream((void**)&upstreamDouble, 1);
     if (s == 0)
         ebsp_open_up_stream((void**)&upstreamDouble, 1);
-    // expect: ("$00: BSP ERROR: tried creating opened stream")
+    // expect: ($00: BSP ERROR: tried creating opened stream)
     int chunks = 4;
 
     int* downchunk;
@@ -49,13 +49,13 @@ int main() {
 
     if (s == 0)
         ebsp_open_down_stream((void**)0, 5);
-    // expect: ("$00: BSP ERROR: stream does not exist")
+    // expect: ($00: BSP ERROR: stream does not exist)
     if (s == 0)
         ebsp_open_up_stream((void**)0, 5);
-    // expect: ("$00: BSP ERROR: stream does not exist")
+    // expect: ($00: BSP ERROR: stream does not exist)
     if (s == 0)
         ebsp_open_down_stream((void**)0, 1);
-    // expect: ("$00: BSP ERROR: stream does not exist")
+    // expect: ($00: BSP ERROR: mixed up and down streams)
 
     for (int i = 0; i < chunks; ++i) {
         ebsp_move_chunk_down((void**)&downchunk, 2, 0);
@@ -83,16 +83,16 @@ int main() {
 
     if (s == 0)
         ebsp_close_up_stream(0);
-    // expect: ("$00: BSP ERROR: tried to close closed stream")
+    // expect: ($00: BSP ERROR: tried to close closed stream)
     if (s == 0)
         ebsp_close_down_stream(2);
-    // expect: ($00: "BSP ERROR: tried to close closed stream")
+    // expect: ($00: BSP ERROR: tried to close closed stream)
     if (s == 0)
         ebsp_close_down_stream(5);
-    // expect: ("$00: BSP ERROR: stream does not exist")
+    // expect: ($00: BSP ERROR: stream does not exist)
     if (s == 0)
         ebsp_close_up_stream(5);
-    // expect: ("$00: BSP ERROR: stream does not exist")
+    // expect: ($00: BSP ERROR: stream does not exist)
 
     bsp_end();
 
