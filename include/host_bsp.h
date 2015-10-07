@@ -197,6 +197,9 @@ int bsp_nprocs();
  *
  * It is not possible to send messages with different tag sizes. Doing so
  * will result in undefined behaviour.
+ *
+ * @remarks The tagsize set using this function is also used for inter-core
+ * messages.
  */
 void ebsp_set_tagsize(int* tag_bytes);
 

@@ -8,21 +8,59 @@
 Other features
 ==============
 
-Here are a collection of features we did not yet cover
+There are two features we did not yet discuss. The first is timers, which are useful for getting information on the running time of your programs. The second is intervening in programs that are currently running on the Epiphany using the host.
 
-Timings
--------
+Timers
+------
 
-...
+We provide two mechanisms for getting running time information. The first is accurate for relatively short time intervals (less than about 5 seconds). It is used in the following manner::
+
+    float t_start = bsp_time();
+    // ... perform computation
+    float t_end = bsp_time();
+    float result = t_end - t_start;
+
+The variable result than holds the time taken for the computation in seconds. If you want access to the number of clockcycles used for the computation we provide a similar function `ebsp_raw_time` which gives the number of clockcycles as an unsigned integer::
+
+    unsigned int t_start = bsp_time();
+    // ... perform computation
+    unsigned int t_end = bsp_time();
+    unsigned int result = t_end - t_start;
+
+Note that the default Epiphany clockfrequency is about 600 MHz, such that 600000000 cycles is equal to one second.
 
 Callbacks
 ---------
 
+If you want to use the host processor together with the Epiphany processor, you require some sort of syncing mechanism. In particular you might want to react to data that has been sent to external memory, or use the ARM in a map-reduce kind of setting. For this we provide a callback mechanism using `ebsp_set_sync_callback`. You can provide a function pointer, and this function will get called each time a core calls `ebsp_host_sync`::
 
-...
+    // on the host
+    void callback() {
+        printf("ebsp_host_sync called on the Epiphany");
+        // communicate with cores or react to data
+    }
 
-Interface
-------------------
+    ..
+    bsp_begin(bsp_nprocs());
+    ebsp_set_sync_callback(callback);
+    ..
+
+Similarly we provide a callback mechanism for `bsp_end`, which can be useful when developing your own library on top of EBSP.
+
+Interface (Timer and callback)
+------------------------------
+
+Host
+^^^^
+
+.. doxygenfunction:: ebsp_set_sync_callback
+   :project: ebsp
+
+.. doxygenfunction:: ebsp_set_end_callback
+   :project: ebsp
+
+Epiphany
+^^^^^^^^
 
 .. doxygenfunction:: bsp_time
    :project: ebsp
@@ -30,8 +68,5 @@ Interface
 .. doxygenfunction:: ebsp_raw_time
    :project: ebsp
 
-.. doxygenfunction:: ebsp_set_sync_callback
-   :project: ebsp
-
-.. doxygenfunction:: ebsp_set_end_callback
+.. doxygenfunction:: ebsp_host_time
    :project: ebsp
