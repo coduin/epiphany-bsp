@@ -29,8 +29,15 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 extern bsp_state_t state;
 
+#define MINIMUM_CHUNK_SIZE (4 * sizeof(int))
+
 void ebsp_create_down_stream(const void* src, int dst_core_id, int nbytes, int max_chunksize)
 {
+    if (max_chunksize < MINIMUM_CHUNK_SIZE) {
+        printf("ERROR: minimum chunk size is %i bytes\n", MINIMUM_CHUNK_SIZE);
+        return;
+    }
+
     int nchunks = (nbytes + max_chunksize - 1)/max_chunksize; // nbytes/chunksize rounded up
 
     int nbytes_including_headers = nbytes + nchunks*2*sizeof(int) + 2*sizeof(int); // the +2*sizeof(int) is the terminating header
@@ -95,6 +102,11 @@ void ebsp_create_down_stream_raw(const void* src, int dst_core_id, int nbytes, i
 
 void* ebsp_create_up_stream(int src_core_id, int nbytes, int max_chunksize)
 {
+    if (max_chunksize < MINIMUM_CHUNK_SIZE) {
+        printf("ERROR: minimum chunk size is %i bytes\n", MINIMUM_CHUNK_SIZE);
+        return NULL;
+    }
+
     // 1) malloc in extmem
     void* extmem_out_buffer = ebsp_ext_malloc(nbytes);
     if (extmem_out_buffer == 0)
