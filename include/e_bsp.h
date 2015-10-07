@@ -198,7 +198,7 @@ void bsp_pop_reg(const void* variable);
  * @remarks The current implementation uses external memory which restraints
  *          its performance greatly. Where possible use bsp_hpput() instead.
  */
-void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes);
+void bsp_put(int pid, const void* src, void* dst, int offset, int nbytes);
 
 /**
  * Copy data to another processor, unbuffered.
@@ -218,7 +218,7 @@ void bsp_put(int pid, const void *src, void *dst, int offset, int nbytes);
  * @remarks No warning is thrown when nbytes exceeds the size of the variable
  *          src.
 */
-void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes);
+void bsp_hpput(int pid, const void* src, void* dst, int offset, int nbytes);
 
 /**
  * Copy data from another processor using a buffer.
@@ -243,7 +243,7 @@ void bsp_hpput(int pid, const void *src, void *dst, int offset, int nbytes);
  * @remarks No warning is thrown when nbytes exceeds the size of the variable
  *          src.
  */
-void bsp_get(int pid, const void *src, int offset, void *dst, int nbytes);
+void bsp_get(int pid, const void* src, int offset, void* dst, int nbytes);
 
 /**
  * Copy data from another processor. It is an unbuffered version of bsp_get().
@@ -262,7 +262,7 @@ void bsp_get(int pid, const void *src, int offset, void *dst, int nbytes);
  * @remarks No warning is thrown when nbytes exceeds the size of the variable
  *          src.
  */
-void bsp_hpget(int pid, const void *src, int offset, void *dst, int nbytes);
+void bsp_hpget(int pid, const void* src, int offset, void* dst, int nbytes);
 
 /**
  * Obtain the tag size.
@@ -280,7 +280,7 @@ int ebsp_get_tagsize();
  * the old tag size. The new tag size will take effect at the next superstep,
  * so messages that are being sent in this superstep will have the old tag size.
  */
-void bsp_set_tagsize(int *tag_bytes);
+void bsp_set_tagsize(int* tag_bytes);
 
 /**
  * Send a message to another processor.
@@ -294,7 +294,7 @@ void bsp_set_tagsize(int *tag_bytes);
  * When this function returns, the data has been copied so the user can
  * use the buffer for other purposes.
  */
-void bsp_send(int pid, const void *tag, const void *payload, int nbytes);
+void bsp_send(int pid, const void* tag, const void* payload, int nbytes);
 
 /**
  * Obtain the amount of messages in the queue and their total data size.
@@ -305,7 +305,7 @@ void bsp_send(int pid, const void *tag, const void *payload, int nbytes);
  * hold the amount of messages in the queue, and the sum of the sizes
  * of their data payloads respectively.
  */
-void bsp_qsize(int *packets, int *accum_bytes);
+void bsp_qsize(int* packets, int* accum_bytes);
 
 /**
  * Obtain the tag and size of the next message without popping the message.
@@ -318,7 +318,7 @@ void bsp_qsize(int *packets, int *accum_bytes);
  * The buffer pointed to by tag should be large enough to store the tag.
  * The minimum size can be obtained by calling ebsp_get_tagsize.
  */
-void bsp_get_tag(int *status, void *tag);
+void bsp_get_tag(int* status, void* tag);
 
 /**
  * Obtain the next message from the message queue and pop the message.
@@ -330,7 +330,7 @@ void bsp_get_tag(int *status, void *tag);
  * If `buffer_size` is smaller than the data payload then the data is
  * truncated.
  */
-void bsp_move(void *payload, int buffer_size);
+void bsp_move(void* payload, int buffer_size);
 
 /**
  * Obtain the next message, with tag, from the queue and pop the message.
@@ -346,7 +346,7 @@ void bsp_move(void *payload, int buffer_size);
  * Repeated use of these tags will lead to overall worse performance, such that
  * bsp_move() can actually outperform this variant.
  */
-int bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
+int bsp_hpmove(void** tag_ptr_buf, void** payload_ptr_buf);
 
 /**
  * Send a message to the host processor after the computation is finished.
@@ -360,7 +360,7 @@ int bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
  * When this function returns, the data has been copied so the user can
  * use the buffer for other purposes.
  *
- * @remarks 
+ * @remarks
  * - ebsp_send_up() should an only be used between the last call to bsp_sync()
  *   and bsp_end()
  * - ebsp_send_up() should only be used when no bsp_send() messages have been
@@ -368,14 +368,15 @@ int bsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf);
  * - after calling ebsp_send_up() at least once, a call to any other
  *   queue functions or to bsp_sync() will lead to undefined behaviour
  */
-void ebsp_send_up(const void *tag, const void *payload, int nbytes);
+void ebsp_send_up(const void* tag, const void* payload, int nbytes);
 
 /**
  * Wait for any input-DMAs to finish.
  * A pointer to a chunk of input data is written to *address,
- * the size of this chunk is returned. stream_id is the index of the 
+ * the size of this chunk is returned. stream_id is the index of the
  * input stream sent to this core, in the same order as ebsp_send_buffered().
- * prealloc can be set to either 1 (true) or 0 (false), and determines whether double
+ * prealloc can be set to either 1 (true) or 0 (false), and determines whether
+ *double
  * or single buffering is used.
  *
  * @remarks
@@ -387,9 +388,10 @@ int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc);
 /**
  * Wait for any output-DMAs to finish.
  * A pointer to a chunk of empty memory is written to *address,
- * the size of this chunk is returned. stream_id is the index of the 
+ * the size of this chunk is returned. stream_id is the index of the
  * output stream, in the same order as ebsp_send_buffered().
- * prealloc can be set to either 1 (true) or 0 (false), and determines whether double
+ * prealloc can be set to either 1 (true) or 0 (false), and determines whether
+ *double
  * or single buffering is used.
  *
  * @remarks
@@ -397,13 +399,11 @@ int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc);
  */
 int ebsp_move_chunk_up(void** address, unsigned stream_id, int prealloc);
 
-
 // TODO: write abstract
 void ebsp_move_down_cursor(int stream_id, int jump_n_chunks);
 
 // TODO: write abstract
 void ebsp_reset_down_cursor(int stream_id);
-
 
 int ebsp_open_up_stream(void** address, unsigned stream_id);
 void ebsp_close_up_stream(unsigned stream_id);
@@ -411,7 +411,8 @@ int ebsp_open_down_stream(void** address, unsigned stream_id);
 void ebsp_close_down_stream(unsigned stream_id);
 
 /**
- * Sets the number of bytes that has to be written from the current output chunk to extmem.
+ * Sets the number of bytes that has to be written from the current output chunk
+ * to extmem.
  * The default value is max_chunk_size
  */
 void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes);
@@ -426,8 +427,8 @@ void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes);
 
 // The attributes in this definition make sure that the compiler checks the
 // arguments for errors.
-void bsp_abort(const char * format, ...)
-        __attribute__((__format__(__printf__, 1, 2)));
+void bsp_abort(const char* format, ...)
+    __attribute__((__format__(__printf__, 1, 2)));
 
 /**
  * Allocate external memory.
@@ -454,18 +455,18 @@ void* ebsp_malloc(unsigned int nbytes);
  */
 void ebsp_free(void* ptr);
 
-
-
 /**
  * Push a new task to the DMA engine
- * @param desc   Used in combination with ebsp_dma_wait(). It is completely filled by this function
+ * @param desc   Used in combination with ebsp_dma_wait(). It is completely
+ *filled by this function
  * @param dst    Destination address
  * @param src    Source address
  * @param nbytes Amount of bytes to be copied
  *
  * Assumes previous task in `desc` is completed (use ebsp_dma_wait())
  */
-void ebsp_dma_push(ebsp_dma_handle* desc, void *dst, const void *src, size_t nbytes);
+void ebsp_dma_push(ebsp_dma_handle* desc, void* dst, const void* src,
+                   size_t nbytes);
 
 /**
  * Start the queued DMA transfers
@@ -495,6 +496,6 @@ void* ebsp_get_raw_address(int pid, const void* variable);
  * The attributes in this definition make sure that the compiler checks the
  * arguments for errors.
  */
-void ebsp_message(const char * format, ...)
+void ebsp_message(const char* format, ...)
     __attribute__((__format__(__printf__, 1, 2)));
 

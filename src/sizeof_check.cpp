@@ -32,14 +32,12 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #include "common.h"
 
-template<class T, int N = sizeof(T)> 
-struct size_as_warning
-{ 
-    char operator()() { return N + 256; } //deliberately causing overflow
+template <class T, int N = sizeof(T)>
+struct size_as_warning {
+    char operator()() { return N + 256; } // deliberately causing overflow
 };
 
-int main()
-{
+int main() {
     size_as_warning<ebsp_data_request>()();
     size_as_warning<ebsp_payload_buffer>()();
     size_as_warning<ebsp_message_header>()();

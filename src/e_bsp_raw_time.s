@@ -25,36 +25,36 @@ see the files COPYING and COPYING.LESSER. If not, see
 // Resets timer and returns old value, in clockcycles starting from 0
 // unsigned int bsp_raw_time()
 
-.file    "e_bsp_raw_time.s";
+.file "e_bsp_raw_time.s";
 
-.section .text;
-.type    _ebsp_raw_time, %function;
-.global  _ebsp_raw_time;
+.section.text;
+.type _ebsp_raw_time, % function;
+.global _ebsp_raw_time;
 
 .balign 4;
 _ebsp_raw_time:
 
-    // Set some constants that are needed
+// Set some constants that are needed
 
-    mov   r1, %low(#-1);            // UINT_MAX
-    movt  r1, %high(#-1);           // UINT_MAX
-    mov   r2, %low(0xffffff0f);     // mask for the config register
-    movt  r2, %high(0xffffff0f);    // mask for the config register
-    mov   r3, 0x0010;               // config bit that specifies timer counting cpu ticks
+mov r1, % low(# - 1);        // UINT_MAX
+movt r1, % high(# - 1);      // UINT_MAX
+mov r2, % low(0xffffff0f);   // mask for the config register
+movt r2, % high(0xffffff0f); // mask for the config register
+mov r3, 0x0010; // config bit that specifies timer counting cpu ticks
 
-    // Get the current timer value and reset it to max
+// Get the current timer value and reset it to max
 
-    movfs r0, ctimer0;              // r0 = timer
-    movts ctimer0, r1;              // timer = UINT_MAX; note that this stops the timer
-    eor   r0, r0, r1;               // r0 = UINT_MAX - r0; implemented by an xor
-    
-    // Start the timer again, because setting it to max stops it
+movfs r0, ctimer0; // r0 = timer
+movts ctimer0, r1; // timer = UINT_MAX; note that this stops the timer
+eor r0, r0, r1;    // r0 = UINT_MAX - r0; implemented by an xor
 
-    movfs r16, config;              // get current config
-    and   r16, r16, r2;             // turn off the old timer bits
-    orr   r16, r16, r3;             // turn on the timer bit
-    movts config, r16;              // set the config
+// Start the timer again, because setting it to max stops it
 
-    rts;                            // return r0
+movfs r16, config; // get current config
+and r16, r16, r2;  // turn off the old timer bits
+orr r16, r16, r3;  // turn on the timer bit
+movts config, r16; // set the config
 
-.size    _ebsp_raw_time, .-_ebsp_raw_time;
+rts; // return r0
+
+.size _ebsp_raw_time, .- _ebsp_raw_time;

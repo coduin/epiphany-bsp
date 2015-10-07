@@ -25,8 +25,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdio.h>
 #include <host_bsp.h>
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
     bsp_init("e_bsp_hpput.srec", argc, argv);
 
     int tagsize = sizeof(int);
@@ -42,8 +41,7 @@ int main(int argc, char **argv)
     int tag;
     int status;
     int result;
-    for (int i = 0; i < packets; i++)
-    {
+    for (int i = 0; i < packets; i++) {
         ebsp_get_tag(&status, &tag);
         ebsp_move(&result, sizeof(int));
         printf("%i: %i", tag, result);

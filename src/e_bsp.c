@@ -34,8 +34,7 @@ void _write_syncstate(int8_t state);
 void _int_isr(int);
 void _dma_interrupt(int);
 
-void EXT_MEM_TEXT bsp_begin()
-{
+void EXT_MEM_TEXT bsp_begin() {
     int row = e_group_config.core_row;
     int col = e_group_config.core_col;
     int cols = e_group_config.group_cols;
@@ -51,12 +50,15 @@ void EXT_MEM_TEXT bsp_begin()
     coredata.message_index = 0;
     coredata.cur_dma_desc = NULL;
     coredata.last_dma_desc = NULL;
-    coredata.dma1config = e_get_global_address(row, col, (void*)E_REG_DMA1CONFIG);
-    coredata.dma1status = e_get_global_address(row, col, (void*)E_REG_DMA1STATUS);
+    coredata.dma1config =
+        e_get_global_address(row, col, (void*)E_REG_DMA1CONFIG);
+    coredata.dma1status =
+        e_get_global_address(row, col, (void*)E_REG_DMA1STATUS);
     coredata.local_nstreams = combuf->n_streams[coredata.pid];
 
     for (int s = 0; s < coredata.nprocs; s++)
-        coredata.coreids[s] = (uint16_t)e_coreid_from_coords(s / cols, s % cols);
+        coredata.coreids[s] =
+            (uint16_t)e_coreid_from_coords(s / cols, s % cols);
 
     // Initialize the barrier and mutexes
     e_barrier_init(coredata.sync_barrier, coredata.sync_barrier_tgt);
@@ -69,32 +71,34 @@ void EXT_MEM_TEXT bsp_begin()
     // then behaviour was undefined. The following line should fix this
     // by setting core0.sync_barrier[i] = 0
     *(coredata.sync_barrier_tgt[0]) = 0;
-    
+
     // Disable interrupts globally
     e_irq_global_mask(E_TRUE);
     // Attach interrupt handler
-    e_irq_attach(E_SYNC,         _int_isr); //0
-    e_irq_attach(E_SW_EXCEPTION, _int_isr); //1
-    e_irq_attach(E_MEM_FAULT,    _int_isr); //2
-    e_irq_attach(E_TIMER0_INT,   _int_isr); //3
-    e_irq_attach(E_TIMER1_INT,   _int_isr); //4
-    e_irq_attach(E_MESSAGE_INT,  _int_isr); //5
-    e_irq_attach(E_DMA0_INT,     _int_isr); //6
-    e_irq_attach(E_DMA1_INT,     _dma_interrupt); //7
-    e_irq_attach(E_USER_INT,     _int_isr); //9 (8 is WAND)
+    e_irq_attach(E_SYNC, _int_isr); // 0
+    e_irq_attach(E_SW_EXCEPTION, _int_isr); // 1
+    e_irq_attach(E_MEM_FAULT, _int_isr); // 2
+    e_irq_attach(E_TIMER0_INT, _int_isr); // 3
+    e_irq_attach(E_TIMER1_INT, _int_isr); // 4
+    e_irq_attach(E_MESSAGE_INT, _int_isr); // 5
+    e_irq_attach(E_DMA0_INT, _int_isr); // 6
+    e_irq_attach(E_DMA1_INT, _dma_interrupt); // 7
+    e_irq_attach(E_USER_INT, _int_isr); // 9 (8 is WAND)
     // Clear the IMASK that would block DMA1 interrupts
     unsigned prev = e_reg_read(E_REG_IMASK);
     e_reg_write(E_REG_IMASK, prev & 0xffffff00); // clear 0 to 7
-    //e_irq_mask(E_DMA1_INT,     E_FALSE);
+    // e_irq_mask(E_DMA1_INT,     E_FALSE);
     // Enable interrupts globally
     e_irq_global_mask(E_FALSE);
 
     _init_local_malloc();
 
     // Copy stream descriptors to local memory
-    unsigned int nbytes = combuf->n_streams[coredata.pid] * sizeof(ebsp_stream_descriptor);
+    unsigned int nbytes =
+        combuf->n_streams[coredata.pid] * sizeof(ebsp_stream_descriptor);
     coredata.local_streams = ebsp_malloc(nbytes);
-    ebsp_memcpy(coredata.local_streams, combuf->extmem_streams[coredata.pid], nbytes);
+    ebsp_memcpy(coredata.local_streams, combuf->extmem_streams[coredata.pid],
+                nbytes);
 
     // Send &syncstate to ARM
     if (coredata.pid == 0)
@@ -103,7 +107,8 @@ void EXT_MEM_TEXT bsp_begin()
 #ifdef DEBUG
     // Wait for ARM before starting
     _write_syncstate(STATE_EREADY);
-    while (coredata.syncstate != STATE_CONTINUE) {}
+    while (coredata.syncstate != STATE_CONTINUE) {
+    }
 #endif
     _write_syncstate(STATE_RUN);
 
@@ -113,54 +118,41 @@ void EXT_MEM_TEXT bsp_begin()
     coredata.time_passed = 0.0f;
     ebsp_raw_time();
 
-    // If this core is not supposed to be used, make sure the workgroup barrier works
+    // If this core is not supposed to be used, make sure the workgroup barrier
+    // works
     if (coredata.pid >= coredata.nprocs)
         for (;;)
             e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
 }
 
-void bsp_end()
-{
+void bsp_end() {
     _write_syncstate(STATE_FINISH);
     // Finish execution
     __asm__("trap 3");
 }
 
-int bsp_nprocs()
-{
-    return coredata.nprocs;
-}
+int bsp_nprocs() { return coredata.nprocs; }
 
-int bsp_pid()
-{
-    return coredata.pid;
-}
+int bsp_pid() { return coredata.pid; }
 
-float EXT_MEM_TEXT bsp_time()
-{
+float EXT_MEM_TEXT bsp_time() {
     coredata.time_passed += ebsp_raw_time() / CLOCKSPEED;
     return coredata.time_passed;
 }
 
-float ebsp_host_time()
-{
-    return combuf->remotetimer;
-}
+float ebsp_host_time() { return combuf->remotetimer; }
 
 // Sync
-void bsp_sync()
-{
+void bsp_sync() {
     // Handle all bsp_get requests before bsp_put request. They are stored in
     // the same list and recognized by the highest bit of nbytes
 
     // Instead of copying the code twice, we put it in a loop
     // so that the code is shorter (this is tested)
     ebsp_data_request* reqs = &combuf->data_requests[coredata.pid][0];
-    for (int put = 0;;)
-    {
+    for (int put = 0;;) {
         e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
-        for (int i = 0; i < coredata.request_counter; ++i)
-        {
+        for (int i = 0; i < coredata.request_counter; ++i) {
             int nbytes = reqs[i].nbytes;
             // Check if this is a get or a put
             if ((nbytes & DATA_PUT_BIT) == put)
@@ -183,8 +175,7 @@ void bsp_sync()
     // xor seems to produce the shortest assembly
     coredata.read_queue_index ^= 1;
 
-    if (coredata.var_pushed)
-    {
+    if (coredata.var_pushed) {
         coredata.var_pushed = 0;
         if (coredata.pid == 0)
             combuf->bsp_var_counter++;
@@ -196,33 +187,30 @@ void bsp_sync()
     e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
 }
 
-void ebsp_barrier()
-{
+void ebsp_barrier() {
     e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
 }
 
-void ebsp_host_sync()
-{
+void ebsp_host_sync() {
     _write_syncstate(STATE_SYNC);
-    while (coredata.syncstate != STATE_CONTINUE) {}
+    while (coredata.syncstate != STATE_CONTINUE) {
+    }
     _write_syncstate(STATE_RUN);
 }
 
-void _write_syncstate(int8_t state)
-{
-    coredata.syncstate = state;  // local variable
-    combuf->syncstate[coredata.pid] = state;  // being polled by ARM
+void _write_syncstate(int8_t state) {
+    coredata.syncstate = state;              // local variable
+    combuf->syncstate[coredata.pid] = state; // being polled by ARM
 }
 
-void __attribute__((interrupt)) _int_isr(int unusedargument)
-{
-    __asm__("movfs r0, ipend"); //moves IPEND into r0 which is the first argument
+void __attribute__((interrupt)) _int_isr(int unusedargument) {
+    __asm__(
+        "movfs r0, ipend"); // moves IPEND into r0 which is the first argument
     combuf->interrupts[coredata.pid] = unusedargument;
-	return;
-}	
+    return;
+}
 
-void EXT_MEM_TEXT ebsp_send_string(const char* string)
-{
+void EXT_MEM_TEXT ebsp_send_string(const char* string) {
     // Lock mutex
     e_mutex_lock(0, 0, &coredata.ebsp_message_mutex);
     // Write the message
@@ -230,15 +218,15 @@ void EXT_MEM_TEXT ebsp_send_string(const char* string)
 
     // Wait for message to be written
     _write_syncstate(STATE_MESSAGE);
-    while (coredata.syncstate != STATE_CONTINUE) {};
+    while (coredata.syncstate != STATE_CONTINUE) {
+    };
     _write_syncstate(STATE_RUN);
 
     // Unlock mutex
     e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
 }
 
-void EXT_MEM_TEXT bsp_abort(const char * format, ...)
-{
+void EXT_MEM_TEXT bsp_abort(const char* format, ...) {
     // Because of the way these arguments work we can not
     // simply call ebsp_message here
     // so this function contains a copy of ebsp_message
@@ -250,7 +238,7 @@ void EXT_MEM_TEXT bsp_abort(const char * format, ...)
     vsnprintf(&buf[0], sizeof(buf), format, args);
     va_end(args);
     ebsp_send_string(buf);
-    
+
     // Abort all cores and notify host
     _write_syncstate(STATE_ABORT);
     // Experimental Epiphany feature that sends
@@ -260,8 +248,7 @@ void EXT_MEM_TEXT bsp_abort(const char * format, ...)
     __asm__("trap 3");
 }
 
-void EXT_MEM_TEXT ebsp_message(const char* format, ... )
-{
+void EXT_MEM_TEXT ebsp_message(const char* format, ...) {
     // Write the message to a buffer
     char buf[128];
     va_list args;

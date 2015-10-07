@@ -23,11 +23,10 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include <host_bsp.h>
-#include <stdio.h> 
+#include <stdio.h>
 #include <stdlib.h>
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
     bsp_init("e_bsp_streams.srec", argc, argv);
     bsp_begin(bsp_nprocs());
 
@@ -36,38 +35,27 @@ int main(int argc, char **argv)
 
     int** upstreams = (int**)malloc(sizeof(int*) * bsp_nprocs());
     int** upstreamsDouble = (int**)malloc(sizeof(int*) * bsp_nprocs());
-    int* downdata =  (int*)malloc(chunks * chunk_size);
-    int* downdataB =  (int*)malloc(chunks * chunk_size);
+    int* downdata = (int*)malloc(chunks * chunk_size);
+    int* downdataB = (int*)malloc(chunks * chunk_size);
     int* downdataDouble = (int*)malloc(chunks * chunk_size);
 
     int c = 0;
-    for (int i = chunks * chunk_size / sizeof(int) - 1;
-            i >= 0; --i) {
+    for (int i = chunks * chunk_size / sizeof(int) - 1; i >= 0; --i) {
         downdata[c] = i;
         downdataB[c] = c;
         downdataDouble[c] = 2 * c;
         c++;
     }
-   
+
     for (int s = 0; s < bsp_nprocs(); ++s) {
-        upstreams[s] = (int*)ebsp_create_up_stream(s,
-                chunks * chunk_size,
-                chunk_size);
-        upstreamsDouble[s] = (int*)ebsp_create_up_stream(s,
-                chunks * chunk_size,
-                chunk_size);
-        ebsp_create_down_stream(downdata,
-                s,
-                chunks * chunk_size,
-                chunk_size);
-        ebsp_create_down_stream(downdataB,
-                s,
-                chunks * chunk_size,
-                chunk_size);
-        ebsp_create_down_stream(downdataDouble,
-                s,
-                chunks * chunk_size,
-                chunk_size);
+        upstreams[s] =
+            (int*)ebsp_create_up_stream(s, chunks * chunk_size, chunk_size);
+        upstreamsDouble[s] =
+            (int*)ebsp_create_up_stream(s, chunks * chunk_size, chunk_size);
+        ebsp_create_down_stream(downdata, s, chunks * chunk_size, chunk_size);
+        ebsp_create_down_stream(downdataB, s, chunks * chunk_size, chunk_size);
+        ebsp_create_down_stream(downdataDouble, s, chunks * chunk_size,
+                                chunk_size);
     }
 
     ebsp_spmd();
@@ -78,11 +66,10 @@ int main(int argc, char **argv)
     printf("\n");
     // expect: (0 1 2 3 11 10 9 8 8 9 10 11 3 2 1 0 )
 
-
     for (int i = 0; i < chunk_size * chunks / sizeof(int); ++i) {
         printf("%i ", upstreamsDouble[5][i]);
     }
-    // expect: (30 28 26 24 22 20 18 16 14 12 10 8 6 4 2 0 )    
+    // expect: (30 28 26 24 22 20 18 16 14 12 10 8 6 4 2 0 )
 
     // finalize
     bsp_end();
@@ -90,7 +77,6 @@ int main(int argc, char **argv)
     free(upstreams);
     free(downdata);
     free(downdataB);
-
 
     return 0;
 }

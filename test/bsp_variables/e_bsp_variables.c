@@ -23,8 +23,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <e_bsp.h>
 #include "../common.h"
 
-int main()
-{
+int main() {
     bsp_begin();
     int s = bsp_pid();
     int p = bsp_nprocs();
@@ -53,7 +52,7 @@ int main()
     // test: can set and get tagsize from core
     EBSP_MSG_ORDERED("%i", a);
     // expect_for_pid: ((pid - 1) % 16)
-    
+
     // test: can put register multiple vars, and put multiple times
     EBSP_MSG_ORDERED("%i", b);
     // expect_for_pid: ((pid - 2) % 16)
@@ -74,7 +73,7 @@ int main()
     // test: can set and get tagsize from core
     EBSP_MSG_ORDERED("%i", core_num_next);
     // expect_for_pid: (pid)
-    
+
     // test: can put register multiple vars, and put multiple times
     EBSP_MSG_ORDERED("%i", core_num_next_next);
     // expect_for_pid: (pid)

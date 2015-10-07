@@ -29,41 +29,33 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 extern bsp_state_t state;
 
-void ebsp_set_tagsize(int *tag_bytes)
-{
+void ebsp_set_tagsize(int* tag_bytes) {
     int oldsize = state.combuf.tagsize;
     state.combuf.tagsize = *tag_bytes;
     *tag_bytes = oldsize;
 }
 
-//TODO: Do not use the local copy state.combuf
-//Instead, copy directly to the memory mapped external memory
+// TODO: Do not use the local copy state.combuf
+// Instead, copy directly to the memory mapped external memory
 
 // Convert pointers pointing to the local copy state.combuf
 // to epiphany address space and back
 
-void* _pointer_to_e(void* ptr)
-{
-    return (void*)((unsigned int)ptr
-            - (unsigned)&state.combuf
-            + E_COMBUF_ADDR);
+void* _pointer_to_e(void* ptr) {
+    return (void*)((unsigned int)ptr - (unsigned)&state.combuf + E_COMBUF_ADDR);
 }
 
-void* _pointer_to_arm(void* ptr)
-{
-    return (void*)((unsigned int)ptr
-            - E_COMBUF_ADDR
-            + (unsigned)&state.combuf);
+void* _pointer_to_arm(void* ptr) {
+    return (void*)((unsigned int)ptr - E_COMBUF_ADDR + (unsigned)&state.combuf);
 }
 
-void ebsp_send_down(int pid, const void *tag, const void *payload, int nbytes)
-{
+void ebsp_send_down(int pid, const void* tag, const void* payload, int nbytes) {
     ebsp_message_queue* q = &state.combuf.message_queue[0];
     unsigned int index = q->count;
     unsigned int payload_offset = state.combuf.data_payloads.buffer_size;
     unsigned int total_nbytes = state.combuf.tagsize + nbytes;
-    void *tag_ptr;
-    void *payload_ptr;
+    void* tag_ptr;
+    void* payload_ptr;
 
     if (index >= MAX_MESSAGES) {
         fprintf(stderr,
@@ -91,13 +83,9 @@ void ebsp_send_down(int pid, const void *tag, const void *payload, int nbytes)
     memcpy(payload_ptr, payload, nbytes);
 }
 
-int ebsp_get_tagsize()
-{
-    return state.combuf.tagsize;
-}
+int ebsp_get_tagsize() { return state.combuf.tagsize; }
 
-void ebsp_qsize(int *packets, int *accum_bytes)
-{
+void ebsp_qsize(int* packets, int* accum_bytes) {
     *packets = 0;
     *accum_bytes = 0;
 
@@ -106,32 +94,25 @@ void ebsp_qsize(int *packets, int *accum_bytes)
     int qsize = q->count;
 
     // Count everything after mindex
-    for (; mindex < qsize; mindex++)
-    {
+    for (; mindex < qsize; mindex++) {
         *packets += 1;
         *accum_bytes += q->message[mindex].nbytes;
     }
     return;
 }
 
-ebsp_message_header* _next_queue_message()
-{
+ebsp_message_header* _next_queue_message() {
     ebsp_message_queue* q = &state.combuf.message_queue[0];
     if (state.message_index < q->count)
         return &q->message[state.message_index];
     return 0;
 }
 
-void _pop_queue_message()
-{
-    state.message_index++;
-}
+void _pop_queue_message() { state.message_index++; }
 
-void ebsp_get_tag(int *status, void *tag)
-{
+void ebsp_get_tag(int* status, void* tag) {
     ebsp_message_header* m = _next_queue_message();
-    if (m == 0)
-    {
+    if (m == 0) {
         *status = -1;
         return;
     }
@@ -139,17 +120,15 @@ void ebsp_get_tag(int *status, void *tag)
     memcpy(tag, _pointer_to_arm(m->tag), state.combuf.tagsize);
 }
 
-void ebsp_move(void *payload, int buffer_size)
-{
+void ebsp_move(void* payload, int buffer_size) {
     ebsp_message_header* m = _next_queue_message();
     _pop_queue_message();
-    if (m == 0)
-    {
+    if (m == 0) {
         // This part is not defined by the BSP standard
         return;
     }
 
-    if (buffer_size == 0)  // Specified by BSP standard
+    if (buffer_size == 0) // Specified by BSP standard
         return;
 
     if (m->nbytes < buffer_size)
@@ -158,14 +137,13 @@ void ebsp_move(void *payload, int buffer_size)
     memcpy(payload, _pointer_to_arm(m->payload), buffer_size);
 }
 
-int ebsp_hpmove(void **tag_ptr_buf, void **payload_ptr_buf)
-{
+int ebsp_hpmove(void** tag_ptr_buf, void** payload_ptr_buf) {
     ebsp_message_header* m = _next_queue_message();
     _pop_queue_message();
-    if (m == 0) return -1;
+    if (m == 0)
+        return -1;
     *tag_ptr_buf = _pointer_to_arm(m->tag);
     *payload_ptr_buf = _pointer_to_arm(m->payload);
     return m->nbytes;
 }
-
 

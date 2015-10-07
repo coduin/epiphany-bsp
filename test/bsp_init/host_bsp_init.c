@@ -23,10 +23,9 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <host_bsp.h>
 #include <stdio.h>
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
     // initialize the BSP system
-    if(!bsp_init("e_bsp_init.srec", argc, argv)) {
+    if (!bsp_init("e_bsp_init.srec", argc, argv)) {
         fprintf(stderr, "[HELLO] bsp_init() failed\n");
         return -1;
     } else {

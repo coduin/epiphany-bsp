@@ -32,15 +32,9 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <ncurses.h>
 #include <signal.h>
 
-typedef enum
-{
-    KS_DEFAULT = 0,
-    KS_G_PRESSED,
-    KS_NUM_MOD
-} KEY_STATE;
+typedef enum { KS_DEFAULT = 0, KS_G_PRESSED, KS_NUM_MOD } KEY_STATE;
 
-typedef struct
-{
+typedef struct {
     // maximum value for memory and cores
     int mem_max;
     int mem_max_offset;
@@ -62,36 +56,34 @@ typedef struct
 
 e_h_viewer_state i_state;
 
-void _e_h_read_memory(unsigned char* buf, int blocksize)
-{
+void _e_h_read_memory(unsigned char* buf, int blocksize) {
     ebsp_read(i_state.core_shown, (off_t)0x0000, buf, blocksize);
 }
 
-void _e_h_print_paged_memory(unsigned char* buf)
-{
+void _e_h_print_paged_memory(unsigned char* buf) {
     int width = 16;
 
     int mrow, mcol;
     getmaxyx(stdscr, mrow, mcol);
-    (void)mcol;  // prevents mcol unused warning
+    (void)mcol; // prevents mcol unused warning
 
     move(2, 0);
     // need offset
     for (int j = 0; j < mrow - 4; ++j) {
         char loc[10];
         snprintf(loc, sizeof(loc), "0x%04x   ",
-                (i_state.mem_offset + j) * width);
+                 (i_state.mem_offset + j) * width);
         printw(loc);
         for (int i = 0; i < width; ++i) {
             char val[6];
             snprintf(val, sizeof(loc), "%02x ",
-                    buf[(i_state.mem_offset + j) * width + i]);
+                     buf[(i_state.mem_offset + j) * width + i]);
             printw(val);
         }
         printw("  ");
         for (int i = 0; i < width; ++i) {
             if ((buf[(i_state.mem_offset + j) * width + i] < '#' ||
-                buf[(i_state.mem_offset + j) * width + i] > '}'))
+                 buf[(i_state.mem_offset + j) * width + i] > '}'))
                 addch('.');
             else
                 addch(buf[(i_state.mem_offset + j) * width + i]);
@@ -101,139 +93,133 @@ void _e_h_print_paged_memory(unsigned char* buf)
     }
 }
 
-void _e_h_print_status_bar()
-{
+void _e_h_print_status_bar() {
     // numbered sync, instructions for going to next sync
     // also which core is being viewed
 
     int mrow, mcol;
     getmaxyx(stdscr, mrow, mcol);
-    (void)mcol;  // prevents mcol unused warning
+    (void)mcol; // prevents mcol unused warning
     move(mrow - 1, 0);
     printw("\n");
 
     char status[80];
     snprintf(status, sizeof(status), "viewing core: %i, number of syncs: %i",
-            i_state.core_shown,
-            i_state.nsyncs);
+             i_state.core_shown, i_state.nsyncs);
     printw(status);
 }
 
-int _e_h_max_offset()
-{
+int _e_h_max_offset() {
     int mrow, mcol;
     getmaxyx(stdscr, mrow, mcol);
-    (void)mcol;  // prevents mcol unused warning
+    (void)mcol; // prevents mcol unused warning
     return i_state.mem_max_offset - (mrow - 4);
 }
 
-int _e_h_handle_input()
-{
+int _e_h_handle_input() {
     // wait for user input
     int ch = getch();
     int digit = 0;
     int maxoff = _e_h_max_offset();
 
     // switch ch and change paging
-    switch (ch)
-    {
-        case '0':
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-        case '5':
-        case '6':
-        case '7':
-        case '8':
-        case '9':
-            digit = ch - '0';
-            i_state.num_mod *= 10;
-            i_state.num_mod += digit;
-            break;
+    switch (ch) {
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+        digit = ch - '0';
+        i_state.num_mod *= 10;
+        i_state.num_mod += digit;
+        break;
 
-        case 'q':
-            return 0;
+    case 'q':
+        return 0;
 
-        case 'j':
+    case 'j':
 
-            if (i_state.num_mod > 0) {
-                i_state.mem_offset += i_state.num_mod;
-                i_state.num_mod = 0;
-            } else {
-                i_state.mem_offset++;
-            }
+        if (i_state.num_mod > 0) {
+            i_state.mem_offset += i_state.num_mod;
+            i_state.num_mod = 0;
+        } else {
+            i_state.mem_offset++;
+        }
 
-            if (i_state.mem_offset > maxoff)
-                i_state.mem_offset = maxoff;
-
-            break;
-
-        case 'l':
-            if (i_state.core_shown < i_state.core_max) {
-                i_state.core_shown++;
-                i_state.data_dirty = 1;
-            }
-            break;
-
-        case 'h':
-            if (i_state.core_shown > 0) {
-                i_state.core_shown--;
-                i_state.data_dirty = 1;
-            }
-            break;
-
-        case 'k':
-            if (i_state.num_mod > 0) {
-                i_state.mem_offset -= i_state.num_mod;
-                if (i_state.mem_offset < 0)
-                    i_state.mem_offset = 0;
-                i_state.num_mod = 0;
-            } else if (i_state.mem_offset > 0) {
-                i_state.mem_offset--;
-            }
-            break;
-
-        case 'g':
-            if (i_state.num_mod > 0) {
-                int hex = 0;
-                int cur_pow = 1;
-                while (i_state.num_mod > 0) {
-                    hex += (i_state.num_mod % 10) * cur_pow;
-                    i_state.num_mod /= 10;
-                    cur_pow *= 16;
-                }
-                i_state.mem_offset = hex / 0x10;
-                if (i_state.mem_offset > maxoff) {
-                    i_state.mem_offset = maxoff;
-                }
-            } else {
-                if (i_state.key_state == KS_G_PRESSED) {
-                    i_state.mem_offset = 0;
-                    i_state.key_state = KS_DEFAULT;
-                } else {
-                    i_state.key_state = KS_G_PRESSED;
-                }
-            }
-            break;
-
-        case 'G':
+        if (i_state.mem_offset > maxoff)
             i_state.mem_offset = maxoff;
-            break;
 
-        case 'n':
-            i_state.nsyncs++;
-            return 0;
+        break;
 
-        default:
-            break;
+    case 'l':
+        if (i_state.core_shown < i_state.core_max) {
+            i_state.core_shown++;
+            i_state.data_dirty = 1;
+        }
+        break;
+
+    case 'h':
+        if (i_state.core_shown > 0) {
+            i_state.core_shown--;
+            i_state.data_dirty = 1;
+        }
+        break;
+
+    case 'k':
+        if (i_state.num_mod > 0) {
+            i_state.mem_offset -= i_state.num_mod;
+            if (i_state.mem_offset < 0)
+                i_state.mem_offset = 0;
+            i_state.num_mod = 0;
+        } else if (i_state.mem_offset > 0) {
+            i_state.mem_offset--;
+        }
+        break;
+
+    case 'g':
+        if (i_state.num_mod > 0) {
+            int hex = 0;
+            int cur_pow = 1;
+            while (i_state.num_mod > 0) {
+                hex += (i_state.num_mod % 10) * cur_pow;
+                i_state.num_mod /= 10;
+                cur_pow *= 16;
+            }
+            i_state.mem_offset = hex / 0x10;
+            if (i_state.mem_offset > maxoff) {
+                i_state.mem_offset = maxoff;
+            }
+        } else {
+            if (i_state.key_state == KS_G_PRESSED) {
+                i_state.mem_offset = 0;
+                i_state.key_state = KS_DEFAULT;
+            } else {
+                i_state.key_state = KS_G_PRESSED;
+            }
+        }
+        break;
+
+    case 'G':
+        i_state.mem_offset = maxoff;
+        break;
+
+    case 'n':
+        i_state.nsyncs++;
+        return 0;
+
+    default:
+        break;
     }
 
     return 1;
 }
 
-void ebsp_inspector_update()
-{
+void ebsp_inspector_update() {
     // print string to screen
     attron(A_UNDERLINE);
     printw("epiphany-bsp inspector");
@@ -245,8 +231,7 @@ void ebsp_inspector_update()
     int blocksize = i_state.mem_max;
     _e_h_read_memory(i_state.buf, blocksize);
 
-    do
-    {
+    do {
         if (i_state.data_dirty) {
             _e_h_read_memory(i_state.buf, blocksize);
         }
@@ -270,8 +255,7 @@ void ebsp_inspector_finalize() {
     endwin();
 }
 
-void ebsp_inspector_finish()
-{
+void ebsp_inspector_finish() {
     bsp_end();
 
     // free memory buffer
@@ -284,8 +268,7 @@ void ebsp_inspector_finish()
     exit(0);
 }
 
-void ebsp_inspector_enable()
-{
+void ebsp_inspector_enable() {
     // TODO(JW)
     // terminate with signals properly
     signal(SIGINT, ebsp_inspector_finish);
