@@ -22,6 +22,8 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
+#pragma once
+
 /**
  * @file host_bsp.h
  * @brief All BSP core functions for the ARM host processor.

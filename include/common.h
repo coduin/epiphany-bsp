@@ -97,19 +97,6 @@ typedef struct {
     ebsp_message_header message[MAX_MESSAGES];
 } ebsp_message_queue;
 
-// FIXME: remove
-// typedef struct
-// {
-//     unsigned config;
-//     unsigned inner_stride;
-//     unsigned count;
-//     unsigned outer_stride;
-//     void    *src_addr;
-//     void    *dst_addr;
-// } __attribute__((aligned (8))) e_dma_desc_host_t;
-
-#define ALIGN(x) __attribute__((aligned(x)))
-
 typedef struct {
     unsigned config;
     unsigned inner_stride;
@@ -117,7 +104,7 @@ typedef struct {
     unsigned outer_stride;
     void* src_addr;
     void* dst_addr;
-} ALIGN(8) ebsp_dma_handle;
+} __attribute__((aligned(8))) ebsp_dma_handle;
 
 typedef struct {
     void* extmem_addr;          // extmem data in e_core address space

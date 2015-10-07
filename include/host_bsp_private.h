@@ -22,6 +22,8 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
+#pragma once
+
 #include "host_bsp.h"
 #include "common.h"
 
