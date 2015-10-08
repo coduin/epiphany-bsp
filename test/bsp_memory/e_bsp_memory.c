@@ -24,9 +24,9 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <e-lib.h>
 #include "../common.h"
 
-#define RUNCOUNT 13
+#define RUNCOUNT 12
 int bufferTestSizes[RUNCOUNT] = {1, 2, 3, 4, 5, 6, 7, 8, 0x100,
-    0x1000, 0x2000, 0x8000, 0x9000};
+    0x1000, 0x2000, 0x9000};
 
 int main()
 {
