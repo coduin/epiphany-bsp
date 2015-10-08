@@ -29,6 +29,11 @@ The variable result than holds the time taken for the computation in seconds. If
 
 Note that the default Epiphany clockfrequency is about 600 MHz, such that 600000000 cycles is equal to one second.
 
+Interupts
+---------
+
+The maximum number of cycles that can be counted using the raw timer is `UINT_MAX`. After reaching this maximum value, an interupt will be fired. This interupt is ignored by default, but if you want to handle this interupt set this up *after the initial call to `bsp_begin`*. The only interupt that is explicitely and necessarily handled by the EBSP library is `dma1_ir`. For more information on the using the DMA engine, see the section on memory management.
+
 Callbacks
 ---------
 
