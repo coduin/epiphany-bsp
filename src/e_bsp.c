@@ -72,7 +72,8 @@ void EXT_MEM_TEXT bsp_begin() {
 
     // Disable interrupts globally
     e_irq_global_mask(E_TRUE);
-    // Attach interrupt handler
+#ifdef DEBUG
+    // Attach interrupt handlers for all interrupts
     e_irq_attach(E_SYNC, _int_isr); // 0
     e_irq_attach(E_SW_EXCEPTION, _int_isr); // 1
     e_irq_attach(E_MEM_FAULT, _int_isr); // 2
@@ -82,10 +83,15 @@ void EXT_MEM_TEXT bsp_begin() {
     e_irq_attach(E_DMA0_INT, _int_isr); // 6
     e_irq_attach(E_DMA1_INT, _dma_interrupt); // 7
     e_irq_attach(E_USER_INT, _int_isr); // 9 (8 is WAND)
-    // Clear the IMASK that would block DMA1 interrupts
+    // Clear the IMASK for all 8 interrupts
     unsigned prev = e_reg_read(E_REG_IMASK);
     e_reg_write(E_REG_IMASK, prev & 0xffffff00); // clear 0 to 7
-    // e_irq_mask(E_DMA1_INT,     E_FALSE);
+#else
+    // Attach interrupt handler for DMA1
+    e_irq_attach(E_DMA1_INT, _dma_interrupt); // 7
+    // Clear IMASK for DMA1 interrupt
+    e_irq_mask(E_DMA1_INT, E_FALSE);
+#endif
     // Enable interrupts globally
     e_irq_global_mask(E_FALSE);
 
@@ -117,7 +123,11 @@ void EXT_MEM_TEXT bsp_begin() {
     ebsp_raw_time();
 
     // If this core is not supposed to be used, make sure the workgroup barrier
-    // works
+    // works.
+    // TODO for future release: write a simpler own version of e_barrier
+    // that works without the full workgroup, allowing multiple instances
+    // to run on the same epiphany chips instead of having these spinning
+    // unused cores
     if (coredata.pid >= coredata.nprocs)
         for (;;)
             e_barrier(coredata.sync_barrier, coredata.sync_barrier_tgt);
