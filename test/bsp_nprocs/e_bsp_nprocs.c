@@ -25,10 +25,10 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 int main() {
     bsp_begin();
-
+    // Note: we want all cores to output to make sure it actually
+    // uses the right amount of cores and that barriers work
+    // as expected when not using all cores
     EBSP_MSG_ORDERED("%d", bsp_nprocs());
-    // expect_for_pid: (16)
-
     bsp_end();
     return 0;
 }
