@@ -1,9 +1,7 @@
 /*
-file: e_bsp.h
-
 This file is part of the Epiphany BSP library.
 
-Copyright (C) 2014 Buurlage Wits
+Copyright (C) 2014-2015 Buurlage Wits
 Support e-mail: <info@buurlagewits.nl>
 
 This program is free software: you can redistribute it and/or modify
@@ -452,6 +450,9 @@ void* ebsp_malloc(unsigned int nbytes);
  * Free allocated external or local memory.
  * @param ptr A pointer to memory previously allocated by ebsp_ext_malloc()
  *            or by ebsp_malloc()
+ *
+ * Note that the malloc functions can return null pointers on error, and
+ * ebsp_free will crash on null pointers.
  */
 void ebsp_free(void* ptr);
 

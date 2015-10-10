@@ -20,19 +20,28 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
-#include <host_bsp.h>
-#include <stdio.h>
+#include <e_bsp.h>
+#include "../common.h"
 
-int main(int argc, char** argv) {
-    // initialize the BSP system
-    if (!bsp_init("e_bsp_init.srec", argc, argv)) {
-        fprintf(stderr, "[HELLO] bsp_init() failed\n");
-        return -1;
-    } else {
-        fprintf(stderr, "success"); // expect: (success)
-    }
+int main() {
+    bsp_begin();
+
+    EBSP_MSG_ORDERED("%i", 0);
+    // expect_for_pid: ("0")
+
+    // We test if we can use many barriers stably
+    for (int i = 0; i < 1000; ++i)
+        ebsp_barrier();
+
+    EBSP_MSG_ORDERED("%i", 1);
+    // expect_for_pid: ("1")
+
+    for (int i = 0; i < 1000; ++i)
+        ebsp_barrier();
+
+    EBSP_MSG_ORDERED("%i %i %i", 1, 2, 3);
+    // expect_for_pid: ("1 2 3")
 
     bsp_end();
-
     return 0;
 }

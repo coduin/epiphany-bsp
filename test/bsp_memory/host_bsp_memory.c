@@ -1,7 +1,7 @@
 /*
 This file is part of the Epiphany BSP library.
 
-Copyright (C) 2014-2015 Buurlage Wits
+Copyright (C) 2014 Buurlage Wits
 Support e-mail: <info@buurlagewits.nl>
 
 This program is free software: you can redistribute it and/or modify
@@ -21,17 +21,12 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include <host_bsp.h>
-#include <stdio.h>
 
-int main(int argc, char** argv) {
-    // initialize the BSP system
-    if (!bsp_init("e_bsp_init.srec", argc, argv)) {
-        fprintf(stderr, "[HELLO] bsp_init() failed\n");
-        return -1;
-    } else {
-        fprintf(stderr, "success"); // expect: (success)
-    }
-
+int main(int argc, char **argv)
+{
+    bsp_init("e_bsp_memory.srec", argc, argv);
+    bsp_begin(bsp_nprocs());
+    ebsp_spmd();
     bsp_end();
 
     return 0;

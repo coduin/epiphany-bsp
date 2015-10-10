@@ -1,9 +1,7 @@
 /*
-File: host_bsp.h
-
 This file is part of the Epiphany BSP library.
 
-Copyright (C) 2014 Buurlage Wits
+Copyright (C) 2014-2015 Buurlage Wits
 Support e-mail: <info@buurlagewits.nl>
 
 This program is free software: you can redistribute it and/or modify
@@ -21,6 +19,8 @@ and the GNU Lesser General Public License along with this program,
 see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
+
+#pragma once
 
 /**
  * @file host_bsp.h

@@ -40,7 +40,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 all: dirs tests
 
-tests: bsp_time bsp_nprocs bsp_pid bsp_init bsp_hpput bsp_local_mp bsp_vertical_mp bsp_variables bsp_hp_variables bsp_streams bsp_dma
+tests: bsp_time bsp_nprocs bsp_pid bsp_init bsp_hpput bsp_local_mp bsp_vertical_mp bsp_variables bsp_hp_variables bsp_utility bsp_streams bsp_dma bsp_memory
 
 dirs:
 	@mkdir -p bin
@@ -68,20 +68,19 @@ bin/%.srec: bin/%.elf
 
 ########################################################
 
-bsp_time:           bin/e_bsp_time.elf           bin/e_bsp_time.srec             bin/host_bsp_time
-bsp_nprocs:         bin/e_bsp_nprocs.elf         bin/e_bsp_nprocs.srec           bin/host_bsp_nprocs
-bsp_pid:            bin/e_bsp_pid.elf            bin/e_bsp_pid.srec              bin/host_bsp_pid
-bsp_init:           bin/e_bsp_init.elf           bin/e_bsp_init.srec             bin/host_bsp_init
-bsp_memtest:        bin/e_bsp_memtest.elf        bin/e_bsp_memtest.srec          bin/host_bsp_memtest
-bsp_hpput:          bin/e_bsp_hpput.elf          bin/e_bsp_hpput.srec            bin/host_bsp_hpput
-bsp_local_mp: 		bin/e_bsp_local_mp.elf		 bin/e_bsp_local_mp.srec		 bin/host_bsp_local_mp
-bsp_vertical_mp: 	bin/e_bsp_vertical_mp.elf	 bin/e_bsp_vertical_mp.srec		 bin/host_bsp_vertical_mp
-bsp_variables: 		bin/e_bsp_variables.elf		 bin/e_bsp_variables.srec		 bin/host_bsp_variables
-bsp_hp_variables: 	bin/e_bsp_hp_variables.elf	 bin/e_bsp_hp_variables.srec	 bin/host_bsp_hp_variables
-bsp_streams:	 	bin/e_bsp_streams.elf		 bin/e_bsp_streams.srec			 bin/host_bsp_streams
-bsp_dma: 			bin/e_bsp_dma.elf 			 bin/e_bsp_dma.srec 			 bin/host_bsp_dma
-pointer_conversion: bin/e_pointer_conversion.elf bin/e_pointer_conversion.srec   bin/host_pointer_conversion
-out_stream: 		bin/e_out_stream.elf 		 bin/e_out_stream.srec   		 bin/host_out_stream
+bsp_time:           bin/e_bsp_time.elf          bin/e_bsp_time.srec         	bin/host_bsp_time
+bsp_nprocs:         bin/e_bsp_nprocs.elf        bin/e_bsp_nprocs.srec       	bin/host_bsp_nprocs
+bsp_pid:            bin/e_bsp_pid.elf           bin/e_bsp_pid.srec          	bin/host_bsp_pid
+bsp_init:           bin/e_bsp_init.elf          bin/e_bsp_init.srec         	bin/host_bsp_init
+bsp_hpput:          bin/e_bsp_hpput.elf         bin/e_bsp_hpput.srec        	bin/host_bsp_hpput
+bsp_local_mp: 		bin/e_bsp_local_mp.elf		bin/e_bsp_local_mp.srec			bin/host_bsp_local_mp
+bsp_vertical_mp: 	bin/e_bsp_vertical_mp.elf	bin/e_bsp_vertical_mp.srec		bin/host_bsp_vertical_mp
+bsp_variables: 		bin/e_bsp_variables.elf		bin/e_bsp_variables.srec		bin/host_bsp_variables
+bsp_hp_variables: 	bin/e_bsp_hp_variables.elf	bin/e_bsp_hp_variables.srec		bin/host_bsp_hp_variables
+bsp_utility:        bin/e_bsp_utility.elf     	bin/e_bsp_utility.srec			bin/host_bsp_utility
+bsp_streams:	 	bin/e_bsp_streams.elf		bin/e_bsp_streams.srec			bin/host_bsp_streams
+bsp_dma: 			bin/e_bsp_dma.elf 			bin/e_bsp_dma.srec				bin/host_bsp_dma
+bsp_memory: 		bin/e_bsp_memory.elf 		bin/e_bsp_memory.srec			bin/host_bsp_memory
 
 ########################################################
 

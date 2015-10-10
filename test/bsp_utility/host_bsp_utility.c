@@ -20,19 +20,18 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
-#include <host_bsp.h>
 #include <stdio.h>
+#include <host_bsp.h>
 
 int main(int argc, char** argv) {
-    // initialize the BSP system
-    if (!bsp_init("e_bsp_init.srec", argc, argv)) {
-        fprintf(stderr, "[HELLO] bsp_init() failed\n");
-        return -1;
-    } else {
-        fprintf(stderr, "success"); // expect: (success)
-    }
+    bsp_init("e_bsp_utility.srec", argc, argv);
+
+    bsp_begin(bsp_nprocs());
+
+    ebsp_spmd();
 
     bsp_end();
 
-    return 0;
+    printf("Done");
+    // expect: (Done)
 }

@@ -1,9 +1,7 @@
 /*
-File: e_bsp_memory.c
-
 This file is part of the Epiphany BSP library.
 
-Copyright (C) 2014 Buurlage Wits
+Copyright (C) 2014-2015 Buurlage Wits
 Support e-mail: <info@buurlagewits.nl>
 
 This program is free software: you can redistribute it and/or modify
@@ -28,6 +26,10 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #include "extmem_malloc_implementation.cpp"
 
+const char err_allocation[] EXT_MEM_RO = 
+    "BSP ERROR: allocation of %d bytes of local memory overwrites the stack";
+
+
 // This variable indicates end of global vars
 // So 'end' until 'stack' can be used by malloc
 extern int end;
@@ -50,14 +52,19 @@ void* EXT_MEM_TEXT ebsp_ext_malloc(unsigned int nbytes) {
 void* EXT_MEM_TEXT ebsp_malloc(unsigned int nbytes) {
     void* ret = 0;
     ret = _malloc(coredata.local_malloc_base, nbytes);
+
+    // Must check for zero because using nbytes > ~0x8000
+    // will give ret = 0, and then it will trigger the next
+    // if statement and try to free the null pointer
+    if (ret == 0)
+        return 0;
+
     // Check if it does not overwrite the current stack position
     // Plus 128 bytes of margin
     if ((uint32_t)ret + nbytes + 128 > (uint32_t)&ret) // <-- only epiphany
     {
         _free(coredata.local_malloc_base, ret);
-        ebsp_message("ERROR: allocation of %d bytes of local memory overwrites "
-                     "the stack",
-                     nbytes);
+        ebsp_message(err_allocation, nbytes);
         return 0;
     }
     return ret;
