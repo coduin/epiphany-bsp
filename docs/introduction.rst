@@ -1,3 +1,5 @@
+.. sectionauthor:: Jan-Willem Buurlage <janwillem@buurlagewits.nl>
+
 .. highlight:: Makefile
 
 Introduction and Setting up
@@ -10,6 +12,10 @@ a number of supersteps, which in turn consist of local
 computations and non-blocking communication. A (barrier)
 synchronisation at the end of such a step is used to guarantee
 occurance of all communications within a step. The BSP model can be used to write portable and powerful parallel applications.
+
+.. image:: img/epiphany-bsp-illustration-trimmed.jpg
+    :width: 450 px
+    :align: center
 
 This library (EBSP) provides an implementation of the model on top of the Epiphany SDK (ESDK).
 This allows the BSP computing model to be used with the Epiphany

@@ -139,22 +139,22 @@ Epiphany
 ^^^^^^^^
 
 .. doxygenfunction:: bsp_push_reg
-   :project: ebsp
+   :project: ebsp_e
 
 .. doxygenfunction:: bsp_put
-   :project: ebsp
+   :project: ebsp_e
 
 .. doxygenfunction:: bsp_get
-   :project: ebsp
+   :project: ebsp_e
 
 .. doxygenfunction:: bsp_sync
-   :project: ebsp
+   :project: ebsp_e
 
 .. doxygenfunction:: bsp_hpput
-   :project: ebsp
+   :project: ebsp_e
 
 .. doxygenfunction:: bsp_hpget
-   :project: ebsp
+   :project: ebsp_e
 
 .. doxygenfunction:: ebsp_barrier
-   :project: ebsp
+   :project: ebsp_e

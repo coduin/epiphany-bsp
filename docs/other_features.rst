@@ -1,7 +1,4 @@
-.. Epiphany BSP documentation master file, created by
-   sphinx-quickstart on Thu Sep 17 21:08:04 2015.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. sectionauthor:: Jan-Willem Buurlage <janwillem@buurlagewits.nl>
 
 .. highlight:: c
 
@@ -29,8 +26,8 @@ The variable result than holds the time taken for the computation in seconds. If
 
 Note that the default Epiphany clockfrequency is about 600 MHz, such that 600000000 cycles is equal to one second.
 
-Interupts
----------
+Interrupts
+----------
 
 The maximum number of cycles that can be counted using the raw timer is `UINT_MAX`. After reaching this maximum value, an interrupt will be fired. This interrupt is ignored by default, but if you want to handle this interrupt set this up *after the initial call to `bsp_begin`*. The only interrupt that is explicitely and necessarily handled by the EBSP library is `E_DMA1_INT`. For more information on the using the DMA engine, see the section on memory management.
 
@@ -59,19 +56,19 @@ Host
 ^^^^
 
 .. doxygenfunction:: ebsp_set_sync_callback
-   :project: ebsp
+   :project: ebsp_host
 
 .. doxygenfunction:: ebsp_set_end_callback
-   :project: ebsp
+   :project: ebsp_host
 
 Epiphany
 ^^^^^^^^
 
 .. doxygenfunction:: bsp_time
-   :project: ebsp
+   :project: ebsp_e
 
 .. doxygenfunction:: ebsp_raw_time
-   :project: ebsp
+   :project: ebsp_e
 
 .. doxygenfunction:: ebsp_host_time
-   :project: ebsp
+   :project: ebsp_e

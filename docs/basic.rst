@@ -1,7 +1,4 @@
-.. Epiphany BSP documentation master file, created by
-   sphinx-quickstart on Thu Sep 17 21:08:04 2015.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. sectionauthor:: Jan-Willem Buurlage <janwillem@buurlagewits.nl>
 
 .. highlight:: c
 
@@ -80,31 +77,31 @@ Host
 ^^^^
 
 .. doxygenfunction:: bsp_init
-   :project: ebsp
+   :project: ebsp_host
 
 .. doxygenfunction:: bsp_begin
-   :project: ebsp
+   :project: ebsp_host
 
 .. doxygenfunction:: ebsp_spmd
-   :project: ebsp
+   :project: ebsp_host
 
 .. doxygenfunction:: bsp_end
-   :project: ebsp
+   :project: ebsp_host
 
 Epiphany
 ^^^^^^^^
 
 .. doxygenfunction:: bsp_begin
-   :project: ebsp
+   :project: ebsp_e
 
 .. doxygenfunction:: bsp_pid
-   :project: ebsp
+   :project: ebsp_e
 
 .. doxygenfunction:: bsp_nprocs
-   :project: ebsp
+   :project: ebsp_e
 
 .. doxygenfunction:: bsp_end
-   :project: ebsp
+   :project: ebsp_e
 
 .. doxygenfunction:: ebsp_message
-   :project: ebsp
+   :project: ebsp_e

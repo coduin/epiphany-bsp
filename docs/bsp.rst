@@ -1,3 +1,5 @@
+.. sectionauthor:: Jan-Willem Buurlage <janwillem@buurlagewits.nl>
+
 BSP Model
 =========
 

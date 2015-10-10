@@ -45,12 +45,16 @@ extensions = [
 ]
 
 # Breathe settings
-breathe_projects = { "ebsp": "xml/" }
+breathe_projects = {
+    "ebsp_e": "xml_e/",
+    "ebsp_host": "xml_host/",
+}
+
 breathe_projects_source = {
     "hostheader" : ( "../include", ["host_bsp.h"] ),
     "eheader" : ( "../include", ["e_bsp.h"] )
 }
-breathe_default_project = "ebsp"
+breathe_default_project = "ebsp_e"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -68,8 +72,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Epiphany BSP'
-copyright = '2015, Buurlage Wits'
-author = 'Buurlage Wits'
+copyright = '2015, Coduin'
+author = 'Coduin'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -110,7 +114,7 @@ add_module_names = True
 
 # If true, sectionauthor and moduleauthor directives will be shown in the
 # output. They are ignored by default.
-#show_authors = False
+#show_authors = True
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -244,7 +248,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
   (master_doc, 'EpiphanyBSP.tex', 'Epiphany BSP Documentation',
-   'Buurlage Wits', 'manual'),
+   'Coduin', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
