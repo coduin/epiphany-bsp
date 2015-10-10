@@ -16,10 +16,7 @@
 import sys
 import os
 import shlex
-import sphinx_readable_theme
 import sphinx_rtd_theme
-
-sys.path.append("ext/breathe/")
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the

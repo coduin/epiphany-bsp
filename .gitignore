@@ -1,5 +1,2 @@
 bin/
 lib/
-doc/*
-!doc/Doxyfile
-!doc/*.dox
