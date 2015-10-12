@@ -81,6 +81,8 @@ typedef struct {
     // Location of local copy of combuf.extmem_in_streams
     ebsp_stream_descriptor* local_streams;
 
+    unsigned local_nstreams;
+
     // Start and end of chain of DMA descriptors
     // cur_dma_desc is updated in the interrupt when the DMA finishes a task
     // last_dma_desc is updated in ebsp_dma_push
@@ -90,8 +92,6 @@ typedef struct {
     // Global-space pointer to local DMA1CONFIG and DMA1STATUS cpu registers
     unsigned* dma1config;
     unsigned* dma1status;
-
-    unsigned local_nstreams;
 } ebsp_core_data;
 
 extern ebsp_core_data coredata;
@@ -101,12 +101,4 @@ extern ebsp_core_data coredata;
 // ebsp_combuf * const combuf = (ebsp_combuf*)E_COMBUF_ADDR;
 
 void _init_local_malloc();
-
-void ebsp_dma_push(ebsp_dma_handle* desc, void* dst, const void* src,
-                   size_t nbytes);
-
-void ebsp_dma_wait(ebsp_dma_handle* desc);
-
-// Always use this instead of memcpy
-void ebsp_memcpy(void* dst, const void* src, size_t nbytes);
 

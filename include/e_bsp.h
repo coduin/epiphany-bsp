@@ -45,7 +45,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 /**
  * Denotes the start of a BSP program.
- * This initializes the BSP system on the core,
+ * This initializes the BSP system on the core.
  *
  * Must be called before calling any other BSP function.
  */
@@ -115,17 +115,24 @@ float ebsp_host_time();
  *
  * Serves as a blocking barrier which halts execution untill all Epiphany
  * cores are finished with the current superstep.
+ * If only a synchronization no communication is required then the
+ * alternative ebsp_barrier() is faster.
  */
 void bsp_sync();
 
 /**
- * Synchronizes cores without resolving outstanding communication
+ * Synchronizes cores without resolving outstanding communication.
+ *
+ * This function is faster than bsp_sync().
  */
 void ebsp_barrier();
 
 /**
  * Synchronizes with the host processor without resolving outstanding
  * communication.
+ *
+ * This can be used in combination with the function ebsp_set_sync_callback()
+ * on the host side.
  */
 void ebsp_host_sync();
 
@@ -164,6 +171,7 @@ void ebsp_host_sync();
  * \endcode
  *
  * @remarks In the current implementation, the parameter nbytes is ignored.
+ * In future versions it will be used to make communication more efficient.
  */
 void bsp_push_reg(const void* variable, const int nbytes);
 
@@ -369,21 +377,22 @@ int bsp_hpmove(void** tag_ptr_buf, void** payload_ptr_buf);
 void ebsp_send_up(const void* tag, const void* payload, int nbytes);
 
 /**
- * Wait for any input-DMAs to finish.
- * A pointer to a chunk of input data is written to *address,
- * the size of this chunk is returned. stream_id is the index of the
- * input stream sent to this core, in the same order as ebsp_send_buffered().
- * prealloc can be set to either 1 (true) or 0 (false), and determines whether
- *double
- * or single buffering is used.
+ * Get the next chunk of data in a stream.
+ * @param address On completion, contains a pointer to the data chunk.
+ * @param stream_id Id of the input stream sent to this core, determined by
+ * the order in which ebsp_create_down_stream() was called. TODO refer to
+ * general page on streams for what id means.
+ * @param prealloc Double buffering is used iff this parameter is nonzero.
+ * @return Amount of bytes of the obtained chunk. Zero if stream has
+ * finished or an error has occurred.
  *
- * @remarks
- * - Sets *address=0 and returns 0 if the stream has ended
- * - Uses the DMA engine
+ * TODO: more detailed description on double buffering and stream_id
+ * TODO: some remarks on how DMA engine is used
  */
 int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc);
 
 /**
+ * TODO: fix this:
  * Wait for any output-DMAs to finish.
  * A pointer to a chunk of empty memory is written to *address,
  * the size of this chunk is returned. stream_id is the index of the
@@ -397,10 +406,10 @@ int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc);
  */
 int ebsp_move_chunk_up(void** address, unsigned stream_id, int prealloc);
 
-// TODO: write abstract
+// TODO
 void ebsp_move_down_cursor(int stream_id, int jump_n_chunks);
 
-// TODO: write abstract
+// TODO
 void ebsp_reset_down_cursor(int stream_id);
 
 int ebsp_open_up_stream(void** address, unsigned stream_id);
@@ -409,9 +418,13 @@ int ebsp_open_down_stream(void** address, unsigned stream_id);
 void ebsp_close_down_stream(unsigned stream_id);
 
 /**
- * Sets the number of bytes that has to be written from the current output chunk
- * to extmem.
- * The default value is max_chunk_size
+ * Sets the number of bytes that has to be written from the current output
+ * chunk to external memory.
+ * @param stream_id Stream id, see general page on streams TODO !!!
+ * @param nbytes TODO
+ *
+ * The default value is `max_chunk_size`
+ * TODO: what is max_chunk_size ?
  */
 void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes);
 
@@ -421,28 +434,46 @@ void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes);
  *
  * bsp_abort aborts the program after outputting a message.
  * This terminates all running epiphany-cores regardless of their status.
+ *
+ * @remarks
+ * After bsp_abort the cores are left in a state that does NOT allow them
+ * to restart with another call to ebsp_spmd(). Instead the program has to
+ * be completely reloaded to the cores, meaning bsp_end(), bsp_init()
+ * and bsp_begin() have to be called again which is slow.
+ *
+ * The attributes in this definition make sure that the compiler checks the
+ * arguments for errors.
  */
-
-// The attributes in this definition make sure that the compiler checks the
-// arguments for errors.
 void bsp_abort(const char* format, ...)
     __attribute__((__format__(__printf__, 1, 2)));
 
 /**
  * Allocate external memory.
  * @param nbytes The size of the memory block
+ * @return A pointer to the allocated memory, guaranteed to be 8-byte aligned
+ * to ensure fast transfers, or zero on error.
  *
  * This function allocates memory in external RAM, meaning the memory is slow
  * and should not be used with time critical computations.
+ *
+ * When no more space is available, the function will return zero.
+ * Note that it is not allowed to call ebsp_free() with a zero pointer so
+ * this should always be checked.
  */
 void* ebsp_ext_malloc(unsigned int nbytes);
 
 /**
  * Allocate local memory.
  * @param nbytes The size of the memory block
+ * @return A pointer to the allocated memory, guaranteed to be 8-byte aligned
+ * to ensure fast transfers, or zero on error.
  *
  * This function allocates memory in local SRAM, meaning the memory is fast
  * but extremely limited.
+ *
+ * When no more space is available, the function will return zero.
+ * Note that it is not allowed to call ebsp_free() with a zero pointer so
+ * this should always be checked.
  */
 void* ebsp_malloc(unsigned int nbytes);
 
@@ -457,42 +488,78 @@ void* ebsp_malloc(unsigned int nbytes);
 void ebsp_free(void* ptr);
 
 /**
- * Push a new task to the DMA engine
- * @param desc   Used in combination with ebsp_dma_wait(). It is completely
- *filled by this function
+ * Push a new task to the DMA engine. TODO: see general page on DMA which
+ * explains that it allows transfer+computation simultaneously
+ * @param desc   Used in combination with ebsp_dma_wait(). Should be seen
+ * as a *handle* to the task. Its contents are populated by this function.
  * @param dst    Destination address
  * @param src    Source address
  * @param nbytes Amount of bytes to be copied
  *
  * Assumes previous task in `desc` is completed (use ebsp_dma_wait())
+ *
+ * The DMA (1) will be started if it was not started yet.
+ * If it was already started, this task will be pushed to a queue so that it
+ * will be done some time later. Use ebsp_dma_wait() to wait for the task to
+ * complete.
+ *
+ * @remarks
+ * The `desc` pointer should be 8-byte aligned or behaviour is undefined.
+ * This should not be a problem because the malloc functions always return
+ * 8-byte aligned pointers, and having an `ebsp_dma_handle` struct as
+ * local variable will be 8-byte aligned as well.
  */
 void ebsp_dma_push(ebsp_dma_handle* desc, void* dst, const void* src,
                    size_t nbytes);
 
 /**
- * Start the queued DMA transfers
- */
-void ebsp_dma_start(ebsp_dma_handle*);
-
-/**
  * Wait for the task to be completed.
+ * @param desc Handle for a task. See ebsp_dma_push().
+ * 
+ * Use somewhere after ebsp_dma_push().
+ * This function blocks untill the task in `desc` is completed.
  */
 void ebsp_dma_wait(ebsp_dma_handle* desc);
 
 /**
- * Get a raw remote memory address for a variable
- * that was registered using bsp_push_reg()
+ * Get a raw remote memory address for a variable that was registered
+ * using bsp_push_reg()
  * @param pid Remote core id
  * @param variable An address that was registered using bsp_push_reg
  * @return A pointer to the remote variable, or 0 if it was not registered
+ *
+ * The returned pointer (if nonzero) can be written to and read from directly.
+ * Note that the data will be transferred directly, as in bsp_hpput(),
+ * so synchronization issues should be considered.
+ *
+ * This function is meant to be used in combination with ebsp_dma_push()
+ * to transfer data between cores while doing computations at the same time.
  */
 void* ebsp_get_raw_address(int pid, const void* variable);
+
+/**
+ * Performs a memory copy completely analogous to the standard C memcpy().
+ * @param dst    Destination address
+ * @param src    Source address
+ * @param nbytes Amount of bytes to be copied
+ *
+ * This function is provided because the default `memcpy` generated
+ * by the epiphany-gcc compiler has some drawbacks.
+ * First of all it is stored in external memory, unless you store the full
+ * C library (newlib) on the epiphany cores. Secondly it does not do
+ * the optimal 8-byte transfers so it is far from optimal.
+ *
+ * This function resides in local core memory and does 8-byte transfers
+ * when possible, meaning if both `dst` and `src` are 8-byte aligned.
+ * In other cases, 4-byte or single byte transfers are used.
+ */
+void ebsp_memcpy(void* dst, const void* src, size_t nbytes);
 
 /**
  * Output a debug message printf style.
  * @param format The formatting string in printf style
  *
- * ebsp_message outputs a debug message by sending it to shared memory
+ * ebsp_message() outputs a debug message by sending it to shared memory
  * So that the host processor can output it to the terminal
  * The attributes in this definition make sure that the compiler checks the
  * arguments for errors.
