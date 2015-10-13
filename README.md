@@ -100,7 +100,7 @@ clean:
     rm -r bin
 ```
 
-To run programs built with EBSP you run the host program. The call to `bsp_init()` will load the appropriate Epiphany kernel to the coprocessor.
+To run programs built with EBSP you run the host program. The call to `bsp_init()` will load the appropriate Epiphany kernel on the coprocessor.
 
 ## Building from source
 
@@ -114,9 +114,9 @@ If you are using EBSP, or have any questions, remarks or ideas then please get i
 
 ## Authors
 
-Tom Bannink
-Abe Wits
-Jan-Willem Buurlage.
+- Tom Bannink
+- Abe Wits
+- Jan-Willem Buurlage.
 
 ## Issues
 
