@@ -2,15 +2,15 @@
 
 Epiphany BSP is a library for developing applications for the Parallella board. It is easy to setup and use, and provides powerful mechanisms for writing optimized parallel programs.
 
+<p align="center">
+<img alt="Epiphany BSP is a parallel library for the Parallella board" src="http://codu.in/img/epiphany-bsp-illustration-trimmed-small.jpg" />
+</p>
+
 The [Bulk Synchronous Parallel (BSP)](http://en.wikipedia.org/wiki/Bulk_synchronous_parallel)
 computing model is a model for designing parallel algorithms.  This library (EBSP) provides an
 implementation of the model on top of the Epiphany SDK (ESDK).  This allows the BSP computing model
 to be used with the Epiphany architecture developed by [Adapteva](http://www.adapteva.com).
 In particular this library has been implemented and tested on the  [Parallella](http://www.parallella.org) board.
-
-<p align="center">
-<img alt="Epiphany BSP is a parallel library for the Parallella board" src="http://codu.in/img/epiphany-bsp-illustration-trimmed-small.jpg" />
-</p>
 
 ## Example usage:
 
