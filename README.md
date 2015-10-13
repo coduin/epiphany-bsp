@@ -62,11 +62,11 @@ Detailed documentation is provided at <http://www.codu.in/ebsp/docs>.
 
 ## Installing EBSP
 
-If you want to write EBSP programs you need to have access to a Parallella board with a recent version of the Epiphany SDK (ESDK) installed. 
+If you want to write EBSP programs you need to have access to a Parallella board with a recent version of the Epiphany SDK (ESDK) installed.
 
 ### Cloning example project
 
-An easy way to get started with EBSP is to clone the [EBSP example project](http://www.github.com/coduin/ebsp-empty-project).
+An easy way to get started with EBSP is to clone the [EBSP example project](http://www.github.com/coduin/ebsp-empty-project). See the README bundled with the example project for details.
 
 ### Using EBSP manually
 

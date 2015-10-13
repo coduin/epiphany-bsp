@@ -221,7 +221,7 @@ void bsp_pop_reg(const void* variable);
  * @remarks No warning is thrown when nbytes exceeds the size of the variable
  *          src.
  * @remarks The current implementation uses external memory which restrains
- *          the performance of this function greatly. We suggest you use 
+ *          the performance of this function greatly. We suggest you use
  *          bsp_hpput() wherever possible to ensure good performance.
  */
 void bsp_put(int pid, const void* src, void* dst, int offset, int nbytes);
@@ -549,7 +549,7 @@ void ebsp_dma_push(ebsp_dma_handle* desc, void* dst, const void* src,
 /**
  * Wait for the task to be completed.
  * @param desc Handle for a task. See ebsp_dma_push().
- * 
+ *
  * Use somewhere after ebsp_dma_push().
  * This function blocks untill the task in `desc` is completed.
  */
