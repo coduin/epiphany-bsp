@@ -62,7 +62,15 @@ Detailed documentation is provided at <http://www.codu.in/ebsp/docs>.
 
 ## Installing EBSP
 
-If you want to write EBSP programs you need to have access to a Parallella board with a recent version of the Epiphany SDK (ESDK) installed. An easy way to get started with EBSP is to clone the [EBSP example project](http://www.github.com/coduin/ebsp-empty-project). Alternatively you can download the [latest release](https://github.com/coduin/epiphany-bsp/releases). The EBSP library depends on the ESDK, and uses a custom linker file `ebsp_fast.ldf`. Your host program should link against `-lhost-bsp -le-hal -le-loader`. Your Epiphany kernel should link against `-le-bsp -le-lib` and use the linker script found at `ext/bsp/ebsp_fast.ldf`. For your convience we provide an example Makefile below:
+If you want to write EBSP programs you need to have access to a Parallella board with a recent version of the Epiphany SDK (ESDK) installed. 
+
+### Cloning example project
+
+An easy way to get started with EBSP is to clone the [EBSP example project](http://www.github.com/coduin/ebsp-empty-project).
+
+### Using EBSP manually
+
+Alternatively you can download the [latest release](https://github.com/coduin/epiphany-bsp/releases). The EBSP library depends on the ESDK, and uses a custom linker file `ebsp_fast.ldf`. Your host program should link against `-lhost-bsp -le-hal -le-loader`. Your Epiphany kernel should link against `-le-bsp -le-lib` and use the linker script found at `ext/bsp/ebsp_fast.ldf`. For your convience we provide an example Makefile below:
 
 ```Makefile
 ESDK=${EPIPHANY_HOME}
