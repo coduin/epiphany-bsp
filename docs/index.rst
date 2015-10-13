@@ -13,8 +13,10 @@ Epiphany BSP is a library for developing applications for the Parallella board. 
 This documentation provides an introduction to each component of the
 Epiphany BSP (EBSP) library. Each section introduces a number of new EBSP functions
 which we call *primitives* through an example. At the end of each section the
-new primitives are summarized and detailed documentation is provided for them. Finally,
-we also provide a complete reference of the API and a short introduction to the formal BSP model.
+new primitives are summarized and detailed documentation is provided for them. After reading only a couple of sections you will be able to write simple programs for the Parallella.
+We also provide a complete reference of the API and a short introduction to the formal BSP model.
+
+The EBSP library is released under the LGPLv3. The `source code <https://github.com/coduin/epiphany-bsp>`_ and `issue tracker <https://github.com/coduin/epiphany-bsp/issues>`_ are both hosted on GitHub.
 
 -----------------
 
