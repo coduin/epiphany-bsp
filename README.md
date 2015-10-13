@@ -8,7 +8,7 @@ implementation of the model on top of the Epiphany SDK (ESDK).  This allows the 
 to be used with the Epiphany architecture developed by [Adapteva](http://www.adapteva.com).
 In particular this library has been implemented and tested on the  [Parallella](http://www.parallella.org) board.
 
-# Example usage:
+## Example usage:
 
 ```C
 // file: host_code.c
@@ -48,15 +48,15 @@ Running this program results in the output:
     $07: Hello World from processor 7 / 16
     ...
 
-# License
+## License
 
 Epiphany BSP is released under the LGPLv3. See the file `COPYING` for details.
 
-# Documentation
+## Documentation
 
 Detailed documentation is provided at <http://www.codu.in/ebsp/docs>.
 
-# Installing EBSP
+## Installing EBSP
 
 If you want to write EBSP programs you need to have access to a Parallella board with a recent version of the Epiphany SDK (ESDK) installed. An easy way to get started with EBSP is to clone the [EBSP example project](http://www.github.com/coduin/ebsp-empty-project). Alternatively you can download the [latest release](https://github.com/coduin/epiphany-bsp/releases). The EBSP library depends on the ESDK, and uses a custom linker file `ebsp_fast.ldf`. Your host program should link against `-lhost-bsp -le-hal -le-loader`. Your Epiphany kernel should link against `-le-bsp -le-lib` and use the linker script found at `ext/bsp/ebsp_fast.ldf`. For your convience we provide an example Makefile below:
 
@@ -102,22 +102,22 @@ clean:
 
 To run programs built with EBSP you run the host program. The call to `bsp_init()` will load the appropriate Epiphany kernel to the coprocessor.
 
-# Building from source
+## Building from source
 
 The `master` branch contains the latest release. An (unstable) snapshot of the current development can be found in the `develop` branch. To manually build the libraryissue `make` from the root directory of the library. The library only depends on the ESDK which should come preinstalled on your Parallella board. The examples and tests are built separately.
 
-# About Coduin
+## About Coduin
 
 Coduin (formerly Buurlage Wits) is a small company based in Utrecht, the Netherlands. Next to our work on software libraries and models for many-core processors in embedded systems, we are also active in the area of data analysis and predictive modelling.
 
 If you are using EBSP, or have any questions, remarks or ideas then please get in touch at info@buurlagewits.nl! We would very much like to hear from you.
 
-# Authors
+## Authors
 
 Tom Bannink
 Abe Wits
 Jan-Willem Buurlage.
 
-# Issues
+## Issues
 
  The [issue tracker](https://github.com/coduin/epiphany-bsp/issues) is hosted on GitHub. We welcome pull requests, please pull request against the develop branch. Read [the GitHub flow guide](https://guides.github.com/introduction/flow/) for details.
