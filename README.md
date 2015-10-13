@@ -9,7 +9,7 @@ to be used with the Epiphany architecture developed by [Adapteva](http://www.ada
 In particular this library has been implemented and tested on the  [Parallella](http://www.parallella.org) board.
 
 <p align="center">
-<img alt="Epiphany BSP is a parallel library for the Parallella board" src="(http://codu.in/img/epiphany-bsp-illustration-trimmed-small.jpg" />
+<img alt="Epiphany BSP is a parallel library for the Parallella board" src="http://codu.in/img/epiphany-bsp-illustration-trimmed-small.jpg" />
 </p>
 
 ## Example usage:
