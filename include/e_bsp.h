@@ -89,7 +89,7 @@ int bsp_pid();
  * (less accurate) ebsp_host_time().
  *
  * @remarks Using this in combination with ebsp_raw_time() leads to unspecified
- * behaviour, you should only use one of these at a time.
+ * behaviour, you should only use one of these in your program.
  */
 float bsp_time();
 
@@ -103,7 +103,7 @@ float bsp_time();
  * Divide the number of clockcycles by 600 000 000 to get the time in seconds.
  *
  * * @remarks Using this in combination with bsp_time() leads to unspecified
- * behaviour, you should only use one of these at a time.
+ * behaviour, you should only use one of these in your program.
  */
 unsigned int ebsp_raw_time();
 
@@ -157,9 +157,10 @@ void ebsp_host_sync();
  * When a variable is registered, every core must do so.
  *
  * The system maintains a stack of registered variables. Any variables
- * registered in the same superstep are identified with each other. Therefore
+ * registered in the same superstep are identified with each other. There
  * is a maximum number of allowed registered variables at any given time,
- * the specific number is platform dependent.
+ * the specific number is platform dependent. This limit will be lifted
+ * in a future version.
  *
  * Registering a variable needs to be done before it can be used with
  * the functions bsp_put(), bsp_hpput(), bsp_get(), bsp_hpget().
@@ -191,7 +192,7 @@ void bsp_push_reg(const void* variable, const int nbytes);
 /**
  * De-register a variable for remote memory access.
  * @param variable A pointer to the variable, which must have been
- *  previously registered with bsp_push_reg
+ *  previously registered with bsp_push_reg()
  *
  * The operation takes effect after the next call to bsp_sync().
  * @remarks In the current implementation, this function does
@@ -253,7 +254,7 @@ void bsp_hpput(int pid, const void* src, void* dst, int offset, int nbytes);
  * @param pid The pid of the target processor (this is allowed to be the id
  *  of the sending processor)
  * @param src A variable that has been previously registered using
- *  bsp_push_reg
+ *  bsp_push_reg()
  * @param dst A pointer to a local destination
  * @param offset The offset in bytes to be added to the remote location
  *  corresponding to the variable location `src`
@@ -266,7 +267,7 @@ void bsp_hpput(int pid, const void* src, void* dst, int offset, int nbytes);
  * bsp_get() transactions is copied into a buffer, after which all the data is
  * written to the proper destinations. This would allow one to use bsp_get to
  * swap to variables in place. Because of memory constraints we do not comply
- * with the standard.In our implementation. The bsp_get() transactions are all
+ * with the standard. In our implementation. The bsp_get() transactions are all
  * executed at the same time, therefore such a swap would result in undefined
  * behaviour.
  *
@@ -281,11 +282,11 @@ void bsp_get(int pid, const void* src, int offset, void* dst, int nbytes);
  * @param pid The pid of the target processor (this is allowed to be the id
  *  of the sending processor)
  * @param src A variable that has been previously registered using
- *  bsp_push_reg
+ *  bsp_push_reg()
  * @param dst A pointer to a local destination
  * @param offset The offset in bytes to be added to the remote location
  *  corresponding to the variable location `src`
- * @param nbytes The number of bytes to be copied*
+ * @param nbytes The number of bytes to be copied
  *
  * As opposed to bsp_get(), the data is transferred immediately When
  * bsp_hpget() is called. When using this function you must make sure that the
@@ -558,7 +559,7 @@ void ebsp_dma_wait(ebsp_dma_handle* desc);
  * Get a raw remote memory address for a variable that was registered
  * using bsp_push_reg()
  * @param pid Remote core id
- * @param variable An address that was registered using bsp_push_reg
+ * @param variable An address that was registered using bsp_push_reg()
  * @return A pointer to the remote variable, or 0 if it was not registered
  *
  * The returned pointer (if nonzero) can be written to and read from directly.
