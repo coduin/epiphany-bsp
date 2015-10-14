@@ -116,7 +116,7 @@ To run programs built with EBSP you run the host program. The call to `bsp_init(
 
 ## Building from source
 
-The `master` branch contains the latest release. An (unstable) snapshot of the current development can be found in the `develop` branch. To manually build the libraryissue `make` from the root directory of the library. The library only depends on the ESDK which should come preinstalled on your Parallella board. The examples and tests are built separately.
+The `master` branch contains the latest release. An (unstable) snapshot of the current development can be found in the `develop` branch. To manually build the library, issue `make` from the root directory of the library. The library only depends on the ESDK which should come preinstalled on your Parallella board. The examples and tests are built separately.
 
 ## About Coduin
 
