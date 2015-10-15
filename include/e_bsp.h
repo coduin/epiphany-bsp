@@ -486,7 +486,7 @@ void ebsp_dma_wait(ebsp_dma_handle* desc);
  * @param variable An address that was registered using bsp_push_reg
  * @return A pointer to the remote variable, or 0 if it was not registered
  */
-void* ebsp_get_raw_address(int pid, const void* variable);
+void* ebsp_get_direct_address(int pid, const void* variable);
 
 /**
  * Output a debug message printf style.
