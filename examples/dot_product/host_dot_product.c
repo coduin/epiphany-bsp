@@ -21,7 +21,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include <host_bsp.h>
-#include <host_bsp_inspector.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -53,9 +52,6 @@ int main(int argc, char** argv) {
         tag = 3;
         ebsp_send_down(pid, &tag, &b[pid * chunk], sizeof(int) * chunk);
     }
-
-    // enable memory inspector
-    // ebsp_inspector_enable();
 
     // run dotproduct
     ebsp_spmd();

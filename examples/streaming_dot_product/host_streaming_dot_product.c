@@ -21,7 +21,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include <host_bsp.h>
-#include <host_bsp_inspector.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
