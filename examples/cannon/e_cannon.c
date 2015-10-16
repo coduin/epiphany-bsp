@@ -82,10 +82,10 @@ int main() {
     bsp_sync();
 
     // Obtain neighbor locations
-    neighbor_a_data[0] = ebsp_get_raw_address(a_neighbor, a_data[0]);
-    neighbor_a_data[1] = ebsp_get_raw_address(a_neighbor, a_data[1]);
-    neighbor_b_data[0] = ebsp_get_raw_address(b_neighbor, b_data[0]);
-    neighbor_b_data[1] = ebsp_get_raw_address(b_neighbor, b_data[1]);
+    neighbor_a_data[0] = ebsp_get_direct_address(a_neighbor, a_data[0]);
+    neighbor_a_data[1] = ebsp_get_direct_address(a_neighbor, a_data[1]);
+    neighbor_b_data[0] = ebsp_get_direct_address(b_neighbor, b_data[0]);
+    neighbor_b_data[1] = ebsp_get_direct_address(b_neighbor, b_data[1]);
 
     ebsp_dma_handle dma_handle_a;
     ebsp_dma_handle dma_handle_b;

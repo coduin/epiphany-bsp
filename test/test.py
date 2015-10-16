@@ -34,7 +34,7 @@ def get_contents(location):
 def run_unit_test(unit_test):
     output=""
     try:
-        output = subprocess.check_output(["bin/host_"+unit_test, "Hello World!"], stderr=subprocess.STDOUT, universal_newlines=True, timeout=5)
+        output = subprocess.check_output(["bin/host_"+unit_test, "Hello World!"], stderr=subprocess.STDOUT, universal_newlines=True, timeout=10)
     except OSError:
         print("OSError")    #When running on non-epiphany systems
     except subprocess.TimeoutExpired:

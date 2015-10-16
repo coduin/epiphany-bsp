@@ -32,7 +32,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 bsp_state_t state;
 
-int bsp_initialized = 0;
+int bsp_initialized = 0; // 1 after bsp_init, 2 after bsp_begin, 3 after ebsp_spmd, 0 after bsp_end
 
 int bsp_init(const char* _e_name, int argc, char** argv) {
     if (bsp_initialized) {
@@ -73,17 +73,17 @@ int bsp_init(const char* _e_name, int argc, char** argv) {
     // Obtain the number of processors from the platform information
     state.nprocs = state.platform.rows * state.platform.cols;
 
-    // Initialize buffering
-    for (int p = 0; p < NPROCS; p++) {
-        state.combuf.n_streams[p] = 0;
-    }
-
     bsp_initialized = 1;
 
     return 1;
 }
 
 int bsp_begin(int nprocs) {
+    if (bsp_initialized != 1) {
+        fprintf(stderr, "ERROR: bsp_begin called twice or called before bsp_init\n");
+        return 0;
+    }
+
     // TODO(*)
     // When one of the functions fails half-way in bsp_begin
     // Then the functions that DID succeed should be undone again
@@ -144,10 +144,16 @@ int bsp_begin(int nprocs) {
     // before calling ebsp_spmd
     memset(&state.combuf, 0, sizeof(ebsp_combuf));
 
+    bsp_initialized = 2;
+
     return 1;
 }
 
 int ebsp_spmd() {
+    if (bsp_initialized != 2) {
+        fprintf(stderr, "ERROR: ebsp_spmd called before bsp_begin\n");
+        return 0;
+    }
 
     // Write stream structs to combuf + extmem
     for (int p = 0; p < NPROCS; p++) {
@@ -362,17 +368,20 @@ int ebsp_spmd() {
     if (state.end_callback)
         state.end_callback();
 
+    bsp_initialized = 3;
+
     return 1;
 }
 
 int bsp_end() {
-    if (!bsp_initialized) {
+    if (bsp_initialized == 0) {
         fprintf(stderr,
                 "ERROR: bsp_end called when bsp was not initialized.\n");
         return 0;
     }
 
-    e_free(&state.emem);
+    if (bsp_initialized >= 2)
+        e_free(&state.emem);
 
     if (E_OK != e_finalize()) {
         fprintf(stderr, "ERROR: Could not finalize the Epiphany connection.\n");
@@ -380,10 +389,8 @@ int bsp_end() {
     }
 
     memset(&state, 0, sizeof(state));
-    bsp_initialized = 0;
 
-    if (state.end_callback)
-        state.end_callback();
+    bsp_initialized = 0;
 
     return 1;
 }

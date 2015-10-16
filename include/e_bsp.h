@@ -569,7 +569,7 @@ void ebsp_dma_wait(ebsp_dma_handle* desc);
  * This function is meant to be used in combination with ebsp_dma_push()
  * to transfer data between cores while doing computations at the same time.
  */
-void* ebsp_get_raw_address(int pid, const void* variable);
+void* ebsp_get_direct_address(int pid, const void* variable);
 
 /**
  * Performs a memory copy completely analogous to the standard C memcpy().
