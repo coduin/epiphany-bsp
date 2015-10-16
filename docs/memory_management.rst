@@ -1,27 +1,32 @@
 .. sectionauthor:: Tom Bannink <tom@buurlagewits.nl>
 
-.. Epiphany BSP documentation master file, created by
-   sphinx-quickstart on Thu Sep 17 21:08:04 2015.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 .. highlight:: c
 
 Memory Management
 =================
 
-The cores of the Epiphany chip have very little local memory, and access to so-called external memory is very slow. Therefore one needs to pay special attention to memory management in order to write good programs for the Epiphany platform.
+Memory management on the Epiphany platform requires some special care so we discuss it in this separate section.
+The Epiphany cores have very little local (fast) memory, and access the external (larger) memory space is very slow. Therefore one needs to pay special attention to memory management in order to write good programs for the Epiphany platform.
 
-In short, there is *local memory* which is fast but only 32 KB in size, and there is *external memory* which is slow (about a factor 100 in some cases) but large.
-
-TODO: 'Note that this is not part of official BSP but meant as utility library'
-
-TODO: This page covers **using** the ebsp memory management functions. See this link TODO for information on the internals of memory access on the Epiphany platform.
+We provide some functions that aid in memory allocation. These are not part of the offical BSP standard, but meant as a utility library. This page will cover these helper functions. If you are interested in the more technical details (specific for the Parallella), see :ref:`Parallella memory details<memory_details>`.
 
 Introduction
 ------------
 
-...
+In short, there are two types of memory:
+
+- local memory: 32 KB for each core, fast
+- external memory: 32 MB shared for all cores, slow
+
+In principle, all computations should be performed on data in the fast local memory. However 32 KB might not be enough for all your data. In this case you have to store the data in external memory and transfer the required parts to local memory to do the computations. Access to external memory can be a factor 100 slower in some cases so this should be avoided when possible.
+
+How do you know in what type of memory your data is stored?
+Global and local variables in your C source code will be stored in local memory, unless otherwise specified with some special gcc attributes. 
+Code itself (i.e. the machine code) can also be stored in both types of memory. Normal C code will be stored in local memory, unless specified using gcc attributes.
+Variables allocated using ``ebsp_ext_malloc`` are stored in external memory.
+
+TODO: Introduce DMA
+
 
 DMA
 ---
@@ -32,10 +37,13 @@ Example
 -------
 
 Memory allocation
-...
+......
+
+TODO: IMPORTANT: ext_malloc exists on host: can we alloc and send_message the address? nope
 
 DMA transfers
-...
+......
+
 note that this requires ebsp_get_direct_address()
 
 
@@ -59,3 +67,7 @@ Interface
 
 .. doxygenfunction:: ebsp_get_direct_address
    :project: ebsp_e
+
+.. _BSP: http://en.wikipedia.org/wiki/Bulk_synchronous_parallel
+.. _Adapteva:
+.. _Parallella:
