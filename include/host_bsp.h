@@ -110,22 +110,21 @@ int ebsp_read(int pid, off_t src, void* dst, int size);
 int bsp_init(const char* e_name, int argc, char** argv);
 
 /**
- * Set the callback for syncing.
+ * Set the (optional) callback for synchronizing epiphany cores with the
+ * host program.
  * @param cb A function pointer to the callback function
  *
- * Synchronization callbacks are currently not implemented.
- * In a future release there will be an option to call ebsp_host_sync
- * in the Epiphany program. This will synchronize with the host processor and
- * trigger this callback.
+ * This callback is called when all Epiphany cores have called
+ * ebsp_host_sync(). Note that this does not happen at bsp_sync().
  */
 void ebsp_set_sync_callback(void (*cb)());
 
 /**
- * Set the callback for finalizing.
+ * Set the (optional) callback for finalizing.
  * @param cb A function pointer to the callback function
  *
  * This callback is called when ebsp_spmd() finishes. It is primarily used
- * by the ebsp memory inspector.
+ * by the ebsp memory inspector and should not be needed.
  */
 void ebsp_set_end_callback(void (*cb)());
 

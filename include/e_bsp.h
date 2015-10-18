@@ -45,9 +45,10 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 /**
  * Denotes the start of a BSP program.
- * This initializes the BSP system on the core,
+ * This initializes the BSP system on the core.
  *
  * Must be called before calling any other BSP function.
+ * Should only be called once in a program.
  */
 void bsp_begin();
 
@@ -57,81 +58,104 @@ void bsp_begin();
  * Finalizes and cleans up the BSP program.
  * No other BSP functions are allowed to be called after this function is
  * called.
+ *
+ * @remarks Must be followed by a return statement in your main function if you
+ * want to call `ebsp_spmd()` multiple times.
  */
 void bsp_end();
 
 /**
- * Obtain the number of processors currently in use.
- * @return An integer indicating the number of running processors
+ * Obtain the number of Epiphany cores currently in use.
+ * @return An integer indicating the number of cores on which the program runs.
  */
 int bsp_nprocs();
 
 /**
- * Obtain the processor ID of the local core.
- * @return An integer with the id of the process
- * The pid is an integer between 0 and `bsp_nprocs()-1` inclusive.
+ * Obtain the processor identifier of the local core.
+ * @return An integer with the id of the core
+ * The processor id is an integer in the range [0, .., bsp_nprocs() - 1].
  */
 int bsp_pid();
 
 /**
- * Obtain the (accurate) time in seconds since bsp_begin() was called.
- * @return A floating point value with the amount of seconds since bsp_begin()
+ * Obtain the time in seconds since bsp_begin() was called.
+ * @return A floating point value with the number of elapsed seconds since
+ * the call to bsp_begin()
  *
- * The epiphany-timer does not support time differences longer than
- * `UINT_MAX/(600000000)` which is roughly 5 seconds.
+ * The native Epiphany timer does not support time differences longer than
+ * `UINT_MAX/(600000000)` which is roughly 7 seconds.
  *
- * For longer time differences, use the less accurate ebsp_host_time().
+ * If you want to measure longer time intervals, we suggest you use the
+ * (less accurate) ebsp_host_time().
  *
- * Do not use this in combination with ebsp_raw_time(), use only one of them.
+ * @remarks Using this in combination with ebsp_raw_time() leads to unspecified
+ * behaviour, you should only use one of these in your program.
+ *
+ * @remarks This uses the internal Epiphany `E_CTIMER_0` timer so the second
+ * timer can be used for other purposes.
  */
 float bsp_time();
 
 /**
  * Obtain the number of clockcycles that have passed since the previous call
  * to ebsp_raw_time().
- * @return An unsigned integer with the amount of clockcycles
+ * @return An unsigned integer with the number of clockcycles
  *
  * This function has less overhead than bsp_time.
  *
- * Divide the amount of clockcycles by 600 000 000 to get the time in seconds.
+ * Divide the number of clockcycles by 600 000 000 to get the time in seconds.
  *
- * Do not use this in combination with bsp_time(), use only one of them.
+ * @remarks Using this in combination with bsp_time() leads to unspecified
+ * behaviour, you should only use one of these in your program.
+ *
+ * @remarks This uses the internal Epiphany `E_CTIMER_0` timer so the second
+ * timer can be used for other purposes.
  */
 unsigned int ebsp_raw_time();
 
 /**
- * Obtain the (inaccurate) time in seconds since bsp_begin() was called.
- * @return A floating point value with the amount of seconds since bsp_begin()
+ * Obtain the time in seconds since bsp_begin() was called.
+ * @return A floating point value with the number of seconds since bsp_begin()
  *
- * This timer has much less accuracy (milliseconds at best) than bsp_time()
- * but works if time differences are more than 5 seconds in which case
- * the accurate timer does not work.
+ * This timer is much less accurate than ebsp_time(), its accuracy is in the
+ * order of milliseconds. However, this timer supports time intervals of
+ * arbitrary lengths.
  */
 float ebsp_host_time();
 
 /**
- * Denotes the end of a superstep, and performs all communication
- * and registration.
+ * Denotes the end of a superstep, and performs all outstanding communications
+ * and registrations.
  *
- * Serves as a blocking barrier which halts execution untill all Epiphany
+ * Serves as a blocking barrier which halts execution until all Epiphany
  * cores are finished with the current superstep.
+ *
+ * If only a synchronization is required, and you do not want the outstanding
+ * communications and registrations to be resolved, then we suggest you use the
+ * more efficient function ebsp_barrier()
  */
 void bsp_sync();
 
 /**
- * Synchronizes cores without resolving outstanding communication
+ * Synchronizes cores without resolving outstanding communication.
+ *
+ * This function is more efficient than bsp_sync().
  */
 void ebsp_barrier();
 
 /**
  * Synchronizes with the host processor without resolving outstanding
  * communication.
+ *
+ * This can be used in combination with the function ebsp_set_sync_callback()
+ * for the host program to intervene in running programs on the Epiphany using
+ * the host processor.
  */
 void ebsp_host_sync();
 
 /**
  * Register a variable as available for remote access.
- * @param variable A pointer to the variable (local)
+ * @param variable A pointer to the local variable
  * @param nbytes The size in bytes of the variable
  *
  * The operation takes effect after the next call to bsp_sync().
@@ -139,7 +163,10 @@ void ebsp_host_sync();
  * When a variable is registered, every core must do so.
  *
  * The system maintains a stack of registered variables. Any variables
- * registered in the same superstep are identified with each other.
+ * registered in the same superstep are identified with each other. There
+ * is a maximum number of allowed registered variables at any given time,
+ * the specific number is platform dependent. This limit will be lifted
+ * in a future version.
  *
  * Registering a variable needs to be done before it can be used with
  * the functions bsp_put(), bsp_hpput(), bsp_get(), bsp_hpget().
@@ -164,47 +191,57 @@ void ebsp_host_sync();
  * \endcode
  *
  * @remarks In the current implementation, the parameter nbytes is ignored.
+ * In future versions it will be used to make communication more efficient.
  */
 void bsp_push_reg(const void* variable, const int nbytes);
 
 /**
  * De-register a variable for remote memory access.
  * @param variable A pointer to the variable, which must have been
- *  previously registered with bsp_push_reg
+ *  previously registered with bsp_push_reg()
  *
  * The operation takes effect after the next call to bsp_sync().
- * @remarks In the current implementation, this function does nothing.
+ * @remarks In the current implementation, this function does
+ * nothing. In a future update this function will free up variable
+ * spots for new registrations.
  */
 void bsp_pop_reg(const void* variable);
 
 /**
  * Copy data to another processor (buffered).
- * @param pid The pid of the target processor (can be self)
+ * @param pid The pid of the target processor (this is allowed to be the id
+ *  of the sending processor)
  * @param src A pointer to the source data
- * @param dst A variable that was previously registered with bsp_push_reg()
- * @param offset An offset to be added to dst
- * @param nbytes The amount of bytes to be copied
+ * @param dst A variable location that was previously registered using
+ *  bsp_push_reg()
+ * @param offset The offset in bytes to be added to the remote location
+ *  corresponding to the variable location `dst`
+ * @param nbytes The number of bytes to be copied
  *
- * The data in src is copied to a buffer (currently in slow external memory)
- * at the moment bsp_put is called. Therefore the caller can immediately
+ * The data in src is copied to a buffer (currently in the inefficient
+ * external memory)  at the moment bsp_put is called. Therefore the caller can
  * replace the data in src right after bsp_put returns.
- * When bsp_sync is called, the data will be transferred from the buffer
+ * When bsp_sync() is called, the data will be transferred from the buffer
  * to the destination at the other processor.
  *
  * @remarks No warning is thrown when nbytes exceeds the size of the variable
  *          src.
- * @remarks The current implementation uses external memory which restraints
- *          its performance greatly. Where possible use bsp_hpput() instead.
+ * @remarks The current implementation uses external memory which restrains
+ *          the performance of this function greatly. We suggest you use
+ *          bsp_hpput() wherever possible to ensure good performance.
  */
 void bsp_put(int pid, const void* src, void* dst, int offset, int nbytes);
 
 /**
  * Copy data to another processor, unbuffered.
- * @param pid The pid of the target processor (can be self)
+ * @param pid The pid of the target processor (this is allowed to be the id
+ *  of the sending processor)
  * @param src A pointer to local source data
- * @param dst A variable that was previously registered with bsp_push_reg()
- * @param offset An offset to be added to dst
- * @param nbytes The amount of bytes to be copied
+ * @param dst A variable location that was previously registered using
+ *  bsp_push_reg()
+ * @param offset The offset in bytes to be added to the remote location
+ *  corresponding to the variable location `dst`
+ * @param nbytes The number of bytes to be copied
  *
  * The data is immediately copied into the destination at the remote processor,
  * as opposed to bsp_put which first copies the data to a buffer.
@@ -219,12 +256,14 @@ void bsp_put(int pid, const void* src, void* dst, int offset, int nbytes);
 void bsp_hpput(int pid, const void* src, void* dst, int offset, int nbytes);
 
 /**
- * Copy data from another processor using a buffer.
- * @param pid The pid of the target processor (allowed to be equal to the
- *            sending core)
- * @param src A variable that has been previously registered with bsp_push_reg
- * @param offset An offset in bytes with respect to the remote location of src
+ * Copy data from another processor (buffered)
+ * @param pid The pid of the target processor (this is allowed to be the id
+ *  of the sending processor)
+ * @param src A variable that has been previously registered using
+ *  bsp_push_reg()
  * @param dst A pointer to a local destination
+ * @param offset The offset in bytes to be added to the remote location
+ *  corresponding to the variable location `src`
  * @param nbytes The number of bytes to be copied
  *
  * No data transaction takes place until the next call to bsp_sync, at which
@@ -233,9 +272,9 @@ void bsp_hpput(int pid, const void* src, void* dst, int offset, int nbytes);
  * @remarks The official BSP standard dictates that first all the data of all
  * bsp_get() transactions is copied into a buffer, after which all the data is
  * written to the proper destinations. This would allow one to use bsp_get to
- * swap to variables in place. Because of memory constraints we take a
- * different approach in our implementation. The bsp_get() transactions are all
- * executed at the same time, so such a swap would result in undefined
+ * swap to variables in place. Because of memory constraints we do not comply
+ * with the standard. In our implementation. The bsp_get() transactions are all
+ * executed at the same time, therefore such a swap would result in undefined
  * behaviour.
  *
  * @remarks No warning is thrown when nbytes exceeds the size of the variable
@@ -244,18 +283,22 @@ void bsp_hpput(int pid, const void* src, void* dst, int offset, int nbytes);
 void bsp_get(int pid, const void* src, int offset, void* dst, int nbytes);
 
 /**
- * Copy data from another processor. It is an unbuffered version of bsp_get().
- * @param pid The pid of the target processor (can be self)
- * @param src A variable that has been previously registered with bsp_push_reg
- * @param offset An offset to be added to src
+ * Copy data from another processor. This function is the unbuffered version of
+ * bsp_get().
+ * @param pid The pid of the target processor (this is allowed to be the id
+ *  of the sending processor)
+ * @param src A variable that has been previously registered using
+ *  bsp_push_reg()
  * @param dst A pointer to a local destination
- * @param nbytes The amount of bytes to be copied
+ * @param offset The offset in bytes to be added to the remote location
+ *  corresponding to the variable location `src`
+ * @param nbytes The number of bytes to be copied
  *
  * As opposed to bsp_get(), the data is transferred immediately When
- * bsp_hpget() is called. The programmer must make sure that the source data
- * is available upon calling. Communication through this mechanism is strongly
- * preferred over buffered communication, since it is much faster than
- * bsp_get().
+ * bsp_hpget() is called. When using this function you must make sure that the
+ * source data is available and prepared upon calling. For performance reasons,
+ * communication using this function should be preferred over buffered
+ * communication.
  *
  * @remarks No warning is thrown when nbytes exceeds the size of the variable
  *          src.
@@ -266,7 +309,8 @@ void bsp_hpget(int pid, const void* src, int offset, void* dst, int nbytes);
  * Obtain the tag size.
  * @return The tag size in bytes
  *
- * This function gets the tag size, valid for this superstep.
+ * This function gets the tag size currently in use. This tagsize remains valid
+ * until the start of the next superstep.
  */
 int ebsp_get_tagsize();
 
@@ -275,17 +319,18 @@ int ebsp_get_tagsize();
  * @param tag_bytes A pointer to the tag size, in bytes
  *
  * Upon return, the value pointed to by tag_bytes will contain
- * the old tag size. The new tag size will take effect at the next superstep,
- * so messages that are being sent in this superstep will have the old tag size.
+ * the old tag size. The new tag size will take effect in the next superstep,
+ * so that messages sent in this superstep will have the old tag size.
  */
 void bsp_set_tagsize(int* tag_bytes);
 
 /**
  * Send a message to another processor.
- * @param pid The pid of the target processor (can be self)
+ * @param pid The pid of the target processor (this is allowed to be the id
+ *  of the sending processor)
  * @param tag A pointer to the tag data
- * @param payload A pointer to the data
- * @param nbytes The size of the data
+ * @param payload A pointer to the data payload
+ * @param nbytes The size of the data payload
  *
  * This will send a message to the target processor, using the message passing
  * system. The tag size can be obtained by ebsp_get_tagsize.
@@ -295,12 +340,15 @@ void bsp_set_tagsize(int* tag_bytes);
 void bsp_send(int pid, const void* tag, const void* payload, int nbytes);
 
 /**
- * Obtain the amount of messages in the queue and their total data size.
- * @param packets a pointer to an integer receiving the amount of messages
- * @param accum_bytes a pointer to an integer receiving the amount of bytes
+ * Obtain The number of messages in the queue and the combined size in bytes
+ *  of their data
+ * @param packets A pointer to an integer which will be overwritten with  the
+ *  number of messages
+ * @param accum_bytes A pointer to an integer which will be overwritten with
+ *  the combined number of bytes of the message data.
  *
  * Upon return, the integers pointed to by packets and accum_bytes will
- * hold the amount of messages in the queue, and the sum of the sizes
+ * hold the number of messages in the queue, and the sum of the sizes
  * of their data payloads respectively.
  */
 void bsp_qsize(int* packets, int* accum_bytes);
@@ -369,21 +417,22 @@ int bsp_hpmove(void** tag_ptr_buf, void** payload_ptr_buf);
 void ebsp_send_up(const void* tag, const void* payload, int nbytes);
 
 /**
- * Wait for any input-DMAs to finish.
- * A pointer to a chunk of input data is written to *address,
- * the size of this chunk is returned. stream_id is the index of the
- * input stream sent to this core, in the same order as ebsp_send_buffered().
- * prealloc can be set to either 1 (true) or 0 (false), and determines whether
- *double
- * or single buffering is used.
+ * Get the next chunk of data in a stream.
+ * @param address On completion, contains a pointer to the data chunk.
+ * @param stream_id Id of the input stream sent to this core, determined by
+ * the order in which ebsp_create_down_stream() was called. TODO refer to
+ * general page on streams for what id means.
+ * @param prealloc Double buffering is used iff this parameter is nonzero.
+ * @return Amount of bytes of the obtained chunk. Zero if stream has
+ * finished or an error has occurred.
  *
- * @remarks
- * - Sets *address=0 and returns 0 if the stream has ended
- * - Uses the DMA engine
+ * TODO: more detailed description on double buffering and stream_id
+ * TODO: some remarks on how DMA engine is used
  */
 int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc);
 
 /**
+ * TODO: fix this:
  * Wait for any output-DMAs to finish.
  * A pointer to a chunk of empty memory is written to *address,
  * the size of this chunk is returned. stream_id is the index of the
@@ -397,10 +446,10 @@ int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc);
  */
 int ebsp_move_chunk_up(void** address, unsigned stream_id, int prealloc);
 
-// TODO: write abstract
+// TODO
 void ebsp_move_down_cursor(int stream_id, int jump_n_chunks);
 
-// TODO: write abstract
+// TODO
 void ebsp_reset_down_cursor(int stream_id);
 
 int ebsp_open_up_stream(void** address, unsigned stream_id);
@@ -409,9 +458,13 @@ int ebsp_open_down_stream(void** address, unsigned stream_id);
 void ebsp_close_down_stream(unsigned stream_id);
 
 /**
- * Sets the number of bytes that has to be written from the current output chunk
- * to extmem.
- * The default value is max_chunk_size
+ * Sets the number of bytes that has to be written from the current output
+ * chunk to external memory.
+ * @param stream_id Stream id, see general page on streams TODO !!!
+ * @param nbytes TODO
+ *
+ * The default value is `max_chunk_size`
+ * TODO: what is max_chunk_size ?
  */
 void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes);
 
@@ -421,28 +474,46 @@ void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes);
  *
  * bsp_abort aborts the program after outputting a message.
  * This terminates all running epiphany-cores regardless of their status.
+ *
+ * @remarks
+ * After bsp_abort the cores are left in a state that does NOT allow them
+ * to restart with another call to ebsp_spmd(). Instead the program has to
+ * be completely reloaded to the cores, meaning bsp_end(), bsp_init()
+ * and bsp_begin() have to be called again which is slow.
+ *
+ * The attributes in this definition make sure that the compiler checks the
+ * arguments for errors.
  */
-
-// The attributes in this definition make sure that the compiler checks the
-// arguments for errors.
 void bsp_abort(const char* format, ...)
     __attribute__((__format__(__printf__, 1, 2)));
 
 /**
  * Allocate external memory.
  * @param nbytes The size of the memory block
+ * @return A pointer to the allocated memory, guaranteed to be 8-byte aligned
+ * to ensure fast transfers, or zero on error.
  *
  * This function allocates memory in external RAM, meaning the memory is slow
  * and should not be used with time critical computations.
+ *
+ * When no more space is available, the function will return zero.
+ * Note that it is not allowed to call ebsp_free() with a zero pointer so
+ * this should always be checked.
  */
 void* ebsp_ext_malloc(unsigned int nbytes);
 
 /**
  * Allocate local memory.
  * @param nbytes The size of the memory block
+ * @return A pointer to the allocated memory, guaranteed to be 8-byte aligned
+ * to ensure fast transfers, or zero on error.
  *
  * This function allocates memory in local SRAM, meaning the memory is fast
  * but extremely limited.
+ *
+ * When no more space is available, the function will return zero.
+ * Note that it is not allowed to call ebsp_free() with a zero pointer so
+ * this should always be checked.
  */
 void* ebsp_malloc(unsigned int nbytes);
 
@@ -457,42 +528,78 @@ void* ebsp_malloc(unsigned int nbytes);
 void ebsp_free(void* ptr);
 
 /**
- * Push a new task to the DMA engine
- * @param desc   Used in combination with ebsp_dma_wait(). It is completely
- *filled by this function
+ * Push a new task to the DMA engine. TODO: see general page on DMA which
+ * explains that it allows transfer+computation simultaneously
+ * @param desc   Used in combination with ebsp_dma_wait(). Should be seen
+ * as a *handle* to the task. Its contents are populated by this function.
  * @param dst    Destination address
  * @param src    Source address
  * @param nbytes Amount of bytes to be copied
  *
  * Assumes previous task in `desc` is completed (use ebsp_dma_wait())
+ *
+ * The DMA (1) will be started if it was not started yet.
+ * If it was already started, this task will be pushed to a queue so that it
+ * will be done some time later. Use ebsp_dma_wait() to wait for the task to
+ * complete.
+ *
+ * @remarks
+ * The `desc` pointer should be 8-byte aligned or behaviour is undefined.
+ * This should not be a problem because the malloc functions always return
+ * 8-byte aligned pointers, and having an `ebsp_dma_handle` struct as
+ * local variable will be 8-byte aligned as well.
  */
 void ebsp_dma_push(ebsp_dma_handle* desc, void* dst, const void* src,
                    size_t nbytes);
 
 /**
- * Start the queued DMA transfers
- */
-void ebsp_dma_start(ebsp_dma_handle*);
-
-/**
  * Wait for the task to be completed.
+ * @param desc Handle for a task. See ebsp_dma_push().
+ *
+ * Use somewhere after ebsp_dma_push().
+ * This function blocks untill the task in `desc` is completed.
  */
 void ebsp_dma_wait(ebsp_dma_handle* desc);
 
 /**
- * Get a raw remote memory address for a variable
- * that was registered using bsp_push_reg()
+ * Get a raw remote memory address for a variable that was registered
+ * using bsp_push_reg()
  * @param pid Remote core id
- * @param variable An address that was registered using bsp_push_reg
+ * @param variable An address that was registered using bsp_push_reg()
  * @return A pointer to the remote variable, or 0 if it was not registered
+ *
+ * The returned pointer (if nonzero) can be written to and read from directly.
+ * Note that the data will be transferred directly, as in bsp_hpput(),
+ * so synchronization issues should be considered.
+ *
+ * This function is meant to be used in combination with ebsp_dma_push()
+ * to transfer data between cores while doing computations at the same time.
  */
 void* ebsp_get_direct_address(int pid, const void* variable);
+
+/**
+ * Performs a memory copy completely analogous to the standard C memcpy().
+ * @param dst    Destination address
+ * @param src    Source address
+ * @param nbytes Amount of bytes to be copied
+ *
+ * This function is provided because the default `memcpy` generated
+ * by the epiphany-gcc compiler has some drawbacks.
+ * First of all it is stored in external memory, unless you store the full
+ * C library (newlib) on the epiphany cores. Secondly it does not do
+ * the optimal 8-byte transfers so it is far from optimal.
+ *
+ * This function resides in local core memory and does 8-byte transfers
+ * when possible, meaning if both `dst` and `src` are 8-byte aligned.
+ * In other cases, 4-byte or single byte transfers are used.
+ */
+void ebsp_memcpy(void* dst, const void* src, size_t nbytes);
 
 /**
  * Output a debug message printf style.
  * @param format The formatting string in printf style
  *
- * ebsp_message outputs a debug message by sending it to shared memory
+ * ebsp_message() outputs a debug message by sending it to shared memory
  * So that the host processor can output it to the terminal
  * The attributes in this definition make sure that the compiler checks the
  * arguments for errors.

@@ -13,7 +13,7 @@ computations and non-blocking communication. A (barrier)
 synchronisation at the end of such a step is used to guarantee
 occurance of all communications within a step. The BSP model can be used to write portable and powerful parallel applications.
 
-.. image:: img/epiphany-bsp-illustration-trimmed.jpg
+.. image:: img/epiphany-bsp-illustration-trimmed-small.jpg
     :width: 450 px
     :align: center
 
