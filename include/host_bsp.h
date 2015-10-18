@@ -278,17 +278,27 @@ void ebsp_move(void* payload, int buffer_size);
 int ebsp_hpmove(void** tag_ptr_buf, void** payload_ptr_buf);
 
 /**
- * Initialize streaming of nbytes from *src to core dst_core_id.
- * This splits the input into chunks of size chunksize (at most), adds headers,
- * writes the result to extmem and sends a message to the e_core.
+ * Creates a down stream
+ *
+ * @param src The data which should be streamed down to an Epiphany core.
+ * @param dst_core_id The processor identifier of the receiving core.
+ * @param nbytes The total number of bytes of the data to be streamed down.
+ * @param chunksize The size in bytes of a single chunk.
+ *
+ * @remarks The data is copied from `src`, such that the data `src` can be
+ *  safely freed or overwritten after this call.
  */
+
 void ebsp_create_down_stream(const void* src, int dst_core_id, int nbytes,
                              int chunksize);
 
 /**
- * Initialize streaming of at most max_nbytes from core dst_core_id
- * to an buffer in extmem. Each chunk of data can contain at most chunksize
- * bytes.
+ * Creates an up stream
+ *
+ * @param dst_core_id The processor identifier of the sending core.
+ * @param max_nbytes The maximum number of bytes that will be sent up using
+ *  this up stream.
+ * @param chunksize The maximum number of bytes of a single chunk that can be
+ *  sent up through this stream.
  */
 void* ebsp_create_up_stream(int dst_core_id, int max_nbytes, int chunksize);
-
