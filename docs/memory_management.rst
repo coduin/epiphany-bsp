@@ -23,34 +23,64 @@ In principle, all computations should be performed on data in the fast local mem
 How do you know in what type of memory your data is stored?
 Global and local variables in your C source code will be stored in local memory, unless otherwise specified with some special gcc attributes. 
 Code itself (i.e. the machine code) can also be stored in both types of memory. Normal C code will be stored in local memory, unless specified using gcc attributes.
-Variables allocated using ``ebsp_ext_malloc`` are stored in external memory.
+Variables allocated using :cpp:func:`ebsp_ext_malloc` are stored in external memory.
 
 TODO: Introduce DMA
 
+TODO: Do not use memcpy but use ebsp_memcpy
 
 DMA
 ---
 
 TODO: specify that users should not use DMA1 explicitly, only dma0 if wanted.
 
-...
+.. warning::
+    Do not use DMA for local to local (only to other cores)
+
+note that this requires ebsp_get_direct_address()
 
 Example
 -------
 
 Memory allocation
-......
+.................
 
 TODO: IMPORTANT: ext_malloc exists on host: can we alloc and send_message the address? nope
 
 DMA transfers
-......
+.............
 
 note that this requires ebsp_get_direct_address()
 
+In this example we do something something something:::
+
+    int s = bsp_pid();
+    int p = bsp_nprocs();
+    
+    // Register a variable with the BSP system
+    float mydata[16];
+    bsp_push_reg(&mydata, sizeof(mydata));
+    bsp_sync();
+    
+    // Get an address for the data on the core with pid s + 1.
+    float* remotedata = ebsp_get_direct_address((s+1)%p, &mydata);
+    
+    // Start the DMA to copy the data from this core to the next
+    ebsp_dma_handle descriptor;
+    ebsp_dma_push(&descriptor, remotedata, &mydata, sizeof(mydata));
+    
+    // Do lengthy computation
+    do_computations();
+    
+    // Wait for the DMA transfer to finish
+    ebsp_dma_wait(&descriptor);
+    
+    // Done
+
+Cool.
 
 Interface
-------------------
+---------
 
 .. doxygenfunction:: ebsp_ext_malloc
    :project: ebsp_e

@@ -56,6 +56,7 @@ If you are using EBSP, or have any questions, remarks or ideas then please get i
     :maxdepth: 1
     :caption: Reference & Background
 
+    memory_details
     bsp
     api_reference
 
