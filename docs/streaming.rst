@@ -16,7 +16,7 @@ Making and using down streams
 
 There are two types of streams, *up* and *down* streams. A *down* stream contains data to be processed by an Epiphany core, while an *up* stream contains results from computations performed by the Epiphany core. Every stream (both up and down) has a *target processor*, *total size* and a *chunk size*. The target processor is simply the processor id of the core that should receive the content of the stream. The total size is the total number of bytes of the entire set of data. This set of data then gets partitioned into chunks consisting of the number of bytes set by the chunk size. This size need not be constant (i.e. it may vary over a single stream), but for our discussion here we will assume that it is constant.
 
-A stream is created before the call to `ebsp_spmd` on the host processor. The host prepares the data to be processed by the Epiphany cores, and the EBSP library then performs the necessary work needed for each core to receives its chunk. A stream is created as follows::
+A stream is created before the call to ``ebsp_spmd`` on the host processor. The host prepares the data to be processed by the Epiphany cores, and the EBSP library then performs the necessary work needed for each core to receives its chunk. A stream is created as follows::
 
     // on the host
     int count = 256;
@@ -28,7 +28,7 @@ A stream is created before the call to `ebsp_spmd` on the host processor. The ho
                                     count_in_chunk * sizeof(float));
     }
 
-This will create `bsp_nprocs()` identical streams containing user data, one for each core. These streams are chopped up in `256/32 = 8` chunks. If you want to use these streams in the kernel you need to *open* them and *move chunks* from a stream to the local memory. Every stream you create on the host gets is identified by the order in which they are created. For example, the stream we created above will obtain the id `0` on every core. A second stream (regardless of whether it is up or down) will be identified with `1`, etc. *These identifiers are shared between up and down streams, but not between cores*. Opening a stream is done by using this identifier::
+This will create ``bsp_nprocs()`` identical streams containing user data, one for each core. These streams are chopped up in ``256/32 = 8`` chunks. If you want to use these streams in the kernel you need to *open* them and *move chunks* from a stream to the local memory. Every stream you create on the host gets is identified by the order in which they are created. For example, the stream we created above will obtain the id ``0`` on every core. A second stream (regardless of whether it is up or down) will be identified with ``1``, etc. *These identifiers are shared between up and down streams, but not between cores*. Opening a stream is done by using this identifier::
 
     // in the kernel
     float* address = NULL;
@@ -40,7 +40,7 @@ After this call, address will contain the location in the local memory of the fi
     int double_buffer = 1;
     ebsp_move_chunk_down(&(void*)address, 0, double_buffer);
 
-The first two arguments are identical to those of `ebsp_open_down_stream`. The `double_buffer` argument gives you the option to start writing the next chunk to local memory (using the DMA engine), while you process the current chunk that just moved down. This can be done simultaneously to your computations, but will take up twice as much memory. It depends on the specific situation whether double_buffered mode should be turned on or off. Subsequent blocks are obtained using repeated calls to `ebsp_move_chunk_down`.
+The first two arguments are identical to those of ``ebsp_open_down_stream``. The ``double_buffer`` argument gives you the option to start writing the next chunk to local memory (using the DMA engine), while you process the current chunk that just moved down. This can be done simultaneously to your computations, but will take up twice as much memory. It depends on the specific situation whether double_buffered mode should be turned on or off. Subsequent blocks are obtained using repeated calls to ``ebsp_move_chunk_down``.
 
 If you want to use a chunk multiple times at different stages of your algorithm, you need to be able to instruct EBSP to change which chunk you want to obtain. Internally the EBSP system has a *cursor* for each stream which points to the next chunk that should be obtained. You can modify this cursor using the following two functions::
 
@@ -68,19 +68,19 @@ Up streams work very similar to down streams, however no data has to be supplied
             s, count * sizeof(float), count_in_chunk * sizeof(float));
     }
 
-The array `upstream_data` holds pointers to the generated data by each processor. In the kernel you can *open* these streams similarly to down streams::
+The array ``upstream_data`` holds pointers to the generated data by each processor. In the kernel you can *open* these streams similarly to down streams::
 
     // in the kernel
     float* up_address = NULL;
     ebsp_open_up_stream(&(void*)up_address, // a pointer to the address store
                         1);                 // the stream identifier
 
-Note that this stream has the identifier `1` on each core. The up_address now points to a portion of *local memory* that you can fill with data from the kernel. To move a chunk of results up we use::
+Note that this stream has the identifier ``1`` on each core. The up_address now points to a portion of *local memory* that you can fill with data from the kernel. To move a chunk of results up we use::
 
     int double_buffer = 1;
     ebsp_move_chunk_up(&(void*)up_address, 1, double_buffer);
 
-If we use a double buffer, then after this call `up_address` will point to a new portion of memory, such that you can continue your operations while the previous chunk is being copied up. Again, this uses more local memory, but does allow you to continue processing the next chunk.
+If we use a double buffer, then after this call ``up_address`` will point to a new portion of memory, such that you can continue your operations while the previous chunk is being copied up. Again, this uses more local memory, but does allow you to continue processing the next chunk.
 
 Closing streams
 ^^^^^^^^^^^^^^^

@@ -34,7 +34,7 @@ programming in general. It should also be a very useful reference when programmi
 Making an EBSP Project
 ----------------------
 
-If you want to write EBSP programs you need to have access to a Parallella_ board with a recent version of the Epiphany SDK (ESDK) installed. If you want to read this documentation as a tutorial, it is perhaps easiest to clone the `EBSP example project <https://github.com/coduin/ebsp-empty-project>`_ found on GitHub using `git`. The empty project template is organized as follows::
+If you want to write EBSP programs you need to have access to a Parallella_ board with a recent version of the Epiphany SDK (ESDK) installed. If you want to read this documentation as a tutorial, it is perhaps easiest to clone the `EBSP example project <https://github.com/coduin/ebsp-empty-project>`_ found on GitHub using ``git``. The empty project template is organized as follows::
 
     ../project
     ├── bin
@@ -52,7 +52,7 @@ If you want to write EBSP programs you need to have access to a Parallella_ boar
         ├── ecore_code.c
         └── host_code.c
 
-If you just want to toy with the library, we suggest you use the example project, and write the code in `src/ecore_code.c` and `src/host_code.c`. To (re)build the program issue `make` from the command-line and afterwards run `bin/host_program`.
+If you just want to toy with the library, we suggest you use the example project, and write the code in ``src/ecore_code.c`` and ``src/host_code.c``. To (re)build the program issue ``make`` from the command-line and afterwards run ``bin/host_program``.
 
 For more advanced use you can download the latest EBSP release from the `release page on GitHub <https://github.com/coduin/epiphany-bsp/releases>`_. The EBSP library depends on the ESDK, and uses a custom linker file. If you want to use EBSP directly, without using the empty project as a template, we provide you with an example Makefile below which you can adapt for your own project::
 
