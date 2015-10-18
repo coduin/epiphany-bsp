@@ -69,7 +69,7 @@ int ebsp_open_up_stream(void** address, unsigned stream_id) {
         return 0;
     }
 
-    stream->current_buffer = ebsp_malloc(stream->max_chunksize);
+    stream->current_buffer = ebsp_malloc(stream->max_chunksize + sizeof(int));
     if (stream->current_buffer == NULL) {
         ebsp_message(err_out_of_memory);
         return 0;
