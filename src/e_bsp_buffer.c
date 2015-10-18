@@ -40,6 +40,9 @@ const char err_jump_out_of_bounds[] EXT_MEM_RO =
 const char err_create_opened[] EXT_MEM_RO =
     "BSP ERROR: tried creating opened stream";
 
+const char err_out_of_memory[] EXT_MEM_RO =
+    "BSP ERROR: could not allocate enough memory for stream";
+
 void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes) {
     ebsp_stream_descriptor* out_stream = &coredata.local_streams[stream_id];
 
@@ -67,6 +70,11 @@ int ebsp_open_up_stream(void** address, unsigned stream_id) {
     }
 
     stream->current_buffer = ebsp_malloc(stream->max_chunksize);
+    if (stream->current_buffer == NULL) {
+        ebsp_message(err_out_of_memory);
+        return 0;
+    }
+
     (*address) = (void*)((unsigned)stream->current_buffer + sizeof(int));
 
     // Set the size to max_chunksize
@@ -133,6 +141,10 @@ int ebsp_move_chunk_up(void** address, unsigned stream_id, int prealloc) {
         if (stream->next_buffer == NULL) {
             stream->next_buffer =
                 ebsp_malloc(stream->max_chunksize + sizeof(int));
+            if (stream->next_buffer == NULL) {
+                ebsp_message(err_out_of_memory);
+                return 0;
+            }
         }
 
         // read int header from current_buffer (next size)
@@ -222,6 +234,10 @@ int ebsp_open_down_stream(void** address, unsigned stream_id) {
     // this will be the current buffer when move_chunk_down gets called for
     // the first time
     stream->next_buffer = ebsp_malloc(stream->max_chunksize + 2 * sizeof(int));
+    if (stream->next_buffer == NULL) {
+        ebsp_message(err_out_of_memory);
+        return 0;
+    }
 
     _ebsp_write_chunk(stream, stream->next_buffer);
 
@@ -317,6 +333,10 @@ int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc) {
             // no next buffer available, malloc it
             stream->next_buffer =
                 ebsp_malloc(stream->max_chunksize + 2 * sizeof(int));
+            if (stream->next_buffer == NULL) {
+                ebsp_message(err_out_of_memory);
+                return 0;
+            }
         }
         _ebsp_write_chunk(stream, stream->next_buffer);
     } else {
