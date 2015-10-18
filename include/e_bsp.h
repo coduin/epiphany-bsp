@@ -342,7 +342,7 @@ void bsp_send(int pid, const void* tag, const void* payload, int nbytes);
 /**
  * Obtain The number of messages in the queue and the combined size in bytes
  *  of their data
- * @param packets A pointer to an integer which will be overwritten with  the
+ * @param packets A pointer to an integer which will be overwritten with the
  *  number of messages
  * @param accum_bytes A pointer to an integer which will be overwritten with
  *  the combined number of bytes of the message data.
@@ -488,7 +488,7 @@ void ebsp_reset_down_cursor(int stream_id);
 /**
  * Open an up stream.
  *
- * @param address Pointer to a variable that will be overwritten with The
+ * @param address Pointer to a variable that will be overwritten with the
  *  location where the data should be written  for the first chunk that will
  *  be sent up.
  * @param stream_id The identifier of the stream
@@ -514,7 +514,7 @@ void ebsp_close_up_stream(unsigned stream_id);
 /**
  * Open a down stream.
  *
- * @param address Pointer to a variable that will be overwritten with The
+ * @param address Pointer to a variable that will be overwritten with the
  *  location where the data should be written  for the first chunk that will
  *  be sent up.
  * @param stream_id The identifier of the stream
