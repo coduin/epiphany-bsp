@@ -417,54 +417,132 @@ int bsp_hpmove(void** tag_ptr_buf, void** payload_ptr_buf);
 void ebsp_send_up(const void* tag, const void* payload, int nbytes);
 
 /**
- * Get the next chunk of data in a stream.
- * @param address On completion, contains a pointer to the data chunk.
- * @param stream_id Id of the input stream sent to this core, determined by
- * the order in which ebsp_create_down_stream() was called. TODO refer to
- * general page on streams for what id means.
- * @param prealloc Double buffering is used iff this parameter is nonzero.
- * @return Amount of bytes of the obtained chunk. Zero if stream has
- * finished or an error has occurred.
+ * Obtain the next chunk of data from a stream.
  *
- * TODO: more detailed description on double buffering and stream_id
- * TODO: some remarks on how DMA engine is used
+ * @param address A pointer to a value that is overwritten with the local
+ *  memory location of the data chunk
+ * @param stream_id The identifier of the stream
+ * @param prealloc If this parameter is equal to `1` then the BSP system will
+ *  use double buffering, if it is `0` then single buffering is used.
+ * @return Number of bytes of the obtained chunk. If stream has
+ *  finished or an error has occurred this function will return `0`.
+ *
+ * @remarks Memory is transferred using the `DMA1` engine.
+ * @remarks When using double buffering, the BSP system will allocate memory
+ *  for the next chunk, and will start writing to it using the DMA engine
+ *  while the current chunk is processed. This requires more (local) memory,
+ *  but can greatly increase the overall speed.
  */
 int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc);
 
 /**
- * TODO: fix this:
- * Wait for any output-DMAs to finish.
- * A pointer to a chunk of empty memory is written to *address,
- * the size of this chunk is returned. stream_id is the index of the
- * output stream, in the same order as ebsp_send_buffered().
- * prealloc can be set to either 1 (true) or 0 (false), and determines whether
- *double
- * or single buffering is used.
+ * Move a chunk of data up from a stream.
+
+ * @param address A pointer to a value that is overwritten with the local
+ *  memory location where the next chunk should be written to.
+ * @param stream_id The identifier of the stream
+ * @param prealloc If this parameter is equal to `1` then the BSP system will
+ *  use double buffering, if it is `0` then single buffering is used.
+ * @return Number of bytes allocated for the next chunk of this stream. if
+ *  stream has finished or an error has occurred this function will return `0`.
  *
- * @remarks
- * - Uses the DMA engine
+ * @remarks Memory is transferred using the `DMA1` engine.
+ * @remarks When using the double buffering mode, `*address` will contain the
+ *  location of a new chunk of memory, such that the BSP program can continue
+ *  while the current chunk is being copied using the DMA engine. This requires
+ *  more local memory, but can improve the performance of the program.
  */
 int ebsp_move_chunk_up(void** address, unsigned stream_id, int prealloc);
 
-// TODO
+/**
+ * Move the cursor pointing to the next chunk to be obtained from a stream.
+ *
+ * @param stream_id The identifier of the stream
+ * @param jump_n_chunks The number of chunks to skip if `jump_n_chunks > 0`,
+ *  or to go back if `jump_n_chunks < 0`.
+ *
+ * @remarks Internally a stream is a collection of data, along with specific
+ *  information for a stream. For example, a stream holds a pointer to the
+ *  next chunk that should be written to a core. Using this function you can
+ *  change which chunk should be the `next` chunk. This allows you to obtain
+ *  chunks multiple times, or to skip chunks completely.
+ * @remarks This function provides a mechanism through which chunks can be
+ *  obtained multiple times. It gives you random access in the memory in
+ *  the data stream.
+ * @remarks This function has `O(jump_n_chunks)` complexity.
+ */
 void ebsp_move_down_cursor(int stream_id, int jump_n_chunks);
 
-// TODO
+/**
+ * Resets the cursor pointing to the next chunk to be obtained from a stream.
+ *
+ * @param stream_id The identifier of the stream
+ *
+ * After calling this function the *next chunk* that is obtained from this
+ * stream is equal to the first chunk.
+ *
+ * @remarks This function has `O(1)` complexity.
+ */
 void ebsp_reset_down_cursor(int stream_id);
 
+/**
+ * Open an up stream.
+ *
+ * @param address Pointer to a variable that will be overwritten with The
+ *  location where the data should be written  for the first chunk that will
+ *  be sent up.
+ * @param stream_id The identifier of the stream
+ * @return Number of bytes that can be written to the first chunk to be sent up.
+ *
+ * @remarks This function has to be called *before* performing any other operation
+ *  on the stream.
+ * @remarks A call to the function should always match a single call to
+ *  `ebsp_close_up_stream`.
+ */
 int ebsp_open_up_stream(void** address, unsigned stream_id);
+
+/**
+ * Close an up stream.
+ *
+ * @param stream_id The identifier of the stream
+ *
+ * Cleans up the stream, and frees any buffers that may have been used by the
+ *  stream.
+ */
 void ebsp_close_up_stream(unsigned stream_id);
+
+/**
+ * Open a down stream.
+ *
+ * @param address Pointer to a variable that will be overwritten with The
+ *  location where the data should be written  for the first chunk that will
+ *  be sent up.
+ * @param stream_id The identifier of the stream
+ * @return The size of the first chunk of this stream in bytes.
+ *
+ * @remarks This function has to be called *before* performing any other operation
+ *  on the stream.
+ * @remarks A call to the function should always match a single call to
+ *  `ebsp_close_down_stream`.
+ */
 int ebsp_open_down_stream(void** address, unsigned stream_id);
+
+/**
+ * Close a down stream.
+ *
+ * @param stream_id The identifier of the stream
+ *
+ * Cleans up the stream, and frees any buffers that may have been used by the
+ *  stream.
+ */
 void ebsp_close_down_stream(unsigned stream_id);
 
 /**
- * Sets the number of bytes that has to be written from the current output
- * chunk to external memory.
- * @param stream_id Stream id, see general page on streams TODO !!!
- * @param nbytes TODO
+ * Set the number of bytes of the current chunk in the up stream.
  *
- * The default value is `max_chunk_size`
- * TODO: what is max_chunk_size ?
+ * @param stream_id The identifier of the stream
+ * @param nbytes The number of bytes that should be moved from the current
+ *  chunk of data in the next call to `ebsp_move_chunk_up`.
  */
 void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes);
 
