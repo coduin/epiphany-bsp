@@ -28,6 +28,13 @@ Note that the default Epiphany clockfrequency is about 600 MHz, such that 600000
 
 Note that there are two separate timers available on the Epiphany cores, identified by ``E_CTIMER_0`` and ``E_CTIMER_1``. The Epiphany BSP library will only use ``E_CTIMRE_0`` so you are free to use the other timer in any way you require, using the Epiphany SDK.
 
+The second method uses the system clock of the host to obtain the elapsed time. Because of varying amounts of latency this can be very inaccurate (its precision is in the order of milliseconds), but supports time intervals of arbitrary length. This timer can be used by calling the function ``ebsp_host_time()``::
+
+    float t_start = ebsp_host_time();
+    // ... perform (long) computation
+    float t_end = ebsp_host_time();
+    float result = t_end - t_start;
+
 Interrupts
 ----------
 
