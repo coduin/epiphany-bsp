@@ -469,25 +469,6 @@ void ebsp_close_down_stream(unsigned stream_id);
 void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes);
 
 /**
- * Aborts the program after outputting a message.
- * @param format The formatting string in printf style
- *
- * bsp_abort aborts the program after outputting a message.
- * This terminates all running epiphany-cores regardless of their status.
- *
- * @remarks
- * After bsp_abort the cores are left in a state that does NOT allow them
- * to restart with another call to ebsp_spmd(). Instead the program has to
- * be completely reloaded to the cores, meaning bsp_end(), bsp_init()
- * and bsp_begin() have to be called again which is slow.
- *
- * The attributes in this definition make sure that the compiler checks the
- * arguments for errors.
- */
-void bsp_abort(const char* format, ...)
-    __attribute__((__format__(__printf__, 1, 2)));
-
-/**
  * Allocate external memory.
  * @param nbytes The size of the memory block
  * @return A pointer to the allocated memory, guaranteed to be 8-byte aligned
@@ -528,21 +509,54 @@ void* ebsp_malloc(unsigned int nbytes);
 void ebsp_free(void* ptr);
 
 /**
- * Push a new task to the DMA engine. TODO: see general page on DMA which
- * explains that it allows transfer+computation simultaneously
+ * Push a new task to the DMA engine. See the documentation on Memory
+ * Management for details on the DMA engine.
  * @param desc   Used in combination with ebsp_dma_wait(). Should be seen
  * as a *handle* to the task. Its contents are populated by this function.
  * @param dst    Destination address
  * @param src    Source address
  * @param nbytes Amount of bytes to be copied
  *
+ * \verbatim embed:rst:leading-asterisk
+ * .. warning::
+ *     Source ``src`` and destination ``dst`` can **NOT** be both on the local
+ *     core. Doing so results in undefined behaviour. At least one of the two
+ *     addresses should be on another core or in external memory.
+ * \endverbatim
+ *
  * Assumes previous task in `desc` is completed (use ebsp_dma_wait())
  *
- * The DMA (1) will be started if it was not started yet.
+ * The DMA (`E_DMA_1`) will be started if it was not started yet.
  * If it was already started, this task will be pushed to a queue so that it
  * will be done some time later. Use ebsp_dma_wait() to wait for the task to
  * complete.
  *
+ * Usage example:
+ * \code{.c}
+ * int s = bsp_pid();
+ * int p = bsp_nprocs();
+ *
+ * // Register a variable with the BSP system
+ * float mydata[16];
+ * bsp_push_reg(&mydata, sizeof(mydata));
+ * bsp_sync();
+ *
+ * // Get an address for the data on the core with pid s + 1.
+ * float* remotedata = ebsp_get_direct_address((s+1)%p, &mydata);
+ * 
+ * // Start the DMA to copy the data from this core to the next
+ * ebsp_dma_handle descriptor;
+ * ebsp_dma_push(&descriptor, remotedata, &mydata, sizeof(mydata));
+ *
+ * // Do lengthy computation
+ * do_computations();
+ *
+ * // Wait for the DMA transfer to finish
+ * ebsp_dma_wait(&descriptor);
+ *
+ * // Done
+ * \endcode
+
  * @remarks
  * The `desc` pointer should be 8-byte aligned or behaviour is undefined.
  * This should not be a problem because the malloc functions always return
@@ -556,8 +570,8 @@ void ebsp_dma_push(ebsp_dma_handle* desc, void* dst, const void* src,
  * Wait for the task to be completed.
  * @param desc Handle for a task. See ebsp_dma_push().
  *
- * Use somewhere after ebsp_dma_push().
  * This function blocks untill the task in `desc` is completed.
+ * Use somewhere after ebsp_dma_push(). See ebsp_dma_push() for example code.
  */
 void ebsp_dma_wait(ebsp_dma_handle* desc);
 
@@ -605,5 +619,24 @@ void ebsp_memcpy(void* dst, const void* src, size_t nbytes);
  * arguments for errors.
  */
 void ebsp_message(const char* format, ...)
+    __attribute__((__format__(__printf__, 1, 2)));
+
+/**
+ * Aborts the program after outputting a message.
+ * @param format The formatting string in printf style
+ *
+ * bsp_abort aborts the program after outputting a message.
+ * This terminates all running epiphany-cores regardless of their status.
+ *
+ * @remarks
+ * After bsp_abort the cores are left in a state that does NOT allow them
+ * to restart with another call to ebsp_spmd(). Instead the program has to
+ * be completely reloaded to the cores, meaning bsp_end(), bsp_init()
+ * and bsp_begin() have to be called again which is slow.
+ *
+ * The attributes in this definition make sure that the compiler checks the
+ * arguments for errors.
+ */
+void bsp_abort(const char* format, ...)
     __attribute__((__format__(__printf__, 1, 2)));
 
