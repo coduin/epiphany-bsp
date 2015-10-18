@@ -31,6 +31,8 @@ TODO: Introduce DMA
 DMA
 ---
 
+TODO: specify that users should not use DMA1 explicitly, only dma0 if wanted.
+
 ...
 
 Example
@@ -67,7 +69,3 @@ Interface
 
 .. doxygenfunction:: ebsp_get_direct_address
    :project: ebsp_e
-
-.. _BSP: http://en.wikipedia.org/wiki/Bulk_synchronous_parallel
-.. _Adapteva:
-.. _Parallella:

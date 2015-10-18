@@ -150,7 +150,7 @@ bsp_time
    :project: ebsp_e
 
 ebsp_host_time
-^^^^^^^^^^^^^
+^^^^^^^^^^^^^^
 
 .. doxygenfunction:: ebsp_host_time
    :project: ebsp_e

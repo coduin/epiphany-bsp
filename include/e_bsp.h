@@ -83,13 +83,16 @@ int bsp_pid();
  * the call to bsp_begin()
  *
  * The native Epiphany timer does not support time differences longer than
- * `UINT_MAX/(600000000)` which is roughly 5 seconds.
+ * `UINT_MAX/(600000000)` which is roughly 7 seconds.
  *
  * If you want to measure longer time intervals, we suggest you use the
  * (less accurate) ebsp_host_time().
  *
  * @remarks Using this in combination with ebsp_raw_time() leads to unspecified
  * behaviour, you should only use one of these in your program.
+ *
+ * @remarks This uses the internal Epiphany `E_CTIMER_0` timer so the second
+ * timer can be used for other purposes.
  */
 float bsp_time();
 
@@ -102,8 +105,11 @@ float bsp_time();
  *
  * Divide the number of clockcycles by 600 000 000 to get the time in seconds.
  *
- * * @remarks Using this in combination with bsp_time() leads to unspecified
+ * @remarks Using this in combination with bsp_time() leads to unspecified
  * behaviour, you should only use one of these in your program.
+ *
+ * @remarks This uses the internal Epiphany `E_CTIMER_0` timer so the second
+ * timer can be used for other purposes.
  */
 unsigned int ebsp_raw_time();
 
