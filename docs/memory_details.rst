@@ -101,7 +101,7 @@ Normal access
 .............
 
 All types of memory can be accessed by for example dereferencing a pointer to an address.
-If one does not want to hardcode addresses, **section labels** can be used to put data in certain sections, in the following way:::
+If one does not want to hardcode addresses, **section labels** can be used to put data in certain sections, in the following way::
 
     //Internal memory
     char my_char; //normal method
