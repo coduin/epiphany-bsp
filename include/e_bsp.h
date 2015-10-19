@@ -117,9 +117,10 @@ unsigned int ebsp_raw_time();
  * Obtain the time in seconds since bsp_begin() was called.
  * @return A floating point value with the number of seconds since bsp_begin()
  *
- * This timer is much less accurate than ebsp_time(), its accuracy is in the
- * order of milliseconds. However, this timer supports time intervals of
- * arbitrary lengths.
+ * This function uses the system clock of the host to obtain the elapsed time.
+ * Because of varying amounts of latency this can be very inaccurate
+ * (its precision is in the order of milliseconds), but it supports time
+ * intervals of arbitrary length. 
  */
 float ebsp_host_time();
 
