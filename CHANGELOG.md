@@ -13,6 +13,7 @@
 - Add Cannon's algorithm example for dense-dense matrix multiplication.
 - Add streaming dot product example for large vectors.
 - Add `ebsp_get_direct_address` to obtain a direct pointer to a remote variable.
+- Add `ebsp_memcpy`, a more efficient implementation of `memcpy`.
 - Add support for using `n < 16` cores.
 - Use DMA interrupt handler to implement controllable DMA chaining
 - Improved unit test coverage.
