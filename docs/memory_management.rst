@@ -5,8 +5,7 @@
 Memory Management
 =================
 
-Memory management on the Epiphany platform requires some special care so we discuss it in this separate section.
-The Epiphany cores have very little local (fast) memory, and access the external (larger) memory space is very slow. Therefore one needs to pay special attention to memory management in order to write good programs for the Epiphany platform.
+Memory management on the Epiphany platform requires some special care so we discuss it in this separate section. The Epiphany cores have very little local (fast) memory, and access the external (larger) memory space is very slow. Therefore one needs to pay special attention to memory management in order to write good programs for the Epiphany platform.
 
 We provide some functions that aid in memory allocation. These are not part of the offical BSP standard, but meant as a utility library. This page will cover these helper functions. If you are interested in the more technical details (specific for the Parallella), see :ref:`Parallella memory details<memory_details>`.
 
@@ -48,24 +47,55 @@ Global and local variables in your C source code will be stored in local memory,
 Data copying
 ------------
 
-memcpy
-......
+Direct memcpy
+.............
 
-TODO 1
+In C you can copy data using ``memcpy(destination, source, nbytes)``. This function is available on the Epiphany as well, but its implementation (using the ESDK that we used) is not properly optimized for the Epiphany architecture. In particular the function itself is stored in external memory (unless you choose to save the complete C library in local memory) and it also does not perform 8-byte transfers. For this reason we have created :cpp:func:`ebsp_memcpy` which is stored in local memory and does transfers utilizing 8-byte read/write instructions when possible. It is therefore faster than ``memcpy`` and should be preferred.
 
 DMA engine
 ..........
 
-TODO 2
+Each Epiphany processor contains a so-called DMA engine which can be used to transfer data. This DMA engine can be viewed as a separate core that can copy data while the normal Epiphany core does other things. The Epiphany core can simply give the DMA engine a task (a source and destination address along with some other options) and the DMA engine will copy the data so that the Epiphany core can continue with other operations. The advantage of the DMA engine over normal memory access is that the DMA engine is **faster** and can transfer data **while the CPU does other things**. There are **two DMA channels**, meaning that two pairs of source/destination addresses can be set and the Epiphany core can continue while the DMA engine is transfering data. 
 
-TODO: specify that users should not use DMA1 explicitly, only dma0 if wanted.
+We have provided some utility functions to make the use of the DMA engine easier.  If you want to use the DMA engine using the ``e_dma_xxx`` functions from the ESDK you can do so, but only use ``E_DMA_0``. The other DMA channel (``E_DMA_1``) is used internally by the library.
 
 .. warning::
-    Do not use DMA for local to local (only to other cores)
+    The DMA engine can not transfer data from the local core to itself (i.e. to another memory location in the same core). Either the source or destination (or both) should point to another core's memory or to external memory.
 
-note that this requires ebsp_get_direct_address()
+The Epiphany BSP library provides the functions :cpp:func:`ebsp_dma_push` and :cpp:func:`ebsp_dma_wait`. They implement a queue of DMA tasks that are handled sequentially. With :cpp:func:`ebsp_dma_push` you can push a task to this queue and with :cpp:func:`ebsp_dma_wait` you can wait for the task to complete:::
 
-TODO: clarify that its a queue, and multiple tasks can be pushed.
+    // A handle identifies the transfer task
+    ebsp_dma_handle descriptor_1;
+    ebsp_dma_handle descriptor_2;
+
+    // Start to transfers
+    ebsp_dma_push(&descriptor_1, destination_1, source_1, data_size_1);
+    ebsp_dma_push(&descriptor_2, destination_2, source_2, data_size_2);
+
+    // Do something else
+    do_computation();
+
+    // Wait for them to finish
+    ebsp_dma_wait(&descriptor_2);
+
+Pushing a new task will start the DMA engine if it was not started yet. If it was already running, the library will add the task to an internal queue and automatically point the DMA engine to the next task when it is finished. For those who are interested, this is implemented using interrupts.
+
+In order to use the DMA engine to write data to another core, one needs a memory address that points to another core. For this we provide the function :cpp:func:`ebsp_get_direct_address`::
+    
+    // Some buffer
+    float data[16];
+
+    // Register it in the BSP system
+    bsp_push_reg(&data, sizeof(data));
+    bsp_sync();
+    
+    // Get an address for the data buffer on the core with pid 3
+    float* remotedata = ebsp_get_direct_address(3, &incomingdata);
+
+    // Now we can pass 'remotedata' to the DMA engine, or use it directly
+    *remotedata = 1.0f;
+
+The above example shows how to obtain an address of a variable on another core. This address can then be passed as source or destination to :cpp:func:`ebsp_dma_push`.
 
 Example
 -------
