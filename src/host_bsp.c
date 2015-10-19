@@ -370,6 +370,9 @@ int ebsp_spmd() {
 
     bsp_initialized = 3;
 
+    if (abort_counter != 0)
+        return 0;
+
     return 1;
 }
 
