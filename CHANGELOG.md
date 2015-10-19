@@ -1,14 +1,46 @@
 # Changelog
 
-## 0.2
-- Updated bsp_init to use the path relative to the host binary instead of current directory
+## 1.0b - 2015-10-21
+
+### Added
+- Update support for cross-compiling the library.
+- Add data streaming to the library.
+- Add function `ebsp_ext_malloc` for managing the external memory.
+- Add dynamic memory management for local memory through `ebsp_malloc` and `ebsp_free`.
+- Add support for using the DMA engine through the library.
+- Add `ebsp_barrier` for high performance synchronization between cores.
+- Add primitives example showing how to use a combination of EBSP functions.
+- Add Cannon's algorithm example for dense-dense matrix multiplication.
+- Add streaming dot product example for large vectors.
+- Add `ebsp_get_direct_address` to obtain a direct pointer to a remote variable.
+- Add support for using `n < 16` cores.
+- Enable support for interrupt handlers.
+- Improved unit test coverage.
+- Improved unit test script, support expected values of the form `output(pid)`.
+- Improved error handling throughout the library.
+- Greatly improved documentation and README.
+
+### Fixed
+- Move the code of many *slow* functions to external memory to save space in local memory.
+- Fix local message passing sometimes using the wrong queue.
+- Fix vertical message passing sometimes using the wrong queue.
+- Fix general issue with read/write packets to external memory, sometimes breaking `ebsp_message`.
+- Use `-O3` flag in the compilation of the library by default instead of the unstable `-Os` flag.
+- Library source code is now formatted using `clang-format`.
+
+### Removed
+- Remove obsolete and incomplete examples.
+- Remove the memory inspector.
+
+## 1.0a - 2015-04-24
+- Updated `bsp_init` to use the path relative to the host binary instead of current directory
 - Rewrote both Makefiles to be cleaner
-- Added bsp_raw_time, now implemented in assembly
+- Added `bsp_raw_time`, now implemented in assembly
 - Added some documentation
 - Rewrote all examples to use the message passing system instead of hardcoded addresses
 - Separated the epiphany library into multiple files
 - Added 'assembly' target in makefile to produce readable assembly
-- Added ebsp_ext_malloc for allocating external memory, using self-made allocation table system
+- Added `ebsp_ext_malloc` for allocating external memory, using self-made allocation table system
 - Modified bspbench to use less iterations for higher h-values
 - Makefile now detects architecture and uses cross compiler if needed
 - Implemented BSP abort using an Epiphany instruction that halts all cores, and host code to handle this
@@ -20,8 +52,8 @@
 - Implemented BSP Message passing
 - Host does no longer take part in synchronization
 - All cores now use the same space to store data payloads (mutexed)
-- All bsp_push_reg logic now happens on the epiphany side
-- Added benchmark comparing bsp_put to bsp_hpput
+- All `bsp_push_reg` logic now happens on the epiphany side
+- Added benchmark comparing `bsp_put` to `bsp_hpput`
 - All shared structures now have maximal packing because the two compilers use non-compatible alignments
 - All cores now use the same memory for `bsp_put` data payload allowing a lot larger payloads
 - Moved `bsp_var_list` from on-core memory to external memory
@@ -34,7 +66,7 @@
 - All BSP variables are stored in a struct
 - Host checks for `MAX_N_REGISTER` and outputs warning if reached.
 - Added memory inspector with `ebsp_inspector_enable()`.
-- Added LU decomposition example 
+- Added LU decomposition example
 
 ## 0.1
 - Initial release
