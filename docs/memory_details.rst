@@ -17,7 +17,7 @@ Memory Types
 ------------
 
 The Epiphany cores have access to two types of memory.
-Both types can be accessed directly (i.e. dereferencing a pointer).
+Both types can be accessed directly (e.g. by dereferencing a pointer). Here we will give a short overview of these two types. For more details see the `Epiphany architecture reference <www.adapteva.com/docs/epiphany_arch_ref.pdf>`_.
 
 All addresses shown below are the ones used by the Epiphany cores. They can **not** be used directly by the ARM processor.
 
@@ -29,7 +29,7 @@ Internal memory
 Location in address space:
 
 - ``0x00000000 - 0x00007fff`` when a core is referring to its own memory
-- ``0x???00000 - 0x???07fff`` when referring to the memory of any other core (or itself). The ``???`` indicate the core with 6 bits for the row and 6 bits for the column, see the Epiphany Architecture Reference for how exactly.
+- ``0x???00000 - 0x???07fff`` when referring to the memory of any other core (or itself). The ``???`` indicates the Epiphany core, using 6 bits for the row and 6 bits for the column.
 
 Terminology:
 
@@ -115,19 +115,19 @@ If one does not want to hardcode addresses, **section labels** can be used to pu
     float *my_other_float = (float*)0x8f800000;
 
 If one wants to read or write to another core's memory, the ESDK functions ``e_read`` and ``e_write`` can be used, which will compute the correct address (of the form ``0x???00000 + offset``) and memcpy the data.
-Alternativly one can use :cpp:func:`ebsp_get_direct_address` to get a direct pointer to the data on the remote core.
+Alternatively one can use :cpp:func:`ebsp_get_direct_address` to get a direct pointer to the data on the remote core.
 
 DMA Engine
 ..........
 
 Each Epiphany processor contains a *DMA engine* which can be used to transfer data.
 The advantage of the DMA engine over normal memory access is that the DMA engine is **faster** and can transfer data **while the CPU does other things**. There are **two DMA channels**, meaning that two pairs of source/destination addresses can be set and the CPU can continue while the DMA engine is transfering data. This source and destination addresses can even *both be pointing at other cores' internal memory*.
-To use the DMA engine one can use the ``e_dma_xxx`` functions from the ESDK or :cpp:func:`ebsp_dma_push`.
+To use the DMA engine one can use the ``e_dma_xxx`` functions from the ESDK. When writing EBSP programs you should prefer :cpp:func:`ebsp_dma_push` to let the EBSP system manage the DMA engine.
 
-Accessing the memory from the ARM processor
-...........................................
+Accessing the memory directly from the ARM processor
+....................................................
 
-One can use ``e_read`` and ``e_write`` ESDK functions in order to write to the internal memory of each core.
+The EBSP library supports a number of ways to write to the Epiphany cores. If for some reason you want to use the ESDK directly, you can use ``e_read`` and ``e_write`` ESDK functions in order to write to the internal memory of each core.
 
 To write to external memory, one has to use ``e_alloc`` to "allocate" external memory. This function does not actually **allocate** memory (it is already there), it _only_ gives you a ``e_mem_t`` struct that allows you to access the memory with ``e_read`` and ``e_write`` calls.
 The ``offset`` that you pass to ``e_alloc`` will be an offset from ``0x8e000000``, meaning an offset of ``0x01000000`` will give you access to the external memory at ``0x8e000000 + 0x01000000 = 0x8f000000 (shared_dram)`` as seen from the Epiphany. Subsequent offsets can then be added on top of this in ``e_read`` and ``e_write`` calls.
@@ -135,24 +135,24 @@ The ``offset`` that you pass to ``e_alloc`` will be an offset from ``0x8e000000`
 Memory speed
 ------------
 
-This benchmark data has been taken from
+To give an idea of the efficiency of the types of memory, we share here benchmark data that has been taken from
 https://parallella.org/forums/viewtopic.php?f=23&t=307&sid=773cf3c3fc58f303645cfe0a684965a7
 ::
 
     SRAM = Internal memory
     ERAM = External memory
-    
+
     Host -> SRAM: Write speed =   14.62 MBps
     Host <- SRAM: Read speed  =   17.85 MBps
     Host -> ERAM: Write speed =  100.71 MBps
     Host <- ERAM: Read speed  =  135.42 MBps
-    
+
     Using memcpy:
     Core -> SRAM: Write speed =  504.09 MBps clocks = 9299
     Core <- SRAM: Read speed  =  115.65 MBps clocks = 40531
     Core -> ERAM: Write speed =  142.99 MBps clocks = 32782
     Core <- ERAM: Read speed  =    4.19 MBps clocks = 1119132
-    
+
     Using DMA:
     Core -> SRAM: Write speed = 1949.88 MBps clocks = 2404
     Core <- SRAM: Read speed  =  480.82 MBps clocks = 9749
