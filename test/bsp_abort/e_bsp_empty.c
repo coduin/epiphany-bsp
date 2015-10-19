@@ -20,28 +20,12 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
-#include <host_bsp.h>
+#include <e_bsp.h>
+#include "../common.h"
 
-int main(int argc, char** argv) {
-    bsp_init("e_bsp_abort.srec", argc, argv);
-
-    bsp_begin(bsp_nprocs());
-    int result = ebsp_spmd();
-    // expect: ((BSP) ERROR: bsp_abort was called)
+int main() {
+    bsp_begin();
     bsp_end();
-
-    // expect: (result: 0)
-    printf("result: %i\n", result);
-
-    bsp_init("e_bsp_empty.srec", argc, argv);
-
-    bsp_begin(bsp_nprocs());
-    int result_empty = ebsp_spmd();
-    bsp_end();
-
-    // expect: (result: 1)
-    printf("result: %i\n", result_empty);
 
     return 0;
 }

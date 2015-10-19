@@ -81,7 +81,7 @@ bsp_utility:        bin/e_bsp_utility.elf     	bin/e_bsp_utility.srec			bin/host
 bsp_streams:	 	bin/e_bsp_streams.elf		bin/e_bsp_streams.srec			bin/host_bsp_streams
 bsp_dma: 			bin/e_bsp_dma.elf 			bin/e_bsp_dma.srec				bin/host_bsp_dma
 bsp_memory: 		bin/e_bsp_memory.elf 		bin/e_bsp_memory.srec			bin/host_bsp_memory
-bsp_abort: 			bin/e_bsp_abort.elf 		bin/e_bsp_abort.srec			bin/host_bsp_abort
+bsp_abort: 			bin/e_bsp_abort.elf 		bin/e_bsp_abort.srec			bin/host_bsp_abort 				bin/e_bsp_empty.srec
 
 ########################################################
 

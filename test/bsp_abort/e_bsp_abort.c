@@ -25,9 +25,11 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 int main() {
     bsp_begin();
-
-    bsp_abort("Test");
-
+    if (bsp_pid() == 7) {
+        // expect: ($07: Abort)
+        bsp_abort("Abort");
+    }
     bsp_end();
+
     return 0;
 }
