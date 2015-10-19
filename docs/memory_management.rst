@@ -51,7 +51,7 @@ Data copying
 Direct memcpy
 .............
 
-In C you can copy data using ``memcpy(destination, source, nbytes)``. This function is available on the Epiphany as well as part of the ESDK, but its implementation is not properly optimized for the Epiphany architecture. In particular the function itself is stored in external memory (unless you choose to save the complete C library in local memory) and it also does not perform 8-byte transfers. For this reason we have created :cpp:func:`ebsp_memcpy` which is stored in local memory and does transfers utilizing 8-byte read/write instructions when possible. It is therefore faster than ``memcpy`` and should be preferred.
+In C you can copy data using ``memcpy(destination, source, nbytes)``. This function is available on the Epiphany as well, but its implementation (depending on the version of gcc and newlib) is not properly optimized for the Epiphany architecture. In particular the function itself is stored in external memory (unless you choose to save the complete C library in local memory) and it also does not perform 8-byte transfers. For this reason we have created :cpp:func:`ebsp_memcpy` which is stored in local memory and does transfers utilizing 8-byte read/write instructions when possible. It is therefore faster than ``memcpy`` and should be preferred.
 
 DMA engine
 ..........
