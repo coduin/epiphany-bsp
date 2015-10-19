@@ -227,11 +227,11 @@ int ebsp_spmd() {
 
     int total_syncs = 0;
     int extmem_corrupted = 0;
-    int run_counter;
-    int sync_counter;
-    int finish_counter;
-    int continue_counter;
-    int abort_counter;
+    int run_counter = 0;
+    int sync_counter = 0;
+    int finish_counter = 0;
+    int continue_counter = 0;
+    int abort_counter = 0;
 
 #ifdef DEBUG
     int iter = 0;
@@ -369,6 +369,9 @@ int ebsp_spmd() {
         state.end_callback();
 
     bsp_initialized = 3;
+
+    if (abort_counter != 0)
+        return 0;
 
     return 1;
 }

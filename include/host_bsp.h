@@ -130,9 +130,10 @@ void ebsp_set_end_callback(void (*cb)());
 
 /**
  * Runs the Epiphany program on the Epiphany cores.
- * @return 1 on success, 0 on failure
+ * @return 1 on success, 0 on failure (e.g. after `bsp_abort` is called on a
+ * core)
  *
- * This function will block untill the BSP program is finished.
+ * This function will block until the BSP kernel program is finished.
  */
 int ebsp_spmd();
 
