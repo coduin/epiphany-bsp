@@ -614,25 +614,30 @@ void ebsp_free(void* ptr);
  * \code{.c}
  * int s = bsp_pid();
  * int p = bsp_nprocs();
- *
- * // Register a variable with the BSP system
- * float mydata[16];
- * bsp_push_reg(&mydata, sizeof(mydata));
- * bsp_sync();
- *
- * // Get an address for the data on the core with pid s + 1.
- * float* remotedata = ebsp_get_direct_address((s+1)%p, &mydata);
  * 
- * // Start the DMA to copy the data from this core to the next
+ * // Data to be sent
+ * float mydata[16];
+
+ * // Buffer to receive data
+ * float incomingdata[16];
+
+ * // Register it in the BSP system
+ * bsp_push_reg(&incomingdata, sizeof(incomingdata));
+ * bsp_sync();
+ * 
+ * // Get an address for the incomingdata buffer on the core with pid s + 1.
+ * float* remotedata = ebsp_get_direct_address((s+1)%p, &incomingdata);
+ * 
+ * // Start the DMA to copy the data from mydata on this core to incomingdata on the next core
  * ebsp_dma_handle descriptor;
  * ebsp_dma_push(&descriptor, remotedata, &mydata, sizeof(mydata));
- *
+ * 
  * // Do lengthy computation
  * do_computations();
- *
+ * 
  * // Wait for the DMA transfer to finish
  * ebsp_dma_wait(&descriptor);
- *
+ * 
  * // Done
  * \endcode
 
