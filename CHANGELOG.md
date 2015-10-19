@@ -7,14 +7,15 @@
 - Add data streaming to the library.
 - Add function `ebsp_ext_malloc` for managing the external memory.
 - Add dynamic memory management for local memory through `ebsp_malloc` and `ebsp_free`.
-- Add support for using the DMA engine through the library.
+- Add support for easily using the DMA engine with alternative chaining through the library.
 - Add `ebsp_barrier` for high performance synchronization between cores.
 - Add primitives example showing how to use a combination of EBSP functions.
 - Add Cannon's algorithm example for dense-dense matrix multiplication.
 - Add streaming dot product example for large vectors.
 - Add `ebsp_get_direct_address` to obtain a direct pointer to a remote variable.
+- Add `ebsp_memcpy`, a more efficient implementation of `memcpy`.
 - Add support for using `n < 16` cores.
-- Enable support for interrupt handlers.
+- Use DMA interrupt handler to implement controllable DMA chaining
 - Improved unit test coverage.
 - Improved unit test script, support expected values of the form `output(pid)`.
 - Improved error handling throughout the library.
@@ -27,6 +28,7 @@
 - Fix general issue with read/write packets to external memory, sometimes breaking `ebsp_message`.
 - Use `-O3` flag in the compilation of the library by default instead of the unstable `-Os` flag.
 - Library source code is now formatted using `clang-format`.
+- Speedup the lookup of remote addresses in BSP message passing system.
 
 ### Removed
 - Remove obsolete and incomplete examples.
