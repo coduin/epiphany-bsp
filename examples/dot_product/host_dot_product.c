@@ -26,9 +26,12 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 int main(int argc, char** argv) {
     bsp_init("e_dot_product.srec", argc, argv);
-    bsp_begin(bsp_nprocs());
 
-    // allocate two random vectors of length 512
+    int nprocs = bsp_nprocs();
+
+    bsp_begin(nprocs);
+
+    // Allocate two vectors of length 512
     int l = 512;
     int* a = (int*)malloc(sizeof(int) * l);
     int* b = (int*)malloc(sizeof(int) * l);
@@ -38,13 +41,13 @@ int main(int argc, char** argv) {
     }
 
     // partition and write to processors
-    int chunk = l / bsp_nprocs();
-    printf("chunk: %i\n", chunk);
+    int chunk = l / nprocs;
+    printf("vector elements per core: %i\n", chunk);
 
     int tag;
     int tagsize = sizeof(int);
     ebsp_set_tagsize(&tagsize);
-    for (int pid = 0; pid < bsp_nprocs(); pid++) {
+    for (int pid = 0; pid < nprocs; pid++) {
         tag = 1;
         ebsp_send_down(pid, &tag, &chunk, sizeof(int));
         tag = 2;
@@ -63,12 +66,12 @@ int main(int argc, char** argv) {
     int status;
     int result;
     int sum = 0;
-    printf("proc \t partial_sum\n");
-    printf("---- \t -----------\n");
+    printf("processor \t partial_sum\n");
+    printf("---- \t\t -----------\n");
     for (int i = 0; i < packets; i++) {
         ebsp_get_tag(&status, &tag);
         ebsp_move(&result, sizeof(int));
-        printf("%i: \t %i\n", tag, result);
+        printf("%i: \t\t %i\n", tag, result);
         sum += result;
     }
 
