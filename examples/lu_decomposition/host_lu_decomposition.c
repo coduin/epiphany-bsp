@@ -31,10 +31,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "common.h"
-
-#define DEBUG
-
 // information on matrix and procs
 int N = -1;
 int M = -1;

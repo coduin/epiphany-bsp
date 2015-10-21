@@ -27,7 +27,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include "e-lib.h"
 
 #include <math.h>
-#include "common.h"
 
 int M = 0;
 int N = 0;
