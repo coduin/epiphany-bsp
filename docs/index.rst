@@ -8,7 +8,7 @@
 Welcome to Epiphany BSP's documentation!
 ========================================
 
-Epiphany BSP is a library for developing applications for the Parallella board. It is easy to setup and use, and provides powerful mechanisms for writing optimized parallel programs.
+Epiphany BSP is a library for developing applications for the `Parallella board <www.parallella.org>`_. It is easy to setup and use, and provides powerful mechanisms for writing optimized parallel programs.
 
 This documentation provides an introduction to each component of the
 Epiphany BSP (EBSP) library. Each section introduces a number of new EBSP functions

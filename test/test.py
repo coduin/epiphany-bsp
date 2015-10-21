@@ -56,8 +56,13 @@ def do_unit_test(unit_test):
     expected_output = "\n".join(e_expected_outputs)
     if len(host_expected_outputs) != 0:
         expected_output += "\n" + "\n".join(host_expected_outputs);
-    actual_output = run_unit_test(unit_test)
+        
+    if not os.path.isfile("bin/host_"+unit_test):
+        print("WARNING: bin/host_"+unit_test+" not found! Did you run make?")
+        return False
     
+    actual_output = run_unit_test(unit_test)
+
     succes = (actual_output.replace("\n","") == expected_output.replace("\n",""))
     
     if not succes:
