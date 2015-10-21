@@ -356,12 +356,13 @@ void bsp_qsize(int* packets, int* accum_bytes);
 
 /**
  * Obtain the tag and size of the next message without popping the message.
- * @param status A pointer to an integer receiving the message data size.
+ * @param status A pointer to an integer receiving the message data size
+ * in bytes.
  * @param tag A pointer to a buffer receiving the message tag
  *
  * Upon return, the integer pointed to by status will receive the size of the
- * data payload of the next message in the queue. If there is no next message
- * it will be set to -1.
+ * data payload in bytes of the next message in the queue. If there is no
+ * next message it will be set to -1.
  * The buffer pointed to by tag should be large enough to store the tag.
  * The minimum size can be obtained by calling ebsp_get_tagsize.
  */
