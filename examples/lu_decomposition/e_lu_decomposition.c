@@ -1,9 +1,6 @@
 /*
 This file is part of the Epiphany BSP library.
 
-Copyright (C) 2014-2015 Buurlage Wits
-Support e-mail: <info@buurlagewits.nl>
-
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License (LGPL)
 as published by the Free Software Foundation, either version 3 of the
@@ -38,6 +35,7 @@ int dim = 0;
 int s = 0;
 int t = 0;
 int entries_per_col = 0;
+float* matrix;
 
 int proc_id(int s, int t) { return s * M + t; }
 
@@ -53,62 +51,96 @@ int gtl(int i, int j) {
     return (i / M) * (dim / M) + (j / M);
 }
 
-float* a(int i, int j) { return (float*)_LOC_MATRIX + gtl(i, j); }
+float* a(int i, int j) { return (float*)matrix + gtl(i, j); }
+
+void get_initial_data(int* M, int* N, int* dim, float* matrix) {
+    int packets = 0;
+    int accum_bytes = 0;
+    int status = 0;
+    int tag = 0;
+
+    bsp_qsize(&packets, &accum_bytes);
+    for (int i = 0; i < packets; i++) {
+        bsp_get_tag(&status, &tag);
+        if (tag == 0)
+            bsp_move(M, sizeof(int));
+        if (tag == 1)
+            bsp_move(N, sizeof(int));
+        if (tag == 2)
+            bsp_move(dim, sizeof(int));
+        if (tag == 3) {
+            bsp_move(matrix, status);
+        }
+    }
+}
 
 int main() {
     bsp_begin();
 
     int p = bsp_pid();
 
-    M = (*(int*)_LOC_M);
-    N = (*(int*)_LOC_N);
-    dim = (*(int*)_LOC_DIM);
+    int* pi_out;
+    ebsp_open_up_stream((void**)&matrix, 0);
+    get_initial_data(&N, &M, &dim, matrix);
 
-    // cache data locations
-    int* LOC_RS = (int*)_LOC_RS;
-    float* LOC_ARK = (float*)_LOC_ARK;
-    int* LOC_R = (int*)_LOC_R;
-    int* LOC_PI = (int*)_LOC_PI;
-    int* LOC_PI_IN = (int*)_LOC_PI_IN;
-    float* LOC_ROW_IN = (float*)_LOC_ROW_IN;
-    float* LOC_COL_IN = (float*)_LOC_COL_IN;
+    entries_per_col = dim / N;
 
     s = p / M;
     t = p % M;
 
-    entries_per_col = dim / N;
+    if (t == 0)
+        ebsp_open_up_stream((void**)&pi_out, 1);
+
+    // cache data locations
+    int* loc_rs = ebsp_malloc(M * sizeof(int));
+    float* loc_ark = ebsp_malloc(M * sizeof(float));
+    int r = 0;
+    int* loc_pi = ebsp_malloc(entries_per_col * sizeof(int));
+    int* loc_pi_in = ebsp_malloc(2 * sizeof(int));
+    float* loc_row_in = ebsp_malloc(sizeof(float) * dim);
+    float* loc_col_in = ebsp_malloc(sizeof(float) * dim);
 
     // register variable to store r and a_rk
     // need arrays equal to number of procs in our proc column
-    bsp_push_reg((void*)LOC_RS, sizeof(int) * N);
+    bsp_push_reg((void*)loc_rs, sizeof(int) * N);
     bsp_sync();
 
-    bsp_push_reg((void*)LOC_ARK, sizeof(float) * N);
+    bsp_push_reg((void*)loc_ark, sizeof(float) * N);
     bsp_sync();
 
-    bsp_push_reg((void*)LOC_R, sizeof(int));
+    bsp_push_reg((void*)&r, sizeof(int));
     bsp_sync();
 
-    bsp_push_reg((void*)LOC_PI_IN, sizeof(int));
+    bsp_push_reg((void*)loc_pi_in, sizeof(int));
     bsp_sync();
 
-    bsp_push_reg((void*)LOC_ROW_IN, sizeof(int));
+    bsp_push_reg((void*)loc_row_in, sizeof(int));
     bsp_sync();
 
-    bsp_push_reg((void*)LOC_COL_IN, sizeof(int));
+    bsp_push_reg((void*)loc_col_in, sizeof(int));
     bsp_sync();
+
 
     // also initialize pi as identity
     if (t == 0)
-        for (int i = 0; i < entries_per_col; ++i)
-            *((int*)LOC_PI + i) = s + i * N;
+        for (int i = 0; i < entries_per_col; ++i) {
+            loc_pi[i] = s + i * N;
+
+        }
 
     for (int k = 0; k < dim; ++k) {
+    if (t == 0)
+        for (int i = 0; i < entries_per_col; ++i) {
+        }
+
+
+        ebsp_barrier();
 
         //----------------------
         // STAGE 1: Pivot search
         //----------------------
         if (k % M == t) {
+
             // COMPUTE PIVOT IN COLUMN K
             int rs = -1;
             float a_rk = -1.0f;
@@ -128,32 +160,34 @@ int main() {
             // HORIZONTAL COMMUNICATION
             for (int j = 0; j < N; ++j) {
                 // put r_s in P(*,t)
-                bsp_hpput(proc_id(j, t), &rs, (void*)LOC_RS, s * sizeof(int),
+                bsp_hpput(proc_id(j, t), &rs, (void*)loc_rs, s * sizeof(int),
                           sizeof(int));
 
                 // put a_(r_s, k) in P(*,t)
-                bsp_hpput(proc_id(j, t), &a_rk, (void*)LOC_ARK,
+                bsp_hpput(proc_id(j, t), &a_rk, (void*)loc_ark,
                           s * sizeof(float), sizeof(float));
             }
+
 
             bsp_sync(); // (0) + (1)
 
             a_rk = -1.0f;
             for (int j = 0; j < N; ++j) {
-                if (*((int*)LOC_RS + j) < 0)
+                if (*((int*)loc_rs + j) < 0)
                     continue;
 
-                float val = fabsf(*(((float*)LOC_ARK + j)));
+                float val = fabsf(*(((float*)loc_ark + j)));
 
                 if (val > a_rk) {
                     a_rk = val;
-                    rs = *((int*)LOC_RS + j);
+                    rs = *((int*)loc_rs + j);
                 }
             }
 
+
             // put r in P(s, *)
             for (int j = 0; j < M; ++j) {
-                bsp_hpput(proc_id(s, j), &rs, (void*)LOC_R, 0, sizeof(int));
+                bsp_hpput(proc_id(s, j), &rs, (void*)&r, 0, sizeof(int));
             }
 
             bsp_sync(); // (2) + (3)
@@ -165,38 +199,37 @@ int main() {
         // ----------------------------
         // STAGE 2: Index and row swaps
         // ----------------------------
-        int r = *((int*)LOC_R);
 
         if (k % N == s && t == 0) {
-            bsp_hpput(proc_id(r % N, 0), ((int*)LOC_PI + (k / N)),
-                      (void*)LOC_PI_IN, 0, sizeof(int));
+            bsp_hpput(proc_id(r % N, 0), ((int*)loc_pi + (k / N)),
+                      (void*)loc_pi_in, 0, sizeof(int));
         }
 
         if (r % N == s && t == 0) {
             // here offset is set to one in case k % N == r % N
-            bsp_hpput(proc_id(k % N, 0), ((int*)LOC_PI + (r / N)),
-                      (void*)LOC_PI_IN, sizeof(int), sizeof(int));
+            bsp_hpput(proc_id(k % N, 0), ((int*)loc_pi + (r / N)),
+                      (void*)loc_pi_in, sizeof(int), sizeof(int));
         }
 
         bsp_sync(); // (4)
 
         if (k % N == s && t == 0) {
-            *((int*)LOC_PI + (k / N)) = *((int*)LOC_PI_IN + 1);
+            *((int*)loc_pi + (k / N)) = *((int*)loc_pi_in + 1);
         }
 
         if (r % N == s && t == 0)
-            *((int*)LOC_PI + (r / N)) = *((int*)LOC_PI_IN);
+            *((int*)loc_pi + (r / N)) = *((int*)loc_pi_in);
 
         if (k % N == s) { // need to swap rows with row r
             for (int j = t; j < dim; j += M) {
-                bsp_hpput(proc_id(r % N, t), a(k, j), (void*)LOC_ROW_IN,
+                bsp_hpput(proc_id(r % N, t), a(k, j), (void*)loc_row_in,
                           sizeof(float) * (j - t) / M, sizeof(float));
             }
         }
 
         if (r % N == s) { // need to swap rows with row k
             for (int j = t; j < dim; j += M) {
-                bsp_hpput(proc_id(k % N, t), a(r, j), (void*)LOC_COL_IN,
+                bsp_hpput(proc_id(k % N, t), a(r, j), (void*)loc_col_in,
                           sizeof(float) * (j - t) / M, sizeof(float));
             }
         }
@@ -205,12 +238,12 @@ int main() {
 
         if (k % N == s) {
             for (int j = t; j < dim; j += M) {
-                *a(k, j) = *((float*)LOC_COL_IN + (j - t) / M);
+                *a(k, j) = *((float*)loc_col_in + (j - t) / M);
             }
         }
         if (r % N == s) {
             for (int j = t; j < dim; j += M) {
-                *a(r, j) = *((float*)LOC_ROW_IN + (j - t) / M);
+                *a(r, j) = *((float*)loc_row_in + (j - t) / M);
             }
         }
 
@@ -222,7 +255,7 @@ int main() {
         if (k % N == s && k % M == t) {
             // put a_kk in P(*, t)
             for (int j = 0; j < N; ++j) {
-                bsp_hpput(proc_id(j, t), a(k, k), (void*)LOC_ROW_IN, 0,
+                bsp_hpput(proc_id(j, t), a(k, k), (void*)loc_row_in, 0,
                           sizeof(float));
             }
         }
@@ -239,7 +272,7 @@ int main() {
 
         if (k % M == t) {
             for (int i = start_idx; i < dim; i += N) {
-                *a(i, k) = *a(i, k) / (*((float*)LOC_ROW_IN));
+                *a(i, k) = *a(i, k) / (*((float*)loc_row_in));
             }
         }
 
@@ -248,7 +281,7 @@ int main() {
             // put a_ik in P(s, *)
             for (int i = start_idx; i < dim; i += N) {
                 for (int sj = 0; sj < M; ++sj) {
-                    bsp_hpput(proc_id(s, sj), a(i, k), (void*)LOC_COL_IN,
+                    bsp_hpput(proc_id(s, sj), a(i, k), (void*)loc_col_in,
                               sizeof(float) * i, sizeof(float));
                 }
             }
@@ -259,7 +292,7 @@ int main() {
             // put a_ki in P(*, t)
             for (int j = start_jdx; j < dim; j += M) {
                 for (int si = 0; si < N; ++si) {
-                    bsp_hpput(proc_id(si, t), a(k, j), (void*)LOC_ROW_IN,
+                    bsp_hpput(proc_id(si, t), a(k, j), (void*)loc_row_in,
                               sizeof(float) * j, sizeof(float));
                 }
             }
@@ -269,12 +302,33 @@ int main() {
 
         for (int i = start_idx; i < dim; i += N) {
             for (int j = start_jdx; j < dim; j += M) {
-                float a_ik = *((float*)LOC_COL_IN + i);
-                float a_kj = *((float*)LOC_ROW_IN + j);
+                float a_ik = *((float*)loc_col_in + i);
+                float a_kj = *((float*)loc_row_in + j);
                 *a(i, j) = *a(i, j) - a_ik * a_kj;
             }
         }
     }
+
+    ebsp_move_chunk_up((void**)&matrix, 0, 0);
+
+    if (t == 0) {
+        for (int i = 0; i < dim / 4; ++i) {
+            pi_out[i] = loc_pi[i];
+        }
+        ebsp_move_chunk_up((void**)&pi_out, 1, 0);
+    }
+
+    ebsp_free(matrix);
+    ebsp_free(loc_rs);
+    ebsp_free(loc_ark);
+    ebsp_free(loc_pi);
+    ebsp_free(loc_pi_in);
+    ebsp_free(loc_row_in);
+    ebsp_free(loc_col_in);
+
+    ebsp_close_up_stream(0);
+    if (t == 0)
+        ebsp_close_up_stream(1);
 
     bsp_end(); // (11)
 
