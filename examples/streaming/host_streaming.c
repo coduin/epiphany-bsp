@@ -21,30 +21,41 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include <host_bsp.h>
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+const char string1[] = "row ";
+const char string2[] = "your boat, yes! ";
 
 int main(int argc, char** argv) {
     bsp_init("e_streaming.srec", argc, argv);
     bsp_begin(bsp_nprocs());
 
-    int chunk_size = sizeof(float) * 16;
-    int chunks = 4;
+    int chunk_size = sizeof(char) * 16;
+    int chunks = 6;
 
-    float** upstreams = (float**)malloc(sizeof(float*) * bsp_nprocs());
-    float* downdata = (float*)malloc(chunks * chunk_size);
-    float* downdataB = (float*)malloc(chunks * chunk_size);
+    char** upstreams = (char**)malloc(sizeof(char*) * bsp_nprocs());
+    char* downdata = (char*)malloc(chunks * chunk_size);
+    char* downdataB = (char*)malloc(chunks * chunk_size); 
 
     int c = 0;
-    for (int i = chunks * chunk_size / sizeof(float) - 1; i >= 0; --i) {
-        downdata[c] = i;
-        downdataB[c] = c;
+    int index1 = 0;
+    int index2 = 0;
+    for (int i = chunks * chunk_size / sizeof(char) - 1; i >= 0; --i) {
+        downdata[c] = string1[index1++];
+        downdataB[c] = string2[index2++];
         c++;
+
+        if (index1 >= strlen(string1))
+            index1 = 0;
+        if (index2 >= strlen(string2))
+            index2 = 0;
     }
 
     for (int s = 0; s < bsp_nprocs(); ++s) {
         upstreams[s] =
-            (float*)ebsp_create_up_stream(s, chunks * chunk_size, chunk_size);
+            (char*)ebsp_create_up_stream(s, chunks * chunk_size, chunk_size);
     }
 
     for (int s = 0; s < bsp_nprocs(); ++s) {
@@ -58,11 +69,11 @@ int main(int argc, char** argv) {
     ebsp_spmd();
 
     for (int s = 0; s < bsp_nprocs(); ++s) {
-        printf("proc: %i\n", s);
-        for (int i = 0; i < chunk_size * chunks / sizeof(float); ++i) {
-            printf("%.2f ", upstreams[s][i]);
+        printf("Result of processor: %i\n", s);
+        for (int i = 0; i < chunk_size * chunks / sizeof(char); ++i) {
+            printf("%c", upstreams[s][i]);
         }
-        printf("\n");
+        printf("\n\n");
     }
 
     // finalize
@@ -70,4 +81,3 @@ int main(int argc, char** argv) {
 
     return 0;
 }
-
