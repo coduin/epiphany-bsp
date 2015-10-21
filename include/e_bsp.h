@@ -41,7 +41,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #pragma once
 
 #include <stddef.h>
-#include "common.h"
+#include "e_bsp_datatypes.h"
 
 /**
  * Denotes the start of a BSP program.
