@@ -72,16 +72,16 @@ int main(int argc, char** argv) {
     int status;
     int result;
     int sum = 0;
-    printf("proc \t partial_sum\n");
-    printf("---- \t -----------\n");
+    printf("pid | partial sum\n");
+    printf("----+------------\n");
     for (int i = 0; i < packets; i++) {
         ebsp_get_tag(&status, &tag);
         ebsp_move(&result, sizeof(int));
-        printf("%i: \t %i\n", tag, result);
+        printf("%3i | %4i\n", tag, result);
         sum += result;
     }
 
-    printf("SUM: %i \n", sum);
+    printf("\nSUM: %i\n", sum);
 
     free(a);
     free(b);
