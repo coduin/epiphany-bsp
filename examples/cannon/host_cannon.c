@@ -20,18 +20,18 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
+// This example contains an implementation of Cannon's algorithm.
+// See also: <https://en.wikipedia.org/wiki/Cannon's_algorithm>.
+
 #include <host_bsp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "common.h"
 
 void print_matrix(float* A, int matrix_size);
-void print_matrix_to_file(float* A, int matrix_size, const char* filename);
 
 float* C = 0;
 float* up_streams[N * N] = {0};
-
-void sync_callback();
 
 // Initial total matrix
 int matrix_size = 0;
@@ -40,19 +40,12 @@ int matrix_bytes = 0;
 int block_count = 0;
 
 int main(int argc, char** argv) {
-    matrix_size = BLOCK_SIZE;
+    matrix_size = BLOCK_SIZE * 8;
     int M = matrix_size / BLOCK_SIZE;
     matrix_bytes = matrix_size * matrix_size * sizeof(float);
     block_count = matrix_size / BLOCK_SIZE;
 
-    printf("%d X %d cores\n", N, N);
-    printf("core_blocks: %d X %d = %d bytes = 0x%x bytes\n", CORE_BLOCK_SIZE,
-           CORE_BLOCK_SIZE, CORE_BLOCK_BYTES, CORE_BLOCK_BYTES);
-    printf("blocks: %d X %d = %d bytes = 0x%x bytes\n", BLOCK_SIZE, BLOCK_SIZE,
-           BLOCK_BYTES, BLOCK_BYTES);
-    printf("full matrix: %d X %d = %d bytes = 0x%x bytes\n", matrix_size,
-           matrix_size, matrix_bytes, matrix_bytes);
-    printf("M_host: %i", M);
+    printf("Multiplying two %i x %i matrices...\n", matrix_size, matrix_size);
 
     // Prepare full matrix
     float* A = malloc(matrix_bytes);
@@ -66,8 +59,6 @@ int main(int argc, char** argv) {
             C[i * matrix_size + j] = 0.0f;
         }
     }
-
-    print_matrix_to_file(A, matrix_size, "A_out.mtx");
 
     // Partition into stream
     float* stream_A[N * N];
@@ -126,11 +117,8 @@ int main(int argc, char** argv) {
     }
 
     // Initialize the BSP system
-    printf("\a\n");
     bsp_init("e_cannon.srec", argc, argv);
     bsp_begin(bsp_nprocs());
-
-    ebsp_set_sync_callback(sync_callback);
 
     int tagsize = 4;
     int tag = 1;
@@ -148,9 +136,7 @@ int main(int argc, char** argv) {
             CORE_BLOCK_BYTES);                            // chunk size
     }
 
-    printf("Starting spmd\n");
     ebsp_spmd();
-    printf("Finished spmd\n");
 
     // Gather C
     // Loop over blocks
@@ -175,23 +161,15 @@ int main(int argc, char** argv) {
         }
     }
 
-    print_matrix_to_file(C, matrix_size, "C_out.mtx");
+    // Uncomment this line to view the entire matrix
+    // print_matrix(C, matrix_size);
+    
+    printf("Result: C[n - 1, n - 1] = %.2f\n", C[matrix_size * matrix_size - 1]);
 
     bsp_end();
-    printf("\a\n");
 
     free(A);
     free(B);
-}
-
-void sync_callback() {
-    printf("Host syncing");
-    for (int i = 0; i < 5; i++) {
-        printf(".");
-        fflush(stdout);
-        usleep(100000);
-    }
-    printf("\n");
 }
 
 void print_matrix(float* A, int matrix_size) {
@@ -202,19 +180,4 @@ void print_matrix(float* A, int matrix_size) {
         printf("\n");
     }
     printf("\n");
-}
-
-void print_matrix_to_file(float* A, int matrix_size, const char* filename) {
-    FILE* fp;
-    fp = fopen(filename, "w");
-    fprintf(fp, "%%%%MatrixMarket matrix array real general\n");
-    fprintf(fp, "%i %i\n", matrix_size, matrix_size);
-
-    for (int i = 0; i < matrix_size; i++) {
-        for (int j = 0; j < matrix_size; j++) {
-            fprintf(fp, "%f\n", A[i * matrix_size + j]);
-        }
-    }
-
-    fclose(fp);
 }

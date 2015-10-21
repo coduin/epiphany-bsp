@@ -25,13 +25,8 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <limits.h>
 #include "common.h"
 
-void get_initial_data(void* A, void* B);
-
 void get_block_count(int* n);
-
 void matrix_multiply_add(float* A, float* B, float* C);
-
-void ebsp_set_head(int, int);
 
 int main() {
     bsp_begin();
@@ -54,7 +49,7 @@ int main() {
     int M = 0;
     get_block_count(&M);
 
-    int fastmode = 0;
+    int fastmode = 1;
 
     // Allocate local buffers
     ebsp_open_down_stream((void**)&a_data[0], 0);
@@ -90,22 +85,6 @@ int main() {
     ebsp_dma_handle dma_handle_a;
     ebsp_dma_handle dma_handle_b;
 
-    ebsp_host_sync();
-    ebsp_barrier();
-
-    if (s == 0) {
-        ebsp_message("M: %i", M);
-        ebsp_message("a_data[0]: %p", a_data[0]);
-        ebsp_message("a_data[1]: %p", a_data[1]);
-        ebsp_message("b_data[0]: %p", b_data[0]);
-        ebsp_message("b_data[1]: %p", b_data[1]);
-        ebsp_message("c_data: %p", c_data);
-        ebsp_message("handle_a: %p", &dma_handle_a);
-        ebsp_message("handle_b: %p", &dma_handle_b);
-    }
-
-    ebsp_barrier();
-
     // Loop over the blocks (chunks)
     // these are the *global blocks*
     for (int cur_block = 0; cur_block <= M * M * M; cur_block++) {
@@ -122,13 +101,8 @@ int main() {
                 // Send result of C upwards
                 ebsp_barrier();
                 ebsp_move_chunk_up((void*)&c_data, 2, fastmode);
-                ebsp_message(
-                    "C UP: %i (%i, %i, %i, ..., %i)", cur_block, (int)c_data[0],
-                    (int)c_data[1], (int)c_data[2],
-                    (int)c_data[CORE_BLOCK_SIZE * CORE_BLOCK_SIZE - 1]);
                 ebsp_barrier();
 
-                // FIXME find more elegant way of accomplishing this.
                 if (cur_block == M * M * M) {
                     break;
                 }
@@ -152,30 +126,11 @@ int main() {
 
         // Multiply this block, by looping over the *core blocks*
         for (int i = 0; i < N; i++) {
-            //            ebsp_barrier();
-            //            if (s == 0) {
-            //                ebsp_message("------ %i", i);
-            //            }
-            //            ebsp_barrier();
-
             if (i != N - 1) {
                 ebsp_dma_push(&dma_handle_a, neighbor_a_data[cur_buffer],
                               a_data[cur], CORE_BLOCK_BYTES);
                 ebsp_dma_push(&dma_handle_b, neighbor_b_data[cur_buffer],
                               b_data[cur], CORE_BLOCK_BYTES);
-                ebsp_message(
-                    "a_dma -> %i: (%i, %i, %i, ..., %i)", a_neighbor,
-                    (int)a_data[cur][0], (int)a_data[cur][1],
-                    (int)a_data[cur][2],
-                    (int)a_data[cur][CORE_BLOCK_SIZE * CORE_BLOCK_SIZE - 1]);
-
-                ebsp_barrier();
-
-                ebsp_message(
-                    "b_dma -> %i: (%i, %i, %i, ..., %i)", b_neighbor,
-                    (int)b_data[cur][0], (int)b_data[cur][1],
-                    (int)b_data[cur][2],
-                    (int)b_data[cur][CORE_BLOCK_SIZE * CORE_BLOCK_SIZE - 1]);
             }
 
             // Perform C += A * B
@@ -190,26 +145,6 @@ int main() {
 
             ebsp_dma_wait(&dma_handle_b);
             ebsp_dma_wait(&dma_handle_a);
-
-            for (int i = 0; i < 500000; ++i) {
-                ebsp_barrier();
-                if (s == 0) {
-                    if (i % 100000 == 0)
-                        ebsp_message("Waittt...");
-                }
-            }
-
-            ebsp_message(
-                "a_dma_recv: (%i, %i, %i, ..., %i)", (int)a_data[cur][0],
-                (int)a_data[cur][1], (int)a_data[cur][2],
-                (int)a_data[cur][CORE_BLOCK_SIZE * CORE_BLOCK_SIZE - 1]);
-
-            ebsp_barrier();
-
-            ebsp_message(
-                "b_dma_recv: (%i, %i, %i, ..., %i)", (int)b_data[cur][0],
-                (int)b_data[cur][1], (int)b_data[cur][2],
-                (int)b_data[cur][CORE_BLOCK_SIZE * CORE_BLOCK_SIZE - 1]);
 
             ebsp_barrier();
         }
@@ -237,7 +172,6 @@ void get_block_count(int* M) {
     }
 }
 
-// TODO: assembly
 void matrix_multiply_add(float* A, float* B, float* C) {
     for (int i = 0; i < CORE_BLOCK_SIZE; i++)
         for (int j = 0; j < CORE_BLOCK_SIZE; j++)
