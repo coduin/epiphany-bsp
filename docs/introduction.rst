@@ -17,10 +17,10 @@ occurance of all communications within a step. The BSP model can be used to writ
     :width: 450 px
     :align: center
 
-This library (EBSP) provides an implementation of the model on top of the Epiphany SDK (ESDK).
+Our library (EBSP) provides an implementation of the model on top of the Epiphany SDK (ESDK).
 This allows the BSP computing model to be used with the Epiphany
 architecture developed by Adapteva_.
-In particular this library has been implemented and tested on the
+In particular EBSP has been implemented and tested on the
 Parallella_ board. Our goal is to
 allow current BSP programs to be run on the Epiphany architecture
 with minimal modifications.
@@ -95,5 +95,5 @@ For more advanced use you can download the latest EBSP release from the `release
         rm -r bin
 
 .. _BSP: http://en.wikipedia.org/wiki/Bulk_synchronous_parallel
-.. _Adapteva:
-.. _Parallella:
+.. _Adapteva: http://www.adapteva.com
+.. _Parallella: http://www.parallella.org

@@ -8,7 +8,7 @@
 Welcome to Epiphany BSP's documentation!
 ========================================
 
-Epiphany BSP is a library for developing applications for the Parallella board. It is easy to setup and use, and provides powerful mechanisms for writing optimized parallel programs.
+Epiphany BSP is a library for developing applications for the `Parallella board <https://www.parallella.org>`_. It is easy to setup and use, and provides powerful mechanisms for writing optimized parallel programs.
 
 This documentation provides an introduction to each component of the
 Epiphany BSP (EBSP) library. Each section introduces a number of new EBSP functions
@@ -23,7 +23,7 @@ The EBSP library is released under the LGPLv3. The `source code <https://github.
 About Coduin
 ------------
 
-Coduin (formerly Buurlage Wits) is a small company based in Utrecht, the Netherlands. Next to our work on software libraries and models for many-core processors in embedded systems, we are also active in the area of data analysis and predictive modelling.
+`Coduin <http://codu.in>`_ (formerly Buurlage Wits) is a small company based in Utrecht, the Netherlands. Next to our work on software libraries and models for many-core processors in embedded systems, we are also active in the area of data analysis and predictive modelling.
 
 .. image:: img/coduin_logo.png
     :width: 250 px
