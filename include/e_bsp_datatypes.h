@@ -20,15 +20,14 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
-#define _LOC_M 0x4800
-#define _LOC_N 0x4804
-#define _LOC_DIM 0x4808
-#define _LOC_MATRIX 0x480c
+#pragma once
 
-#define _LOC_RS 0x5800
-#define _LOC_ARK (_LOC_RS + sizeof(int) * M)
-#define _LOC_R (_LOC_ARK + sizeof(float) * M)
-#define _LOC_PI (_LOC_R + sizeof(int))
-#define _LOC_PI_IN (_LOC_PI + sizeof(int) * entries_per_col)
-#define _LOC_ROW_IN (_LOC_PI_IN + sizeof(int) * 2)
-#define _LOC_COL_IN (_LOC_ROW_IN + sizeof(float) * dim)
+typedef struct {
+    unsigned config;
+    unsigned inner_stride;
+    unsigned count;
+    unsigned outer_stride;
+    void* src_addr;
+    void* dst_addr;
+} __attribute__((aligned(8))) ebsp_dma_handle;
+

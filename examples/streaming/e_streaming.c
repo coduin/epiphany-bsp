@@ -21,19 +21,18 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include <e_bsp.h>
-#include <common.h>
 
 int main() {
     bsp_begin();
 
     // int s = bsp_pid();
 
-    float* upstream = 0;
+    char* upstream = 0;
     int chunk_size = ebsp_open_up_stream((void**)&upstream, 0);
-    int chunks = 4;
+    int chunks = 6;
 
-    float* downchunk;
-    float* downchunkB;
+    char* downchunk;
+    char* downchunkB;
 
     ebsp_open_down_stream((void**)&downchunk, 1);
     ebsp_open_down_stream((void**)&downchunkB, 2);
@@ -41,8 +40,8 @@ int main() {
     for (int i = 0; i < chunks; ++i) {
         ebsp_move_chunk_down((void**)&downchunk, 1, 0);
         ebsp_move_chunk_down((void**)&downchunkB, 2, 0);
-        for (int j = 0; j < chunk_size / sizeof(float); ++j) {
-            upstream[j] = (i % 2 == 1) ? downchunk[j] : downchunkB[j];
+        for (int j = 0; j < chunk_size / sizeof(char); ++j) {
+            upstream[j] = (i % 2 == 0) ? downchunk[j] : downchunkB[j];
         }
         ebsp_move_chunk_up((void**)&upstream, 0, 0);
     }

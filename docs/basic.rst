@@ -5,7 +5,7 @@
 Getting started: The Basics
 ===========================
 
-EBSP programs are written in single-program multiple-data *(SPMD)* style. This means that each core runs the same code, but obtains different data. Later we will see how we can transfer data to and from the Epiphany cores, but for now our first step will be to get the cores to output their designated core number (called ``pid`` for *processor identifier*). Like all programs written for the Parallella, an EBSP program consists of two parts. One part contains the code that runs on the *host processor*, the ARM chip that hosts the Linux OS. The other part contains the code that runs on each Epiphany core. In heterogeneous computing it is common to call this second part the *kernel*.
+EBSP programs are written in *SPMD* (single-program multiple-data) style. This means that each core runs the same code, but obtains different data. Later we will see how we can transfer data to and from the Epiphany cores, but for now our first step will be to get the cores to output their designated core number (called ``pid`` for *processor identifier*). Like all programs written for the Parallella, an EBSP program consists of two parts. One part contains the code that runs on the *host processor*, the ARM chip that hosts the Linux OS. The other part contains the code that runs on each Epiphany core. In heterogeneous computing it is common to call this second part the *kernel*.
 
 Hello World!
 ------------
