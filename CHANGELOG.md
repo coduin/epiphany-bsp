@@ -29,6 +29,7 @@
 - Use `-O3` flag in the compilation of the library by default instead of the unstable `-Os` flag.
 - Library source code is now formatted using `clang-format`.
 - Speedup the lookup of remote addresses in BSP message passing system.
+- Update LU decomposition example to use data streams and message passing.
 
 ### Removed
 - Remove obsolete and incomplete examples.
