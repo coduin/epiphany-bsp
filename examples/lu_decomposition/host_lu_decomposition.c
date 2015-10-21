@@ -21,7 +21,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// This file contains a very raw implementation of a LU decomposition
+// This file contains a very raw implementation of LU decomposition
 // using Epiphany BSP. It only supports small matrices that fit on
 // on-core memory, and is meant for demonstrative purposes only.
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -31,10 +31,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "common.h"
-
-#define DEBUG
-
 // information on matrix and procs
 int N = -1;
 int M = -1;
@@ -42,7 +38,7 @@ int M = -1;
 // always choose multiple of 4 such that we dont have to worry
 // about heterogeneous distributions too much,
 // which makes a lot of things much easier
-int dim = 20;
+int dim = 32;
 
 // "local to global" index
 void ltg(int* i, int* j, int l, int s, int t) {
@@ -86,7 +82,7 @@ void mat_permute(int* pi, float* A, float* B, int n) {
 void mat_pretty_print(float* A, int n) {
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
-            printf("%.2f\t", A[dim * i + j]);
+            printf("%3.0f", A[dim * i + j]);
         }
         printf("\n");
     }
@@ -106,84 +102,66 @@ int main(int argc, char** argv) {
     }
 
     // initialize the BSP system
-    bsp_init("bin/e_lu_decomposition.srec", argc, argv);
+    bsp_init("e_lu_decomposition.srec", argc, argv);
     bsp_begin(bsp_nprocs());
 
-    // distribute the matrix
-    switch (bsp_nprocs()) {
-    case 16:
-        N = 4;
-        M = 4;
-        break;
-
-    case 64:
-        N = 8;
-        M = 8;
-        break;
-
-    default:
-        fprintf(stderr, "Unsupported processor count, please add values\
-                    for N and M in the host program.");
-        return -1;
-    }
+    N = 4;
+    M = 4;
 
     printf("LUD: Writing info on procs and matrix \n");
+
+    int size = sizeof(int);
+    ebsp_set_tagsize(&size);
+
     // Write M, N and dim to every processor such that they can figure out
     // the (s,t) pair, and gtl / ltg functions
-    for (int i = 0; i < bsp_nprocs(); ++i) {
-        ebsp_write(i, &M, (off_t)_LOC_M, sizeof(int));
-        ebsp_write(i, &N, (off_t)_LOC_N, sizeof(int));
-        ebsp_write(i, &dim, (off_t)_LOC_DIM, sizeof(int));
+    for (int s = 0; s < bsp_nprocs(); ++s) {
+        int tag = 0;
+        ebsp_send_down(s, &tag, &M, sizeof(int));
+        tag = 1;
+        ebsp_send_down(s, &tag, &N, sizeof(int));
+        tag = 2;
+        ebsp_send_down(s, &tag, &dim, sizeof(int));
     }
 
     int prow = 0;
     int pcol = 0;
     int loc = 0;
+
+    float* local_matrix_data[16];
+    int local_count = dim * dim / 16;
+    for (int s = 0; s < 16; ++s) {
+        local_matrix_data[s] = malloc(local_count * sizeof(float));
+    }
+
     for (int i = 0; i < dim; ++i) {
         for (int j = 0; j < dim; ++j) {
             gtl(i, j, &loc, &prow, &pcol);
-            ebsp_write(proc_id(prow, pcol), &A[dim * i + j],
-                       _LOC_MATRIX + sizeof(float) * loc, sizeof(float));
+            local_matrix_data[proc_id(prow, pcol)][loc] = A[dim * i + j];
         }
     }
 
-// test global to local and local to global function for random processor
-#ifdef DEBUG
-    int s = 3;
-    int t = 3;
-    printf("e.g. (s,t) = (3,3): \n");
-
-    int _M, _N, _dim;
-    ebsp_read(proc_id(s, t), (off_t)_LOC_M, &_M, sizeof(int));
-    ebsp_read(proc_id(s, t), (off_t)_LOC_N, &_N, sizeof(int));
-    ebsp_read(proc_id(s, t), (off_t)_LOC_DIM, &_dim, sizeof(int));
-
-    printf("M, N, dim: %i, %i, %i\n", _M, _N, _dim);
-
-    for (int l = 0; l < (dim * dim) / bsp_nprocs(); ++l) {
-        int i, j;
-        ltg(&i, &j, l, s, t);
-        float val;
-        ebsp_read(proc_id(s, t), _LOC_MATRIX + sizeof(float) * l, &val,
-                  sizeof(float));
-        printf("%i \t (%i, %i) \t %f \t 0x%x\n", l, i, j, val,
-               _LOC_MATRIX + sizeof(float) * l);
+    for (int s = 0; s < 16; ++s) {
+            int tag = 3;
+            ebsp_send_down(s, &tag, local_matrix_data[s], local_count *
+                    sizeof(float));
+            free(local_matrix_data[s]);
     }
-#endif
+
+    for (int s = 0; s < 16; ++s) {
+        local_matrix_data[s] = ebsp_create_up_stream(s,
+                local_count * sizeof(float),
+                local_count * sizeof(float));
+    }
+
+    int* pi_in[4];
+    for (int r = 0; r < 4; ++r) {
+        pi_in[r] = ebsp_create_up_stream(proc_id(r, 0),
+                dim / 4 * sizeof(int),
+                dim / 4* sizeof(int));
+    }
 
     ebsp_spmd();
-
-    printf("----------------------------: \n");
-    printf("Matrix: \n");
-    for (int i = 0; i < dim; ++i) {
-        for (int j = 0; j < dim; ++j) {
-            printf("%.2f\t", A[dim * i + j]);
-        }
-        printf("\n");
-    }
-
-    printf("----------------------------: \n");
-    printf("LU decomposition: \n");
 
     float* Y = malloc(sizeof(float) * dim * dim);
 
@@ -192,29 +170,19 @@ int main(int argc, char** argv) {
             for (int l = 0; l < (dim * dim) / bsp_nprocs(); ++l) {
                 int i, j;
                 ltg(&i, &j, l, s, t);
-                ebsp_read(proc_id(s, t), _LOC_MATRIX + sizeof(float) * l,
-                          &Y[dim * i + j], sizeof(float));
+                Y[dim * i + j] = local_matrix_data[proc_id(s, t)][l];
             }
         }
     }
 
-    for (int i = 0; i < dim; ++i) {
-        for (int j = 0; j < dim; ++j) {
-            printf("%.2f\t", Y[dim * i + j]);
-        }
-        printf("\n");
-    }
-
     int* pi = malloc(sizeof(int) * dim);
 
-    printf("PI: \n");
+    printf("PI ----------------------------:");
     for (int i = 0; i < dim; ++i) {
-        ebsp_read(proc_id(i % N, 0), _LOC_PI + sizeof(int) * (i / N), &pi[i],
-                  sizeof(int));
-        printf("%i\n", pi[i]);
+        pi[i] = pi_in[i % N][i / N];
+        printf("%3i", pi[i]);
     }
-
-    printf("----------------------------: \n");
+    printf("\n");
 
     // we test the results here
     float* L = malloc(sizeof(float) * dim * dim);
@@ -278,6 +246,7 @@ int main(int argc, char** argv) {
     free(U);
     free(B);
     free(pi);
+    free(Y);
 
     return 0;
 }
