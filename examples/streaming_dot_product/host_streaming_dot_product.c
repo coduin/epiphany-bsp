@@ -32,13 +32,13 @@ int main(int argc, char** argv) {
     int tagsize = sizeof(int);
     ebsp_set_tagsize(&tagsize);
 
-    // allocate two random vectors of length 512 each
+    // allocate two vectors of length 512 each
     int l = 512;
     int* a = (int*)malloc(sizeof(int) * l);
     int* b = (int*)malloc(sizeof(int) * l);
     for (int i = 0; i < l; ++i) {
         a[i] = i;
-        b[i] = 2 * i;
+        b[i] = i%2;
     }
 
     // partition and write to processors
@@ -55,8 +55,8 @@ int main(int argc, char** argv) {
 
         int current_chunk_size = sizeof(int) * current_chunk_nints;
 
-        ebsp_create_down_stream((void*)a_cursor, pid, current_chunk_size, 8);
-        ebsp_create_down_stream((void*)b_cursor, pid, current_chunk_size, 8);
+        ebsp_create_down_stream((void*)a_cursor, pid, current_chunk_size, 16);
+        ebsp_create_down_stream((void*)b_cursor, pid, current_chunk_size, 16);
 
         a_cursor += current_chunk_size;
         b_cursor += current_chunk_size;
@@ -72,19 +72,19 @@ int main(int argc, char** argv) {
     int status;
     int result;
     int sum = 0;
-    printf("proc \t partial_sum\n");
-    printf("---- \t -----------\n");
+    printf("pid | partial sum\n");
+    printf("----+------------\n");
     for (int i = 0; i < packets; i++) {
         ebsp_get_tag(&status, &tag);
         ebsp_move(&result, sizeof(int));
-        printf("%i: \t %i\n", tag, result);
+        printf("%3i | %4i\n", tag, result);
         sum += result;
     }
 
-    printf("SUM: %i\n", sum);
+    printf("\nSUM: %i\n", sum);
 
-    free((void*)a);
-    free((void*)b);
+    free(a);
+    free(b);
 
     // finalize
     bsp_end();

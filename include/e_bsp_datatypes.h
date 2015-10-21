@@ -20,38 +20,14 @@ see the files COPYING and COPYING.LESSER. If not, see
 <http://www.gnu.org/licenses/>.
 */
 
-#include <e_bsp.h>
+#pragma once
 
-int main() {
-    bsp_begin();
-
-    // int s = bsp_pid();
-
-    char* upstream = 0;
-    int chunk_size = ebsp_open_up_stream((void**)&upstream, 0);
-    int chunks = 6;
-
-    char* downchunk;
-    char* downchunkB;
-
-    ebsp_open_down_stream((void**)&downchunk, 1);
-    ebsp_open_down_stream((void**)&downchunkB, 2);
-
-    for (int i = 0; i < chunks; ++i) {
-        ebsp_move_chunk_down((void**)&downchunk, 1, 0);
-        ebsp_move_chunk_down((void**)&downchunkB, 2, 0);
-        for (int j = 0; j < chunk_size / sizeof(char); ++j) {
-            upstream[j] = (i % 2 == 0) ? downchunk[j] : downchunkB[j];
-        }
-        ebsp_move_chunk_up((void**)&upstream, 0, 0);
-    }
-
-    ebsp_close_up_stream(0);
-    ebsp_close_down_stream(1);
-    ebsp_close_down_stream(2);
-
-    bsp_end();
-
-    return 0;
-}
+typedef struct {
+    unsigned config;
+    unsigned inner_stride;
+    unsigned count;
+    unsigned outer_stride;
+    void* src_addr;
+    void* dst_addr;
+} __attribute__((aligned(8))) ebsp_dma_handle;
 

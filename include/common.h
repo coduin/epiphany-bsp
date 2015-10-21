@@ -22,6 +22,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #pragma once
 #include <stdint.h>
+#include "e_bsp_datatypes.h"
 
 // #define DEBUG
 
@@ -94,15 +95,6 @@ typedef struct {
     unsigned int count; // total messages so far
     ebsp_message_header message[MAX_MESSAGES];
 } ebsp_message_queue;
-
-typedef struct {
-    unsigned config;
-    unsigned inner_stride;
-    unsigned count;
-    unsigned outer_stride;
-    void* src_addr;
-    void* dst_addr;
-} __attribute__((aligned(8))) ebsp_dma_handle;
 
 typedef struct {
     void* extmem_addr;          // extmem data in e_core address space
