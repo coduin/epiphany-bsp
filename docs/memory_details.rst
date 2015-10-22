@@ -17,7 +17,7 @@ Memory Types
 ------------
 
 The Epiphany cores have access to two types of memory.
-Both types can be accessed directly (e.g. by dereferencing a pointer). Here we will give a short overview of these two types. For more details see the `Epiphany architecture reference <www.adapteva.com/docs/epiphany_arch_ref.pdf>`_.
+Both types can be accessed directly (e.g. by dereferencing a pointer). Here we will give a short overview of these two types. For more details see the `Epiphany architecture reference <http://www.adapteva.com/docs/epiphany_arch_ref.pdf>`_.
 
 All addresses shown below are the ones used by the Epiphany cores. They can **not** be used directly by the ARM processor.
 
