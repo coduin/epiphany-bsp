@@ -16,7 +16,7 @@ Making and using down streams
 
 There are two types of streams, *up* and *down* streams. A *down* stream contains data to be processed by an Epiphany core, while an *up* stream contains results from computations performed by the Epiphany core. Every stream (both up and down) has a *target processor*, *total size* and a *chunk size*. The target processor is simply the processor id of the core that should receive the content of the stream. The total size is the total number of bytes of the entire set of data. This set of data then gets partitioned into chunks consisting of the number of bytes set by the chunk size. This size need not be constant (i.e. it may vary over a single stream), but for our discussion here we will assume that it is constant.
 
-A stream is created before the call to ``ebsp_spmd`` on the host processor. The host prepares the data to be processed by the Epiphany cores, and the EBSP library then performs the necessary work needed for each core to receives its chunk. Note that this data is copied efficiently to the external memory upon creation of the stream, so that the userdata should be stored in the ordinary RAM, for example data allocated by a call to ``malloc``. A stream is created as follows::
+A stream is created before the call to ``ebsp_spmd`` on the host processor. The host prepares the data to be processed by the Epiphany cores, and the EBSP library then performs the necessary work needed for each core to receives its chunk. Note that this data is copied efficiently to the external memory upon creation of the stream, so that the user data should be stored in the ordinary RAM, e.g. allocated by a call to ``malloc``. A stream is created as follows::
 
     // on the host
     int count = 256;

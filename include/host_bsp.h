@@ -303,6 +303,8 @@ void ebsp_create_down_stream(const void* src, int dst_core_id, int nbytes,
  *  this up stream.
  * @param chunksize The maximum number of bytes of a single chunk that can be
  *  sent up through this stream. Must be at least 16.
+ * @return A pointer to a section of external memory storing the chunks
+ *  sent up by the sending core.
  *
  * This function outputs an error if `chunksize` is less than 16.
  */
