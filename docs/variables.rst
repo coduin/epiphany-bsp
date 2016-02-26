@@ -24,7 +24,7 @@ We register a variable by calling ``bsp_push_reg``::
 
 Here we declare an integer ``a``, and initialize it with zero. Next we *register* the variable with BSP system, by passing its local location, and its size.
 
-To ensure that all cores have registered a variable, we perform a barrier synchronisation after the registration. The Epiphany cores will halt execution until *every other core* reaches this point in the program, so it *synchronizes* the program execution between the Epiphany cores. Only *one variable may be declared between calls to ``bsp_sync``*!
+To ensure that all cores have registered a variable, we perform a barrier synchronisation after the registration. The Epiphany cores will halt execution until *every other core* reaches this point in the program, so it *synchronizes* the program execution between the Epiphany cores. Only *one variable may be declared between calls to* ``bsp_sync``!
 
 Putting and getting values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -85,7 +85,7 @@ The arguments for ``bsp_get`` are:
 4. A pointer to the local destination.
 5. The number of bytes to copy.
 
-And again, we perform a barrier synchronisation to ensure the data has been transferred. If you are familiar with concurrent programming, then you might think we are at risk of a ``race condition <https://en.wikipedia.org/wiki/Race_condition>``_! What if processor ``s`` reaches the ``bsp_get`` statement before processor ``(s + 1) % p`` has set the value for ``a`` equal to its process number? Do we then obtain zero? In this case, we do not have to worry -- no data transfer is initialized until each core has reached ``bsp_sync``. Indeed we receive the correct output::
+And again, we perform a barrier synchronisation to ensure the data has been transferred. If you are familiar with concurrent programming, then you might think we are at risk of a `race condition <https://en.wikipedia.org/wiki/Race_condition>`_! What if processor ``s`` reaches the ``bsp_get`` statement before processor ``(s + 1) % p`` has set the value for ``a`` equal to its process number? Do we then obtain zero? In this case, we do not have to worry -- no data transfer is initialized until each core has reached ``bsp_sync``. Indeed we receive the correct output::
 
     $01: received: 2
     $03: received: 4
