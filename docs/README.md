@@ -6,6 +6,7 @@ Generating the documentation pages requires the following programs and packages:
 
 - Sphinx (`python-sphinx` package)
 - Breathe (`breathe` python package. First install `python-pip` and run `sudo pip install breathe`)
+- sphinxcontrib-googleanalytics (`sudo pip install sphinxcontrib-googleanalytics`)
 - Doxygen (`doxygen` package)
 - `sphinx_rtd_theme` (comes with `python-sphinx`)
 
