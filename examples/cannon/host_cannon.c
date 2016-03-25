@@ -40,7 +40,8 @@ int matrix_bytes = 0;
 int block_count = 0;
 
 int main(int argc, char** argv) {
-    matrix_size = BLOCK_SIZE * 8;
+    //matrix_size = BLOCK_SIZE * 8;
+    matrix_size = 512;
     int M = matrix_size / BLOCK_SIZE;
     matrix_bytes = matrix_size * matrix_size * sizeof(float);
     block_count = matrix_size / BLOCK_SIZE;
