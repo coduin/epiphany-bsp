@@ -1,0 +1,28 @@
+#!/bin/bash
+
+echo "Storing results in cannon_results.txt"
+echo -n "" > cannon_results.txt
+
+# M / (4 * CORE_BLOCK_SIZE) should be integer
+# Mathematica: Divisors[M/4]
+for cbs in 2 3 4 5 8 10 12 15 20 24; do
+
+    cat >cannon/common.h <<EOL
+#define N 4
+
+#define SCRIPT_MATRIX_SIZE 480
+
+#define CORE_BLOCK_SIZE $cbs // max 32
+#define CORE_BLOCK_BYTES (CORE_BLOCK_SIZE * CORE_BLOCK_SIZE * sizeof(float))
+
+#define BLOCK_SIZE (N * CORE_BLOCK_SIZE)
+#define BLOCK_BYTES (BLOCK_SIZE * BLOCK_SIZE * sizeof(float))
+EOL
+
+    echo "Core block size: $cbs x $cbs"
+
+    echo "CBS $cbs" >> cannon_results.txt
+    make -B cannon
+    bin/cannon/host_cannon | tee -a cannon_results.txt
+
+done
