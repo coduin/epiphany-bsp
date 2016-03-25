@@ -85,6 +85,10 @@ int main() {
     ebsp_dma_handle dma_handle_a;
     ebsp_dma_handle dma_handle_b;
 
+    // Reset timer
+    ebsp_raw_time();
+    ebsp_raw_time();
+
     // Loop over the blocks (chunks)
     // these are the *global blocks*
     for (int cur_block = 0; cur_block <= M * M * M; cur_block++) {
@@ -151,9 +155,22 @@ int main() {
     }
 
     ebsp_barrier();
+
+    int timing = ebsp_raw_time();
+
     ebsp_close_down_stream(0);
     ebsp_close_down_stream(1);
     ebsp_close_up_stream(2);
+
+    if(s == 0) {
+        ebsp_message("Paramters: full matrix consists of %dx%d = %d superblocks of size %dx%d",
+               M, M, M * M, BLOCK_SIZE, BLOCK_SIZE);
+        ebsp_message("Parameters: one superblock contains %d core-blocks of size %dx%d",
+                N * N, CORE_BLOCK_SIZE, CORE_BLOCK_SIZE);
+    }
+    ebsp_barrier();
+    ebsp_message("Time: %d cycles", timing);
+    ebsp_barrier();
 
     bsp_end();
 }
