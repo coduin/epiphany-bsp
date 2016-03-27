@@ -3,10 +3,9 @@
 echo "Storing results in cannon_results.txt"
 echo "" > cannon_results.txt
 
-# 512 / (4 * CORE_BLOCK_SIZE) should be integer
-# meaning cbs should divide 128 = 2^7
-# so cbs should be a power of 2
-for cbs in 2 4 8 16; do
+# M / (4 * CORE_BLOCK_SIZE) should be integer
+# Mathematica: Divisors[M/4]
+for cbs in 2 3 5 9 10 15 18; do
 
     cat >cannon/common.h <<EOL
 #define N 4

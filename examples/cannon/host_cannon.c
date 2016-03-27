@@ -28,6 +28,10 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdlib.h>
 #include "common.h"
 
+#define __USE_XOPEN2K
+#define __USE_POSIX199309 1
+#include <time.h>
+
 void print_matrix(float* A, int matrix_size);
 
 float* C = 0;
@@ -41,12 +45,16 @@ int block_count = 0;
 
 int main(int argc, char** argv) {
     //matrix_size = BLOCK_SIZE * 8;
-    matrix_size = 512;
+    matrix_size = 360;
     int M = matrix_size / BLOCK_SIZE;
     matrix_bytes = matrix_size * matrix_size * sizeof(float);
     block_count = matrix_size / BLOCK_SIZE;
 
-    printf("Multiplying two %i x %i matrices...\n", matrix_size, matrix_size);
+    printf("Multiplying two %i x %i matrices\n", matrix_size, matrix_size);
+    printf("Full matrix consists of %dx%d = %d superblocks of size %dx%d\n",
+            M, M, M * M, BLOCK_SIZE, BLOCK_SIZE);
+    printf("One superblock contains %d core-blocks of size %dx%d\n",
+            N * N, CORE_BLOCK_SIZE, CORE_BLOCK_SIZE);
 
     // Prepare full matrix
     float* A = malloc(matrix_bytes);
@@ -137,7 +145,15 @@ int main(int argc, char** argv) {
             CORE_BLOCK_BYTES);                            // chunk size
     }
 
+    // Timer
+    struct timespec ts_start, ts_end;
+    clock_gettime(CLOCK_MONOTONIC, &ts_start);
     ebsp_spmd();
+    clock_gettime(CLOCK_MONOTONIC, &ts_end);
+    float time_elapsed =
+        (ts_end.tv_sec - ts_start.tv_sec +
+         (ts_end.tv_nsec - ts_start.tv_nsec) * 1.0e-9);
+    printf("ebsp_spmd() time in seconds: %f\n", time_elapsed);
 
     // Gather C
     // Loop over blocks

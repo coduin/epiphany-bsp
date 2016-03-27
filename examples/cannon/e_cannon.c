@@ -85,18 +85,9 @@ int main() {
     ebsp_dma_handle dma_handle_a;
     ebsp_dma_handle dma_handle_b;
 
-    // Reset timer
-    if (s == 0) {
-        ebsp_message("Parameters: full matrix consists of %dx%d = %d superblocks of size %dx%d",
-               M, M, M * M, BLOCK_SIZE, BLOCK_SIZE);
-        ebsp_message("Parameters: one superblock contains %d core-blocks of size %dx%d",
-                N * N, CORE_BLOCK_SIZE, CORE_BLOCK_SIZE);
-    }
+    // Start timer
     ebsp_barrier();
     float time1 = ebsp_host_time();
-    ebsp_barrier();
-    ebsp_raw_time();
-    ebsp_raw_time();
 
     // Loop over the blocks (chunks)
     // these are the *global blocks*
@@ -163,23 +154,19 @@ int main() {
         }
     }
 
-    ebsp_barrier();
-
-    unsigned int timing = ebsp_raw_time();
     float time2 = ebsp_host_time();
 
     ebsp_close_down_stream(0);
     ebsp_close_down_stream(1);
     ebsp_close_up_stream(2);
 
-    if (s == 0) {
-        ebsp_message("Timings in clockcycles:");
-    }
+    if (s == 0)
+        ebsp_message("Timings in seconds:");
     ebsp_barrier();
     float time3 = time2 - time1;
     int time4 = (int)time3;
-    int time5 = (int)(100.0f * (time3 - (float)time4));
-    ebsp_message("%u \t %d.%d", timing, time4, time5);
+    int time5 = (int)(1000.0f * (time3 - (float)time4));
+    ebsp_message("%d.%d", time4, time5);
     ebsp_barrier();
 
     bsp_end();
