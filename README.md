@@ -130,6 +130,10 @@ If you are using EBSP, or have any questions, remarks or ideas then please get i
 - Abe Wits
 - Jan-Willem Buurlage.
 
+Also thanks to:
+
+- Máté Karácsony
+
 ## Issues
 
- The [issue tracker](https://github.com/coduin/epiphany-bsp/issues) is hosted on GitHub. We welcome pull requests, please pull request against the develop branch. Read [the GitHub flow guide](https://guides.github.com/introduction/flow/) for details.
+ The [issue tracker](https://github.com/coduin/epiphany-bsp/issues) is hosted on GitHub. We welcome pull requests, please pull request against the develop branch and add your name to the authors section of this README. Read [the GitHub flow guide](https://guides.github.com/introduction/flow/) for details.
