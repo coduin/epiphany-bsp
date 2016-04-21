@@ -60,9 +60,6 @@ void EXT_MEM_TEXT bsp_begin() {
 
     // Initialize the barrier and mutexes
     e_barrier_init(coredata.sync_barrier, coredata.sync_barrier_tgt);
-    e_mutex_init(0, 0, &coredata.payload_mutex, MUTEXATTR_NULL);
-    e_mutex_init(0, 0, &coredata.ebsp_message_mutex, MUTEXATTR_NULL);
-    e_mutex_init(0, 0, &coredata.malloc_mutex, MUTEXATTR_NULL);
 
     // Barrier fix:
     // if core i is at ebsp_barrier but core j has not even done bsp_begin yet
