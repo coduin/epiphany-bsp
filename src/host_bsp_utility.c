@@ -78,15 +78,19 @@ void _get_p_coords(int pid, int* row, int* col) {
 // and store it in state.e_directory
 // It will include a trailing slash
 void init_application_path() {
+    state.e_directory[0] = 0;
     char path[1024];
-    if (readlink("/proc/self/exe", path, 1024) > 0) {
+    ssize_t len = readlink("/proc/self/exe", path, 1024);
+    if (len > 0 && len < 1024) {
+        path[len] = 0;
         char* slash = strrchr(path, '/');
         if (slash) {
             int count = slash - path + 1;
             memcpy(state.e_directory, path, count);
             state.e_directory[count + 1] = 0;
         }
-    } else {
+    }
+    if (state.e_directory[0] == 0) {
         fprintf(stderr, "ERROR: Could not find process directory.\n");
         memcpy(state.e_directory, "./", 3); // including terminating 0
     }
