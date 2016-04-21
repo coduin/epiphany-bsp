@@ -25,7 +25,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdlib.h>
 
 int main(int argc, char** argv) {
-    bsp_init("e_bsp_streams.srec", argc, argv);
+    bsp_init("e_bsp_streams.elf", argc, argv);
     bsp_begin(bsp_nprocs());
 
     int chunk_size = sizeof(int) * 4;

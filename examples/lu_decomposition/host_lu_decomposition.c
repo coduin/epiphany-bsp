@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
     }
 
     // initialize the BSP system
-    bsp_init("e_lu_decomposition.srec", argc, argv);
+    bsp_init("e_lu_decomposition.elf", argc, argv);
     bsp_begin(bsp_nprocs());
 
     N = 4;

@@ -24,7 +24,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 int main(int argc, char **argv)
 {
-    bsp_init("e_bsp_dma.srec", argc, argv);
+    bsp_init("e_bsp_dma.elf", argc, argv);
     bsp_begin(bsp_nprocs());
     ebsp_spmd();
     bsp_end();

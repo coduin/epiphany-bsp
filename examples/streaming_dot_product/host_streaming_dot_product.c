@@ -26,7 +26,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdint.h>
 
 int main(int argc, char** argv) {
-    bsp_init("e_streaming_dot_product.srec", argc, argv);
+    bsp_init("e_streaming_dot_product.elf", argc, argv);
     bsp_begin(bsp_nprocs());
 
     int tagsize = sizeof(int);

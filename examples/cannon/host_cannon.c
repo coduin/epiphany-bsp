@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
     }
 
     // Initialize the BSP system
-    bsp_init("e_cannon.srec", argc, argv);
+    bsp_init("e_cannon.elf", argc, argv);
     bsp_begin(bsp_nprocs());
 
     int tagsize = 4;
