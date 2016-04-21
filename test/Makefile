@@ -40,7 +40,7 @@ E_LIB_NAMES = -le-bsp -le-lib
 
 all: dirs tests
 
-tests: bsp_time bsp_nprocs bsp_pid bsp_init bsp_hpput bsp_local_mp bsp_vertical_mp bsp_variables bsp_hp_variables bsp_utility bsp_streams bsp_dma bsp_memory bsp_abort
+tests: bsp_time bsp_nprocs bsp_pid bsp_init bsp_hpput bsp_local_mp bsp_vertical_mp bsp_variables bsp_hp_variables bsp_utility bsp_streams bsp_dma bsp_memory bsp_abort matmul
 
 dirs:
 	@mkdir -p bin
@@ -79,6 +79,7 @@ bsp_streams:            bin/e_bsp_streams.elf       bin/host_bsp_streams
 bsp_dma:                bin/e_bsp_dma.elf           bin/host_bsp_dma
 bsp_memory:             bin/e_bsp_memory.elf        bin/host_bsp_memory
 bsp_abort:              bin/e_bsp_abort.elf         bin/host_bsp_abort          bin/e_bsp_empty.elf
+matmul:	                bin/e_matmul.elf            bin/host_matmul
 
 ########################################################
 
