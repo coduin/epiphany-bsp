@@ -179,7 +179,7 @@ int main(int argc, char** argv) {
     }
 
     // Uncomment this line to view the entire matrix
-    // print_matrix(C, matrix_size);
+    print_matrix(C, matrix_size);
     
     printf("Result: C[n - 1, n - 1] = %.2f\n", C[matrix_size * matrix_size - 1]);
 
