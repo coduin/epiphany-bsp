@@ -45,11 +45,7 @@ int block_count = 0;
 
 int main(int argc, char** argv) {
     //matrix_size = BLOCK_SIZE * 8;
-<<<<<<< HEAD
     matrix_size = SCRIPT_MATRIX_SIZE;
-=======
-    matrix_size = 360;
->>>>>>> 04ee2f4766a7a0931b48469f292e0942e6ed8abd
     int M = matrix_size / BLOCK_SIZE;
     matrix_bytes = matrix_size * matrix_size * sizeof(float);
     block_count = matrix_size / BLOCK_SIZE;
