@@ -57,55 +57,51 @@ bin/%.s: %.c
 	@echo "CC $<"
 	@$(E_PLATFORM_PREFIX)gcc $(CFLAGS) -T $(ELDF)  $(INCLUDES) -fverbose-asm -S $< -o $@ $(LIBS) $(E_LIBS) $(E_LIB_NAMES)
 
-
-bin/%.srec: bin/%.elf
-	@$(E_PLATFORM_PREFIX)objcopy --srec-forceS3 --output-target srec $< $@
-
 ########################################################
 
-hello: bin/hello bin/hello/host_hello bin/hello/e_hello.elf bin/hello/e_hello.srec
+hello: bin/hello bin/hello/host_hello bin/hello/e_hello.elf
 
 bin/hello:
 	@mkdir -p bin/hello
 
 ########################################################
 
-dot_product: bin/dot_product bin/dot_product/host_dot_product bin/dot_product/e_dot_product.elf bin/dot_product/e_dot_product.srec
+dot_product: bin/dot_product bin/dot_product/host_dot_product bin/dot_product/e_dot_product.elf
 
 bin/dot_product:
 	@mkdir -p bin/dot_product
 
 ########################################################
 
-streaming_dot_product: bin/streaming_dot_product bin/streaming_dot_product/host_streaming_dot_product bin/streaming_dot_product/e_streaming_dot_product.elf bin/streaming_dot_product/e_streaming_dot_product.srec
+streaming_dot_product: bin/streaming_dot_product bin/streaming_dot_product/host_streaming_dot_product bin/streaming_dot_product/e_streaming_dot_product.elf
 
 bin/streaming_dot_product:
 	@mkdir -p bin/streaming_dot_product
 
 ########################################################
 
-lu_decomposition: bin/lu_decomposition bin/lu_decomposition/host_lu_decomposition bin/lu_decomposition/e_lu_decomposition.elf bin/lu_decomposition/e_lu_decomposition.srec
+lu_decomposition: bin/lu_decomposition bin/lu_decomposition/host_lu_decomposition bin/lu_decomposition/e_lu_decomposition.elf
 
 bin/lu_decomposition:
 	@mkdir -p bin/lu_decomposition
 
 ########################################################
 
-cannon: bin/cannon bin/cannon/host_cannon bin/cannon/e_cannon.elf bin/cannon/e_cannon.srec cannon/common.h
+cannon: bin/cannon bin/cannon/host_cannon bin/cannon/e_cannon.elf cannon/common.h
 
 bin/cannon:
 	@mkdir -p bin/cannon
 
 ########################################################
 
-primitives: bin/primitives bin/primitives/host_primitives bin/primitives/e_primitives.elf bin/primitives/e_primitives.srec
+primitives: bin/primitives bin/primitives/host_primitives bin/primitives/e_primitives.elf
 
 bin/primitives:
 	@mkdir -p bin/primitives
 
 ########################################################
 
-streaming: bin/streaming bin/streaming/host_streaming bin/streaming/e_streaming.elf bin/streaming/e_streaming.srec
+streaming: bin/streaming bin/streaming/host_streaming bin/streaming/e_streaming.elf
 
 bin/streaming:
 	@mkdir -p bin/streaming
