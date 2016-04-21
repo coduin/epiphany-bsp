@@ -26,7 +26,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 int main(int argc, char** argv) {
     for (int p = 1; p; ++p)
     {
-        bsp_init("e_bsp_nprocs.srec", argc, argv);
+        bsp_init("e_bsp_nprocs.elf", argc, argv);
         if (p > bsp_nprocs()) {
             bsp_end();
             break;

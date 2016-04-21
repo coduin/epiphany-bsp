@@ -29,7 +29,7 @@ const char string1[] = "row ";
 const char string2[] = "your boat, yes! ";
 
 int main(int argc, char** argv) {
-    bsp_init("e_streaming.srec", argc, argv);
+    bsp_init("e_streaming.elf", argc, argv);
     bsp_begin(bsp_nprocs());
 
     int chunk_size = sizeof(char) * 16;
