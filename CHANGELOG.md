@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0b2 - 2016-04-21
+
+### Added
+- Add support for Epiphany SDK version 2016.04
+
+### Fixed
+- Fix non-aligned transfers using `ebsp_memcpy` (@kmate)
+- Fix unnecessary arguments in interrupt handlers
+- Make target barrier volatile
+- Fix minor errors and inconsistencies in the documentation
+
 ## 1.0b - 2015-10-21
 
 ### Added

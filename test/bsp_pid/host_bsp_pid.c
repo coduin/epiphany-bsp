@@ -24,7 +24,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <host_bsp.h>
 
 int main(int argc, char** argv) {
-    bsp_init("e_bsp_pid.srec", argc, argv);
+    bsp_init("e_bsp_pid.elf", argc, argv);
 
     int tagsize = sizeof(int);
     ebsp_set_tagsize(&tagsize);
