@@ -25,11 +25,11 @@ see the files COPYING and COPYING.LESSER. If not, see
 .file    "e_bsp_raw_time.s";
 
 .section .text;
-.type    _ebsp_raw_time, %function;
-.global  _ebsp_raw_time;
+.type    ebsp_raw_time, %function;
+.global  ebsp_raw_time;
 
 .balign 4;
-_ebsp_raw_time:
+ebsp_raw_time:
 
     // Set some constants that are needed
 
@@ -54,4 +54,4 @@ _ebsp_raw_time:
 
     rts;                            // return r0
 
-.size    _ebsp_raw_time, .-_ebsp_raw_time;
+.size    ebsp_raw_time, .-ebsp_raw_time;
