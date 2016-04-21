@@ -76,7 +76,7 @@ void ebsp_dma_push(ebsp_dma_handle* descriptor, void* dst, const void* src,
     }
 }
 
-void __attribute__((interrupt)) _dma_interrupt(int unusedargument) {
+void __attribute__((interrupt)) _dma_interrupt() {
     // If DMA is in chaining mode, an interrupt will be fired after a chain
     // element is completed. At this point in the interrupt, the DMA will
     // already be busy doing the next element of the chain or even the one
