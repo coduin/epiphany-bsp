@@ -29,8 +29,8 @@ ebsp_core_data coredata;
 
 void _write_syncstate(int8_t state);
 
-void _int_isr(int);
-void _dma_interrupt(int);
+void _int_isr();
+void _dma_interrupt();
 
 void EXT_MEM_TEXT bsp_begin() {
     int row = e_group_config.core_row;
@@ -211,10 +211,13 @@ void _write_syncstate(int8_t state) {
     combuf->syncstate[coredata.pid] = state; // being polled by ARM
 }
 
-void __attribute__((interrupt)) _int_isr(int unusedargument) {
+void __attribute__((interrupt)) _int_isr() {
     __asm__(
         "movfs r0, ipend"); // moves IPEND into r0 which is the first argument
-    combuf->interrupts[coredata.pid] = unusedargument;
+
+    register int ipend_copy __asm__("r0");
+    combuf->interrupts[coredata.pid] = ipend_copy;
+
     return;
 }
 
