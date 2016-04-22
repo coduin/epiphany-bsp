@@ -26,8 +26,10 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdint.h>
 
 int main(int argc, char** argv) {
-    bsp_init("e_streaming_dot_product.elf", argc, argv);
-    bsp_begin(bsp_nprocs());
+    if (bsp_init("e_streaming_dot_product.elf", argc, argv) == 0)
+        return -1;
+    if (bsp_begin(bsp_nprocs()) == 0)
+        return -1;
 
     int tagsize = sizeof(int);
     ebsp_set_tagsize(&tagsize);
