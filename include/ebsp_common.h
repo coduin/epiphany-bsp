@@ -24,8 +24,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdint.h>
 #include "e_bsp_datatypes.h"
 
-// #define DEBUG
-
 #define NPROCS 16
 
 // Every variable that is registered with bsp_push_reg

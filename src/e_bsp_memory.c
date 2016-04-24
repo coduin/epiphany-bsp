@@ -21,7 +21,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include "e_bsp_private.h"
-#include "common.h"
 #define MALLOC_FUNCTION_PREFIX EXT_MEM_TEXT
 
 #include "extmem_malloc_implementation.cpp"

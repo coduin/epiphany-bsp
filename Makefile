@@ -27,12 +27,12 @@ E_ASM_SRCS = \
 		e_bsp_raw_time.s
 
 E_HEADERS = \
-		include/common.h \
+		include/ebsp_common.h \
 		include/e_bsp.h \
 		include/e_bsp_private.h
 
 HOST_HEADERS = \
-		include/common.h \
+		include/ebsp_common.h \
 		include/host_bsp.h \
 		include/host_bsp_private.h
 
@@ -51,7 +51,8 @@ INCLUDES = -I/usr/include/esdk \
 HOST_LIBS= -L${ESDK}/tools/host/lib \
 		   -le-hal
 
-E_FLAGS = -std=c99 -O3 -fno-strict-aliasing -ffast-math -fno-tree-loop-distribute-patterns -Wall -Wfatal-errors
+CCFLAGS = -std=c99 -O3 -Wall -Wfatal-errors
+EFLAGS = -std=c99 -O3 -fno-strict-aliasing -ffast-math -fno-tree-loop-distribute-patterns -Wall -Wfatal-errors
 
 E_OBJS = $(E_SRCS:%.c=bin/e/%.o) $(E_ASM_SRCS:%.s=bin/e/%.o)
 HOST_OBJS = $(HOST_SRCS:%.c=bin/host/%.o) 
@@ -64,24 +65,28 @@ vpath %.s src
 
 bin/host/%.o: %.c $(HOST_HEADERS)
 	@echo "CC $<"
-	@$(ARM_PLATFORM_PREFIX)gcc -O3 -Wall -Wfatal-errors -std=c99 $(INCLUDES) -c $< -o $@ ${HOST_LIBS}
+	@$(ARM_PLATFORM_PREFIX)gcc $(CCFLAGS) $(INCLUDES) -c $< -o $@ ${HOST_LIBS}
 	
 # C code to object file
 bin/e/%.o: %.c $(E_HEADERS)
 	@echo "CC $<"
-	@$(E_PLATFORM_PREFIX)gcc $(E_FLAGS) $(INCLUDES) -c $< -o $@ -le-lib
+	@$(E_PLATFORM_PREFIX)gcc $(EFLAGS) $(INCLUDES) -c $< -o $@ -le-lib
 
 # Assembly to object file
 bin/e/%.o: %.s $(E_HEADERS)
 	@echo "CC $<"
-	@$(E_PLATFORM_PREFIX)gcc $(E_FLAGS) -c $< -o $@ -le-lib
+	@$(E_PLATFORM_PREFIX)gcc $(EFLAGS) -c $< -o $@ -le-lib
 
 # C code to assembly
 bin/e/%.s: %.c $(E_HEADERS)
 	@echo "CC $<"
-	@$(E_PLATFORM_PREFIX)gcc $(E_FLAGS) $(INCLUDES) -fverbose-asm -S $< -o $@
+	@$(E_PLATFORM_PREFIX)gcc $(EFLAGS) $(INCLUDES) -fverbose-asm -S $< -o $@
 
 all: host e
+
+debug: CCFLAGS += -DDEBUG -g
+debug: EFLAGS += -DDEBUG
+debug: host e
 
 host: host_dirs lib/$(HOST_LIBNAME)$(LIBEXT)
 
