@@ -218,9 +218,8 @@ void __attribute__((interrupt)) _int_isr() {
     return;
 }
 
+// Assumes the mutex `ebsp_message_mutex` is locked
 void EXT_MEM_TEXT ebsp_send_string(const char* string) {
-    // Lock mutex
-    e_mutex_lock(0, 0, &coredata.ebsp_message_mutex);
     // Write the message
     ebsp_memcpy(&combuf->msgbuf[0], string, sizeof(combuf->msgbuf));
 
@@ -229,9 +228,6 @@ void EXT_MEM_TEXT ebsp_send_string(const char* string) {
     while (coredata.syncstate != STATE_CONTINUE) {
     };
     _write_syncstate(STATE_RUN);
-
-    // Unlock mutex
-    e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
 }
 
 void EXT_MEM_TEXT bsp_abort(const char* format, ...) {
@@ -239,6 +235,8 @@ void EXT_MEM_TEXT bsp_abort(const char* format, ...) {
     // simply call ebsp_message here
     // so this function contains a copy of ebsp_message
 
+    // Lock mutex
+    e_mutex_lock(0, 0, &coredata.ebsp_message_mutex);
     // Write the message to a buffer
     char buf[128];
     va_list args;
@@ -246,6 +244,8 @@ void EXT_MEM_TEXT bsp_abort(const char* format, ...) {
     vsnprintf(&buf[0], sizeof(buf), format, args);
     va_end(args);
     ebsp_send_string(buf);
+    // Unlock mutex
+    e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
 
     // Abort all cores and notify host
     _write_syncstate(STATE_ABORT);
@@ -257,6 +257,23 @@ void EXT_MEM_TEXT bsp_abort(const char* format, ...) {
 }
 
 void EXT_MEM_TEXT ebsp_message(const char* format, ...) {
+    // If format contains a %f then the printf family
+    // calls the function `cvt` which calls `dtoi_r`.
+    // `dtoi_r` calls Balloc (a private malloc used only
+    // within `dtoi_r`) which calls `calloc_r`
+    // which then calls `malloc_r`.
+    // The r means that the functions are reentrant.
+    // However `malloc_r` is not thread safe
+    // (where threads means cores in this case)
+    // and there will be crashes when multiple cores
+    // call it at the same time.
+    // Therefore, this printf is wrapped in a mutex
+    // even though at first hand it looks like it is
+    // not altering any global state.
+
+    // Lock mutex
+    e_mutex_lock(0, 0, &coredata.ebsp_message_mutex);
+
     // Write the message to a buffer
     char buf[128];
     va_list args;
@@ -265,5 +282,8 @@ void EXT_MEM_TEXT ebsp_message(const char* format, ...) {
     va_end(args);
 
     ebsp_send_string(buf);
+
+    // Unlock mutex
+    e_mutex_unlock(0, 0, &coredata.ebsp_message_mutex);
 }
 
