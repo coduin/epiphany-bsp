@@ -21,7 +21,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include <e_bsp.h>
-#include <common.h>
 
 int main() {
     bsp_begin();
