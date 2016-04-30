@@ -18,7 +18,7 @@ endif
 
 # no-tree-loop-distribute-patters makes sure the compiler
 # does NOT replace loops with calls to memcpy, residing in external memory
-CFLAGS=-std=c99 -Wall -O3 -ffast-math -fno-tree-loop-distribute-patterns
+CFLAGS=-std=c99 -Wall -O3 -fno-tree-loop-distribute-patterns
 
 #First include directory is only for cross-compiling
 INCLUDES = -I/usr/include/esdk \

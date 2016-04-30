@@ -12,6 +12,7 @@
 - Make target barrier volatile
 - Fix minor errors and inconsistencies in the documentation
 - Fix a race condition involving the DMA interrupt
+- Fix LU decomposition example by removing fast-math optimization flag
 
 ### Removed
 - Remove srec support from examples and tests
