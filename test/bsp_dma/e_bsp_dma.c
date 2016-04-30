@@ -43,7 +43,11 @@ int main()
         // Allocate buffers
         int allocationSucces = 1;
 
-        char* localbuffer = ebsp_malloc(BUFFERSIZE);
+        // Allocate extra space before and after the buffer
+        // to check if the dma does not overwrite them.
+        // Make sure that the address given to the DMA is
+        // 8-byte aligned though.
+        char* localbuffer = ebsp_malloc(BUFFERSIZE + 16);
         if (!localbuffer)
             allocationSucces = 0;
 
@@ -58,10 +62,13 @@ int main()
         {
             // Fill buffers with data
             for (int i = 0; i < BUFFERSIZE; i++)
-                localbuffer[i] = 0;
+                localbuffer[8+i] = 0;
             for (int i = 0; i < BUFFERCOUNT; i++)
                 for (int j = 0; j < BUFFERSIZE; j++)
                     remotebuffer[i][j] = (char)(i+1);
+
+            localbuffer[7] = 0xdd;
+            localbuffer[8+BUFFERSIZE] = 0xee;
 
             char valueFirst[BUFFERCOUNT];
             char valueAtEnd[BUFFERCOUNT];
@@ -73,18 +80,18 @@ int main()
 
             // Push some remote->local tasks
             for (int i = 0; i < BUFFERCOUNT; i++)
-                ebsp_dma_push(&handle[i], localbuffer, remotebuffer[i], BUFFERSIZE);
+                ebsp_dma_push(&handle[i], &localbuffer[8], remotebuffer[i], BUFFERSIZE);
 
             // Wait for the DMAs to finish
             for (int i = 0; i < BUFFERCOUNT; i++) {
                 // First check if data is NOT copied too soon
-                valueFirst[i] = localbuffer[BUFFERSIZE-1];
+                valueFirst[i] = localbuffer[8+BUFFERSIZE-1];
 
                 // Wait for it to finish
                 ebsp_dma_wait(&handle[i]);
 
                 // Check if the data is copied now
-                valueAtEnd[i] = localbuffer[BUFFERSIZE-1];
+                valueAtEnd[i] = localbuffer[8+BUFFERSIZE-1];
             }
 
             ebsp_barrier();
@@ -103,6 +110,11 @@ int main()
                     globalPass = 0;
                     ebsp_message("ERROR: buffer %d not copied at end", i);
                 }
+            }
+
+            if (localbuffer[7] != 0xdd || localbuffer[8+BUFFERSIZE] != 0xee) {
+                globalPass = 0;
+                ebsp_message("ERROR: DMA wrote outside of buffer region");
             }
         }
         else
