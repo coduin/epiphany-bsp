@@ -60,19 +60,33 @@ void ebsp_dma_push(ebsp_dma_handle* descriptor, void* dst, const void* src,
         // No current chain, replace it by this one
         coredata.last_dma_desc = desc;
     } else if (last != desc) {
+        // We need to disable interrupts because
+        // if the interrupt fires between `newconfig = ...`
+        // and `last->config = ...` then the interrupt
+        // clears the E_DMA_ENABLE bit but it is then set again
+        // by this code below, which is not what we want
+        e_irq_global_mask(E_TRUE);
         // Attach desc to last
         unsigned newconfig =
             (last->config & 0x0000ffff) | ((unsigned)desc << 16);
         last->config = newconfig;
+        e_irq_global_mask(E_FALSE);
         coredata.last_dma_desc = desc;
     }
 
+    // In principle it could happen that at this point, the previous
+    // DMA task finished, its interrupt fires which starts the DMA
+    // engine for THIS task, which could then ALSO finish.
+    // Therefore we have to check for this inside the if statement below
+
     // Start DMA if not started yet
     if (coredata.cur_dma_desc == 0) {
-        // Start the DMA engine using the kickstart bit
-        coredata.cur_dma_desc = desc;
-        unsigned kickstart = ((unsigned)desc << 16) | E_DMA_STARTUP;
-        *coredata.dma1config = kickstart;
+        if (desc->config & E_DMA_ENABLE) {
+            // Start the DMA engine using the kickstart bit
+            coredata.cur_dma_desc = desc;
+            unsigned kickstart = ((unsigned)desc << 16) | E_DMA_STARTUP;
+            *coredata.dma1config = kickstart;
+        }
     }
 }
 
@@ -97,6 +111,9 @@ void __attribute__((interrupt)) _dma_interrupt() {
     // Grab the current task
     e_dma_desc_t* desc = coredata.cur_dma_desc;
     if (desc == 0) { // should not happen
+        // We want to show an error message but not using
+        // ebsp_message because we are inside an interrupt.
+        // Instead we use the following flag that the host reads.
         combuf->interrupts[coredata.pid] =
             0x80; // Use (1 << E_DMA1_INT) as error message
         return;

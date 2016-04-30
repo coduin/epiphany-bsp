@@ -4,12 +4,14 @@
 
 ### Added
 - Add support for Epiphany SDK version 2016.3
+- Add debug target to build system
 
 ### Fixed
 - Fix non-aligned transfers using `ebsp_memcpy` (@kmate)
 - Fix unnecessary arguments in interrupt handlers
 - Make target barrier volatile
 - Fix minor errors and inconsistencies in the documentation
+- Fix a race condition involving the DMA interrupt
 
 ### Removed
 - Remove srec support from examples and tests
