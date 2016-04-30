@@ -23,7 +23,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <host_bsp.h>
 
 int main(int argc, char** argv) {
-    bsp_init("e_bsp_local_mp.srec", argc, argv);
+    bsp_init("e_bsp_local_mp.elf", argc, argv);
     bsp_begin(bsp_nprocs());
 
     int tagsz = sizeof(int);

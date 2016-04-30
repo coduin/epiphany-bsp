@@ -24,7 +24,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <host_bsp.h>
 
 int main(int argc, char** argv) {
-    bsp_init("e_bsp_abort.srec", argc, argv);
+    bsp_init("e_bsp_abort.elf", argc, argv);
 
     bsp_begin(bsp_nprocs());
     int result = ebsp_spmd();
@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
     // expect: (result: 0)
     printf("result: %i\n", result);
 
-    bsp_init("e_bsp_empty.srec", argc, argv);
+    bsp_init("e_bsp_empty.elf", argc, argv);
 
     bsp_begin(bsp_nprocs());
     int result_empty = ebsp_spmd();

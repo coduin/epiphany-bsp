@@ -28,10 +28,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdlib.h>
 #include "common.h"
 
-#define __USE_XOPEN2K
-#define __USE_POSIX199309 1
-#include <time.h>
-
 void print_matrix(float* A, int matrix_size);
 
 float* C = 0;
@@ -50,16 +46,10 @@ int main(int argc, char** argv) {
     matrix_bytes = matrix_size * matrix_size * sizeof(float);
     block_count = matrix_size / BLOCK_SIZE;
 
-    printf("Multiplying two %i x %i matrices\n", matrix_size, matrix_size);
-    printf("Full matrix consists of %dx%d = %d superblocks of size %dx%d\n",
-            M, M, M * M, BLOCK_SIZE, BLOCK_SIZE);
-    printf("One superblock contains %d core-blocks of size %dx%d\n",
-            N * N, CORE_BLOCK_SIZE, CORE_BLOCK_SIZE);
-
     // Prepare full matrix
-    float* A = malloc(matrix_bytes);
-    float* B = malloc(matrix_bytes);
-    C = malloc(matrix_bytes);
+    float* A = (float*)malloc(matrix_bytes);
+    float* B =(float*) malloc(matrix_bytes);
+    C = (float*)malloc(matrix_bytes);
 
     for (int i = 0; i < matrix_size; i++) {
         for (int j = 0; j < matrix_size; j++) {
@@ -126,7 +116,7 @@ int main(int argc, char** argv) {
     }
 
     // Initialize the BSP system
-    bsp_init("e_cannon.elf", argc, argv);
+    bsp_init("e_matmul.elf", argc, argv);
     bsp_begin(bsp_nprocs());
 
     int tagsize = 4;
@@ -146,14 +136,7 @@ int main(int argc, char** argv) {
     }
 
     // Timer
-    struct timespec ts_start, ts_end;
-    clock_gettime(CLOCK_MONOTONIC, &ts_start);
     ebsp_spmd();
-    clock_gettime(CLOCK_MONOTONIC, &ts_end);
-    float time_elapsed =
-        (ts_end.tv_sec - ts_start.tv_sec +
-         (ts_end.tv_nsec - ts_start.tv_nsec) * 1.0e-9);
-    printf("ebsp_spmd() time in seconds: %f\n", time_elapsed);
 
     // Gather C
     // Loop over blocks
@@ -180,13 +163,44 @@ int main(int argc, char** argv) {
 
     // Uncomment this line to view the entire matrix
     //print_matrix(C, matrix_size);
-    
-    printf("Result: C[n - 1, n - 1] = %.2f\n", C[matrix_size * matrix_size - 1]);
+
 
     bsp_end();
 
+    float* check_matrix = (float*)malloc(matrix_bytes);
+
+    for (int i = 0; i < matrix_size; i++) {
+        for (int j = 0; j < matrix_size; j++) {
+            check_matrix[i * matrix_size + j] = 0;
+            for (int k = 0; k < matrix_size; k++) {
+                check_matrix[i * matrix_size + j] +=
+                    A[i * matrix_size + k] * B[k * matrix_size + j];
+            }
+        }
+    }
+
+    int wrong_result = 0;
+    for (int i = 0; i < matrix_size; i++) {
+        for (int j = 0; j < matrix_size; j++) {
+            if (check_matrix[i * matrix_size + j] != C[i * matrix_size + j]) {
+                printf("Wrong result at index (%i, %i)", i, j);
+                wrong_result = 1;
+                break;
+            }
+            if (wrong_result)
+                break;
+        }
+    }
+
+    // expect: (Matrices found are equal)
+    if (!wrong_result) {
+        printf("Matrices found are equal");
+    }
+
     free(A);
     free(B);
+    free(C);
+    free(check_matrix);
 }
 
 void print_matrix(float* A, int matrix_size) {

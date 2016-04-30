@@ -85,9 +85,7 @@ int main() {
     ebsp_dma_handle dma_handle_a;
     ebsp_dma_handle dma_handle_b;
 
-    // Start timer
     ebsp_barrier();
-    float time1 = ebsp_host_time();
 
     // Loop over the blocks (chunks)
     // these are the *global blocks*
@@ -154,20 +152,9 @@ int main() {
         }
     }
 
-    float time2 = ebsp_host_time();
-
     ebsp_close_down_stream(0);
     ebsp_close_down_stream(1);
     ebsp_close_up_stream(2);
-
-    if (s == 0)
-        ebsp_message("Timings in seconds:");
-    ebsp_barrier();
-    float time3 = time2 - time1;
-    int time4 = (int)time3;
-    int time5 = (int)(1000.0f * (time3 - (float)time4));
-    ebsp_message("%d.%d", time4, time5);
-    ebsp_barrier();
 
     bsp_end();
 }

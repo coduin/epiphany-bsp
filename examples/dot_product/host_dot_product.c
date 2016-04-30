@@ -25,7 +25,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdio.h>
 
 int main(int argc, char** argv) {
-    bsp_init("e_dot_product.srec", argc, argv);
+    bsp_init("e_dot_product.elf", argc, argv);
 
     int nprocs = bsp_nprocs();
 

@@ -124,16 +124,9 @@ int main() {
     if (t == 0)
         for (int i = 0; i < entries_per_col; ++i) {
             loc_pi[i] = s + i * N;
-
         }
 
     for (int k = 0; k < dim; ++k) {
-    if (t == 0)
-        for (int i = 0; i < entries_per_col; ++i) {
-        }
-
-
-        ebsp_barrier();
 
         //----------------------
         // STAGE 1: Pivot search

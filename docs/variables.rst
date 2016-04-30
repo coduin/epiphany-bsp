@@ -11,7 +11,7 @@ BSP Variables
 Registering, putting and getting
 --------------------------------
 
-If we want to write more interesting EBSP programs, we need to have a way to communicate between the different Epiphany cores. In EBSP communication happens in one of two ways: using message passing, which we will introduce later, or via *registered variables*. An EBSP variable exists on every processor, but it does not have to have the same size on every Epiphany core.
+If we want to write more interesting EBSP programs, we need to have a way to communicate between the different Epiphany cores. In EBSP communication happens in one of two ways: using message passing, which we will introduce later, or via *registered variables*. An EBSP variable exists on every processor, but does not necessarily have the same size on every Epiphany core.
 
 Variable registration
 ^^^^^^^^^^^^^^^^^^^^^
@@ -22,14 +22,14 @@ We register a variable by calling ``bsp_push_reg``::
     bsp_push_reg(&a, sizeof(int));
     bsp_sync();
 
-Here we declare an integer ``a``, and initialize it with zero. Next we *register* the variable with BSP system, by passing its local location, and its size.
+Here we declare an integer ``a``, and initialize it with zero. Next we *register* the variable with the BSP system, by passing its local location, and its size.
 
-To ensure that all cores have registered a variable, we perform a barrier synchronisation after the registration. The Epiphany cores will halt execution until *every other core* reaches this point in the program, so it *synchronizes* the program execution between the Epiphany cores. Only *one variable may be declared between calls to ``bsp_sync``*!
+To ensure that all cores have registered a variable, we perform a barrier synchronisation after the registration. The Epiphany cores will halt execution until *every other core* reaches this point in the program, so it *synchronizes* the program execution between the Epiphany cores. Only *one variable may be declared between calls to* ``bsp_sync``!
 
 Putting and getting values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Registered variables can be written to or read from by other cores. In BSP this is refered to as *putting* something in a variable, or *getting* the value of a variable. To write for example our processor ID to the *next core* we can write::
+Registered variables can be written to or be read from by other cores. In BSP this is referred to as *putting* something in a variable, or *getting* the value of a variable. To write for example our processor ID to the *next core* we can write::
 
     int b = s;
     bsp_put((s + 1) % p, &b, &a, 0, sizeof(int));
@@ -85,7 +85,7 @@ The arguments for ``bsp_get`` are:
 4. A pointer to the local destination.
 5. The number of bytes to copy.
 
-And again, we perform a barrier synchronisation to ensure the data has been transferred. If you are familiar with concurrent programming, then you might think we are at risk of a ``race condition <https://en.wikipedia.org/wiki/Race_condition>``_! What if processor ``s`` reaches the ``bsp_get`` statement before processor ``(s + 1) % p`` has set the value for ``a`` equal to its process number? Do we then obtain zero? In this case, we do not have to worry -- no data transfer is initialized until each core has reached ``bsp_sync``. Indeed we receive the correct output::
+And again, we perform a barrier synchronisation to ensure the data has been transferred. If you are familiar with concurrent programming, then you might think we are at risk of a `race condition <https://en.wikipedia.org/wiki/Race_condition>`_! What if processor ``s`` reaches the ``bsp_get`` statement before processor ``(s + 1) % p`` has set the value for ``a`` equal to its process number? Do we then obtain zero? In this case, we do not have to worry -- no data transfer is initialized until each core has reached ``bsp_sync``. Indeed we receive the correct output::
 
     $01: received: 2
     $03: received: 4
@@ -98,11 +98,11 @@ Unbuffered communication
 
 So far we have discussed writing to, and reading from variables using ``bsp_put`` and ``bsp_get``. These two functions are *buffered*. When calling ``bsp_put`` for example, the *current source value* at the time of the function call is guarenteed to be sent to the target processor, but it does not get sent until the next barrier synchronisation -- so behind the scenes the EBSP library stores a copy of the data. The BSP standard was originally designed for distributed memory systems with very high latency, in which this design makes a lot of sense. On the Epiphany platform this gives a lot of unnecessary overhead since data is copied to *external memory*.
 
-This problem is not unique to the Epiphany platform however. Together with the `MulticoreBSP <http://www.multicorebsp.com/>`_ which target modern multicore processors, two additional BSP primitives were introduced that provide *unbuffered* variable communication, ``bsp_hpput`` and ``bsp_hpget``. Here the ``hp...`` prefix stands for *high performance*.
+This problem is not unique to the Epiphany platform however. Together with the `MulticoreBSP <http://www.multicorebsp.com/>`_ which targets modern multicore processors, two additional BSP primitives were introduced that provide *unbuffered* variable communication, ``bsp_hpput`` and ``bsp_hpget``. Here the ``hp...`` prefix stands for *high performance*.
 
 However, although their function signatures are completely identical, these are not meant as a drop-in replacements for ``bsp_put`` and ``bsp_get``. They are unsafe in the sense that data transfer happens *at once*. This means that when using these functions you should be aware of possible race conditions -- which can notoriously lead to mistakes that can be very hard to debug.
 
-To facilitate writing code using only unbuffered communication we will expose an ``ebsp_barrier`` function in the next EBSP release that performs a barrier synchronisation without transferring any outstanding communication that has arisen from calls to ``bsp_put`` and ``bsp_get``. Let us look at an example program using these unbuffered variants.::
+To facilitate writing code using only unbuffered communication we introduce a ``ebsp_barrier`` function that performs a barrier synchronisation without transferring any outstanding communication that has arisen from calls to ``bsp_put`` and ``bsp_get``. Let us look at an example program using these unbuffered variants::
 
     int s = bsp_pid();
     int p = bsp_nprocs();
@@ -113,7 +113,7 @@ To facilitate writing code using only unbuffered communication we will expose an
 
     int b = s;
     // barrier ensures b has been written to on each core
-    bsp_sync();
+    ebsp_barrier();
 
     bsp_hpput((s + 1) % p, &b, &a, 0, sizeof(int));
 
@@ -121,7 +121,7 @@ To facilitate writing code using only unbuffered communication we will expose an
     bsp_sync();
     ebsp_message("received: %i", a);
 
-When writing or reading large amounts of data in between different ``bsp_sync`` calls, the ``hp...`` functions are much more efficient in terms of local memory usage (which is very valuable because of the small size) as well as running speed. However, extra care is needed to effectively synchronize between threads. For example, if we remove any of the two ``bsp_sync`` calls in the previous example program, there will be a race condition.
+When writing or reading large amounts of data in between different ``bsp_sync`` calls, the ``hp...`` functions are much more efficient in terms of local memory usage (which is very valuable because of the small size) as well as running speed. However, extra care is needed to effectively synchronize between threads. For example, if we remove either the ``ebsp_barrier``, or the  ``bsp_sync`` calls in the previous example program, there will be a race condition.
 
 We test the program, and see that the output is indeed identical to before::
 

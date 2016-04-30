@@ -21,7 +21,6 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include "e_bsp_private.h"
-#include "common.h"
 #define MALLOC_FUNCTION_PREFIX EXT_MEM_TEXT
 
 #include "extmem_malloc_implementation.cpp"
@@ -91,7 +90,7 @@ void ebsp_memcpy(void* dest, const void* source, size_t nbytes) {
         while (count--)
             *dst++ = *src++;
         dest = (void*)dst;
-        source = (void*)source;
+        source = (void*)src;
     } else if ((bits & 0x3) == 0) {
         // 4-byte aligned
         uint32_t* dst = (uint32_t*)dest;
@@ -101,7 +100,7 @@ void ebsp_memcpy(void* dest, const void* source, size_t nbytes) {
         while (count--)
             *dst++ = *src++;
         dest = (void*)dst;
-        source = (void*)source;
+        source = (void*)src;
     }
 
     // do remaining bytes 1-byte aligned

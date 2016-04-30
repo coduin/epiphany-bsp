@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.0-beta.2 - 2016-04-21
+
+### Added
+- Add support for Epiphany SDK version 2016.3
+- Add debug target to build system
+
+### Fixed
+- Fix non-aligned transfers using `ebsp_memcpy` (@kmate)
+- Fix unnecessary arguments in interrupt handlers
+- Make target barrier volatile
+- Fix minor errors and inconsistencies in the documentation
+- Fix a race condition involving the DMA interrupt
+- Fix LU decomposition example by removing fast-math optimization flag
+
+### Removed
+- Remove srec support from examples and tests
+
 ## 1.0b - 2015-10-21
 
 ### Added

@@ -24,7 +24,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #pragma once
 #include "e_bsp.h"
-#include "common.h"
+#include "ebsp_common.h"
 #include <e-lib.h>
 #include <stdint.h>
 
@@ -61,7 +61,7 @@ typedef struct {
 
     // bsp_sync barrier
     volatile e_barrier_t sync_barrier[NPROCS];
-    e_barrier_t* sync_barrier_tgt[NPROCS];
+    volatile e_barrier_t* sync_barrier_tgt[NPROCS];
 
     // if this core has done a bsp_push_reg
     int8_t var_pushed;
