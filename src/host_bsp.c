@@ -314,10 +314,23 @@ int ebsp_spmd() {
 
 #ifdef DEBUG
         if (iter % 1000 == 0) {
-            printf("run %02d - sync %02d - finish %02d - continue %02d -- "
-                   "iteration %d\n",
-                   run_counter, sync_counter, finish_counter, continue_counter,
-                   iter);
+            printf("Iteration %5d run %02d - sync %02d - finish %02d - continue %02d\n",
+                   iter, run_counter, sync_counter, finish_counter, continue_counter);
+            // Get the `PROGRAM COUNTER` register (instruction pointer)
+            // to see what code is currently being executed
+            uint32_t pc[NPROCS];
+            for (int i = 0; i < state.nprocs_used; i++) {
+                int prow, pcol;
+                _get_p_coords(i, &prow, &pcol);
+                e_read(&state.dev, prow, pcol, E_REG_PC, &pc[i], sizeof(uint32_t));
+            }
+
+            printf("                PC for every core:");
+            for (int i = 0; i < state.nprocs_used; i++) {
+                printf(" %p", (void*)pc[i]);
+            }
+            printf("\n");
+
             fflush(stdout);
         }
         ++iter;
