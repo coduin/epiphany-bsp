@@ -49,6 +49,9 @@ typedef struct {
     // time_passed is epiphany cpu time (so not walltime) in seconds
     float time_passed;
 
+    // BSP variable list
+    void* bsp_var_list[MAX_BSP_VARS];
+
     // counter for ebsp_combuf::data_requests[pid]
     uint32_t request_counter;
 
@@ -62,9 +65,6 @@ typedef struct {
     // bsp_sync barrier
     volatile e_barrier_t sync_barrier[NPROCS];
     volatile e_barrier_t* sync_barrier_tgt[NPROCS];
-
-    // if this core has done a bsp_push_reg
-    int8_t var_pushed;
 
     // Mutex is used for message_queue (send) and data_payloads (put)
     e_mutex_t payload_mutex;
