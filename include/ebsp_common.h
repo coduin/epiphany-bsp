@@ -31,7 +31,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 // An address takes 4 bytes, and MAX_BSP_VARS is the maximum
 // amount of variables that can be registered so in total we need
 // NCORES * MAX_BSP_VARS * 4 bytes to save all this data
-#define MAX_BSP_VARS 64
+#define MAX_BSP_VARS 20
 
 // The maximum amount of buffered put/get operations each
 // core is allowed to do per sync step
@@ -127,8 +127,6 @@ typedef struct {
     // int                 out_buffer_size[_NPROCS];
 
     // Epiphany <--> Epiphany
-    void* bsp_var_list[MAX_BSP_VARS][NPROCS];
-    uint32_t bsp_var_counter;
     ebsp_data_request data_requests[NPROCS][MAX_DATA_REQUESTS];
     ebsp_message_queue message_queue[2];
     ebsp_payload_buffer data_payloads; // used for put/get/send

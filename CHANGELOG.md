@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.0-beta.3
+
+### Added
+- BSP variable list is stored distributed over all cores instead of in external memory
+- Implement `bsp_pop_reg`
+
+### Fixed
+
+### Removed
+
+
 ## 1.0.0-beta.2 - 2016-04-21
 
 ### Added

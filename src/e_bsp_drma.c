@@ -23,17 +23,11 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include "e_bsp_private.h"
 #include <string.h>
 
-const char err_pushreg_multiple[] EXT_MEM_RO =
-    "BSP ERROR: multiple bsp_push_reg calls within one sync";
-
 const char err_pushreg_overflow[] EXT_MEM_RO =
     "BSP ERROR: Trying to push more than MAX_BSP_VARS vars";
 
 const char err_var_not_found[] EXT_MEM_RO =
     "BSP ERROR: could not find bsp var %p";
-
-const char err_pop_reg_not_implemented[] EXT_MEM_RO =
-    "BSP ERROR: Function bsp_pop_reg not implemented";
 
 const char err_get_overflow[] EXT_MEM_RO =
     "BSP ERROR: too many bsp_get requests per sync";
@@ -51,9 +45,14 @@ void* _get_remote_addr(int pid, const void* addr, int offset) {
     // Find the slot for our local pid
     // And return the entry for the remote pid including the epiphany mapping
     for (int slot = 0; slot < MAX_BSP_VARS; ++slot) {
-        if (combuf->bsp_var_list[slot][coredata.pid] == addr) {
-            // Address as registered by other core and as seen by other core
-            unsigned uptr = (unsigned)combuf->bsp_var_list[slot][pid] + offset;
+        if (coredata.bsp_var_list[slot] == addr) {
+            // Get the remote copy of the BSP var list
+            unsigned remote_var_list = (unsigned)&(coredata.bsp_var_list[slot]);
+            remote_var_list |= ((uint32_t)coredata.coreids[pid]) << 20;
+            // Read its value
+            unsigned remote_ptr = *(unsigned*)remote_var_list;
+            // Add the offset
+            unsigned uptr = remote_ptr + offset;
 
             // If it was global, then it is directly valid from here
             // If it was local, add the remote coreid in the highest 12 bits
@@ -68,20 +67,19 @@ void* _get_remote_addr(int pid, const void* addr, int offset) {
 }
 
 void EXT_MEM_TEXT bsp_push_reg(const void* variable, const int nbytes) {
-    if (coredata.var_pushed)
-        return ebsp_message(err_pushreg_multiple);
-
-    if (combuf->bsp_var_counter == MAX_BSP_VARS)
-        return ebsp_message(err_pushreg_overflow);
-
-    combuf->bsp_var_list[combuf->bsp_var_counter][coredata.pid] =
-        (void*)variable;
-
-    coredata.var_pushed = 1;
+    for (size_t i = 0; i < MAX_BSP_VARS; i++) {
+        if (coredata.bsp_var_list[i] == 0) {
+            coredata.bsp_var_list[i] = (void*)variable;
+            return;
+        }
+    }
+    return ebsp_message(err_pushreg_overflow);
 }
 
 void EXT_MEM_TEXT bsp_pop_reg(const void* variable) {
-    ebsp_message(err_pop_reg_not_implemented);
+    for (size_t i = 0; i < MAX_BSP_VARS; i++)
+        if (coredata.bsp_var_list[i] == variable)
+            coredata.bsp_var_list[i] = 0;
     return;
 }
 

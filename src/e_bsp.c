@@ -41,7 +41,6 @@ void EXT_MEM_TEXT bsp_begin() {
     coredata.pid = col + cols * row;
     coredata.nprocs = combuf->nprocs;
     coredata.request_counter = 0;
-    coredata.var_pushed = 0;
     coredata.tagsize = combuf->tagsize;
     coredata.tagsize_next = coredata.tagsize;
     coredata.read_queue_index = 0;
@@ -53,6 +52,9 @@ void EXT_MEM_TEXT bsp_begin() {
     coredata.dma1status =
         e_get_global_address(row, col, (void*)E_REG_DMA1STATUS);
     coredata.local_nstreams = combuf->n_streams[coredata.pid];
+
+    for (int i = 0; i < MAX_BSP_VARS; i++)
+        coredata.bsp_var_list[i] = 0;
 
     for (int s = 0; s < coredata.nprocs; s++)
         coredata.coreids[s] =
@@ -179,12 +181,6 @@ void bsp_sync() {
     // Switch queue between 0 and 1
     // xor seems to produce the shortest assembly
     coredata.read_queue_index ^= 1;
-
-    if (coredata.var_pushed) {
-        coredata.var_pushed = 0;
-        if (coredata.pid == 0)
-            combuf->bsp_var_counter++;
-    }
 
     coredata.tagsize = coredata.tagsize_next;
     coredata.message_index = 0;
