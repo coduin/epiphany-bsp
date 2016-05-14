@@ -7,6 +7,9 @@
 - Implement `bsp_pop_reg`
 
 ### Fixed
+- `bsp_begin` no longer uses divide and modulus operator which take up large amounts of memory
+- `bsp_begin` no longer initializes coredata to zero since this is already done in the loader
+- `bsp_end` no longer executes TRAP so that `main` can finish properly
 
 ### Removed
 

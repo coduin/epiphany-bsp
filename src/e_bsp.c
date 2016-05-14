@@ -36,29 +36,24 @@ void EXT_MEM_TEXT bsp_begin() {
     int row = e_group_config.core_row;
     int col = e_group_config.core_col;
     int cols = e_group_config.group_cols;
+    int rows = e_group_config.group_rows;
 
-    // Initialize local data
+    // Since coredata is in the .bss section it will automatically be filled
+    // with zeroes so no need to do that here. Only fill the nonzero elements
     coredata.pid = col + cols * row;
     coredata.nprocs = combuf->nprocs;
-    coredata.request_counter = 0;
     coredata.tagsize = combuf->tagsize;
     coredata.tagsize_next = coredata.tagsize;
-    coredata.read_queue_index = 0;
-    coredata.message_index = 0;
-    coredata.cur_dma_desc = NULL;
-    coredata.last_dma_desc = NULL;
     coredata.dma1config =
         e_get_global_address(row, col, (void*)E_REG_DMA1CONFIG);
     coredata.dma1status =
         e_get_global_address(row, col, (void*)E_REG_DMA1STATUS);
     coredata.local_nstreams = combuf->n_streams[coredata.pid];
 
-    for (int i = 0; i < MAX_BSP_VARS; i++)
-        coredata.bsp_var_list[i] = 0;
-
-    for (int s = 0; s < coredata.nprocs; s++)
-        coredata.coreids[s] =
-            (uint16_t)e_coreid_from_coords(s / cols, s % cols);
+    int s = 0;
+    for (int i = 0; i < rows; i++)
+        for (int j = 0; j < cols; j++)
+            coredata.coreids[s++] = (uint16_t)e_coreid_from_coords(i, j);
 
     // Initialize the barrier and mutexes
     e_barrier_init(coredata.sync_barrier, coredata.sync_barrier_tgt);
@@ -134,8 +129,6 @@ void EXT_MEM_TEXT bsp_begin() {
 
 void bsp_end() {
     _write_syncstate(STATE_FINISH);
-    // Finish execution
-    __asm__("trap 3");
 }
 
 int bsp_nprocs() { return coredata.nprocs; }
