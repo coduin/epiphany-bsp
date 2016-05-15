@@ -202,9 +202,7 @@ void bsp_push_reg(const void* variable, const int nbytes);
  *  previously registered with bsp_push_reg()
  *
  * The operation takes effect after the next call to bsp_sync().
- * @remarks In the current implementation, this function does
- * nothing. In a future update this function will free up variable
- * spots for new registrations.
+ * The order in which the variables are popped does not matter.
  */
 void bsp_pop_reg(const void* variable);
 
