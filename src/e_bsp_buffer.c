@@ -21,7 +21,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include "e_bsp_private.h"
-#include <string.h>
+#include <limits.h>
 
 const char err_no_such_stream[] EXT_MEM_RO = "BSP ERROR: stream does not exist";
 
@@ -161,7 +161,7 @@ int ebsp_move_chunk_up(void** address, unsigned stream_id, int prealloc) {
         stream->next_buffer = tmp;
 
         stream->cursor += chunk_size; // move pointer in extmem
-    } else // no prealloc
+    } else                            // no prealloc
     {
         if (stream->next_buffer != NULL) {
             ebsp_free(stream->next_buffer);
@@ -406,3 +406,203 @@ void ebsp_move_down_cursor(int stream_id, int jump_n_chunks) {
         }
     }
 }
+
+//
+// New streaming API starting here
+//
+
+// When stream headers are interleaved, they are saved as:
+//
+// 00000000, nextsize, data,
+// prevsize, nextsize, data,
+// ...
+// prevsize, nextsize, data,
+// prevsize, 00000000
+//
+// So a header consists of two integers (8 byte total).
+// The two sizes do NOT include these headers.
+// They are only the size of the data inbetween.
+// The local copies of the data include these 8 bytes.
+
+int ebsp_stream_open(int stream_id) {
+    if (stream_id >= coredata.local_nstreams) {
+        ebsp_message(err_no_such_stream);
+        return 0;
+    }
+    ebsp_stream_descriptor* stream = &coredata.local_streams[stream_id];
+
+    // Go to start
+    stream->cursor = stream->extmem_addr;
+
+    return stream->max_chunksize;
+}
+
+void ebsp_stream_close(int stream_id) {
+    if (stream_id >= coredata.local_nstreams) {
+        ebsp_message(err_no_such_stream);
+        return;
+    }
+    ebsp_stream_descriptor* stream = &coredata.local_streams[stream_id];
+
+    // Wait for any data transfer to finish before closing
+    ebsp_dma_wait(&stream->e_dma_desc);
+
+    if (stream->current_buffer != NULL) {
+        ebsp_free(stream->current_buffer);
+        stream->current_buffer = NULL;
+    }
+    if (stream->next_buffer != NULL) {
+        ebsp_free(stream->next_buffer);
+        stream->next_buffer = NULL;
+    }
+}
+
+void ebsp_stream_seek(int stream_id, int delta_tokens) {
+    if (stream_id >= coredata.local_nstreams) {
+        ebsp_message(err_no_such_stream);
+        return;
+    }
+    ebsp_stream_descriptor* stream = &coredata.local_streams[stream_id];
+
+    if (delta_tokens >= 0) { // forward
+        while (delta_tokens--) {
+            // read 2nd int (next size) in header
+            int chunk_size = *(int*)(stream->cursor + sizeof(int));
+            if (chunk_size == 0)
+                return;
+            stream->cursor += 2 * sizeof(int) + chunk_size;
+        }
+    } else { // backward
+        if (delta_tokens == INT_MIN) {
+            stream->cursor = stream->extmem_addr;
+        }
+
+        while (delta_tokens++) {
+            // read 1st int (prev size) in header
+            int chunk_size = *(int*)(stream->cursor);
+            if (chunk_size == 0)
+                return;
+            stream->cursor -= 2 * sizeof(int) + chunk_size;
+        }
+    }
+}
+
+int ebsp_stream_move_down(int stream_id, void** buffer, int preload) {
+    if (stream_id >= coredata.local_nstreams) {
+        ebsp_message(err_no_such_stream);
+        return 0;
+    }
+
+    ebsp_stream_descriptor* stream = &coredata.local_streams[stream_id];
+
+    if (stream->current_buffer == NULL) {
+        stream->current_buffer =
+            ebsp_malloc(stream->max_chunksize + 2 * sizeof(int));
+        if (stream->current_buffer == NULL) {
+            ebsp_message(err_out_of_memory);
+            return 0;
+        }
+    }
+
+    // At this point in the code:
+    //  current_buffer contains data from previous token,
+    //  which has been given to the user last time (zero at first time).
+    // This means current_buffer can be overwritten now
+    // The new token is:
+    //  - locally available already in next_buffer (preload)
+    //  - not here yet (no preload)
+
+    if (stream->next_buffer == NULL) {
+        // Data not here yet (did not preload last time)
+        // Overwrite current buffer.
+        _ebsp_write_chunk(stream, stream->current_buffer);
+    } else {
+        // Data is locally available already in next_buffer (preload).
+        // Swap buffers.
+        void* tmp = stream->current_buffer;
+        stream->current_buffer = stream->next_buffer;
+        stream->next_buffer = tmp;
+    }
+
+    // Wait for the dma we just started (if)
+    // Or the one from previous preload (else)
+    ebsp_dma_wait(&(stream->e_dma_desc));
+
+    // At this point in the code:
+    //  current_buffer contains data from the current token,
+    //  which we should now give to the user.
+
+    // *buffer must point after the header
+    (*buffer) = (void*)((unsigned)stream->current_buffer + 2 * sizeof(int));
+
+    int* header = (int*)(stream->current_buffer);
+    int current_chunk_size = header[1];
+
+    // Check for end-of-stream
+    if (current_chunk_size == 0) {
+        (*buffer) = NULL;
+        return 0;
+    }
+
+    if (preload) {
+        if (stream->next_buffer == NULL) {
+            // no next buffer available, malloc it
+            stream->next_buffer =
+                ebsp_malloc(stream->max_chunksize + 2 * sizeof(int));
+            if (stream->next_buffer == NULL) {
+                ebsp_message(err_out_of_memory);
+                return 0;
+            }
+        }
+        _ebsp_write_chunk(stream, stream->next_buffer);
+    } else {
+        // free malloced next buffer
+        if (stream->next_buffer != NULL) {
+            ebsp_free(stream->next_buffer);
+            stream->next_buffer = NULL;
+        }
+    }
+
+    // At this point: next_buffer should point to data of NEXT token
+
+    return current_chunk_size;
+}
+
+int ebsp_stream_move_up(int stream_id, const void* data, int data_size,
+                        int wait_for_completion) {
+    if (stream_id >= coredata.local_nstreams) {
+        ebsp_message(err_no_such_stream);
+        return 0;
+    }
+
+    ebsp_stream_descriptor* stream = &coredata.local_streams[stream_id];
+
+    ebsp_dma_handle* desc = &stream->e_dma_desc;
+
+    // Wait for any previous transfer to finish (either down or up)
+    ebsp_dma_wait(desc);
+
+    // Round data_size up to a multiple of 8
+    // If this is not done, integer access to the headers will crash
+    data_size = ((data_size + 8 - 1) / 8) * 8;
+
+    // First write both the header before and after this token.
+    int* header1 = (int*)(stream->cursor);
+    int* header2 = (int*)(stream->cursor + 2 * sizeof(int) + data_size);
+    // header1[0] is filled at the previous iteration
+    header1[1] = data_size;
+    header2[0] = data_size;
+    header2[1] = 0; // terminating 0
+
+    stream->cursor += 2 * sizeof(int);
+
+    // Now write the data to extmem (async)
+    ebsp_dma_push(desc, (void*)(stream->cursor), data, data_size); // start dma
+    stream->cursor += data_size; // move pointer in extmem
+
+    if (wait_for_completion)
+        ebsp_dma_wait(desc);
+
+    return data_size;
+}
+

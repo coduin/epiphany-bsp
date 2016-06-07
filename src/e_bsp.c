@@ -92,6 +92,9 @@ void EXT_MEM_TEXT bsp_begin() {
     _init_local_malloc();
 
     // Copy stream descriptors to local memory
+    // TODO: do this only when the stream is opened
+    // and send them back when closed so that streams
+    // can change owner
     unsigned int nbytes =
         combuf->n_streams[coredata.pid] * sizeof(ebsp_stream_descriptor);
     coredata.local_streams = ebsp_malloc(nbytes);
