@@ -504,6 +504,9 @@ int ebsp_stream_move_down(int stream_id, void** buffer, int preload) {
         }
     }
 
+    // Wait for any previous transfer to finish (either down or up)
+    ebsp_dma_wait(&(stream->e_dma_desc));
+
     // At this point in the code:
     //  current_buffer contains data from previous token,
     //  which has been given to the user last time (zero at first time).
@@ -516,6 +519,7 @@ int ebsp_stream_move_down(int stream_id, void** buffer, int preload) {
         // Data not here yet (did not preload last time)
         // Overwrite current buffer.
         _ebsp_write_chunk(stream, stream->current_buffer);
+        ebsp_dma_wait(&(stream->e_dma_desc));
     } else {
         // Data is locally available already in next_buffer (preload).
         // Swap buffers.
@@ -523,10 +527,6 @@ int ebsp_stream_move_down(int stream_id, void** buffer, int preload) {
         stream->current_buffer = stream->next_buffer;
         stream->next_buffer = tmp;
     }
-
-    // Wait for the dma we just started (if)
-    // Or the one from previous preload (else)
-    ebsp_dma_wait(&(stream->e_dma_desc));
 
     // At this point in the code:
     //  current_buffer contains data from the current token,
