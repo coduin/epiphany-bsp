@@ -309,3 +309,28 @@ void ebsp_create_down_stream(const void* src, int dst_core_id, int nbytes,
  * This function outputs an error if `chunksize` is less than 16.
  */
 void* ebsp_create_up_stream(int dst_core_id, int max_nbytes, int chunksize);
+
+/**
+ * Creates a generic stream for streaming data to or from an Epiphany core.
+ *
+ * @param processor_id The processor identifier of the core.
+ * @param stream_size The total number of bytes of data in the stream.
+ * @param token_size The size in bytes of a single token. Must be at least 16.
+ * @param initial_data (Optional) The data which should be streamed to an
+ * Epiphany core.
+ * @return A pointer to a section of external memory storing the tokens.
+ *
+ * If `initial_data` is non-zero, it is copied to the stream (`stream_size`
+ * bytes).
+ * If `initial_data` is zero, an empty stream of size `stream_size` is created.
+ * In this case, `stream_size` should be the maximum number of bytes that will
+ * be sent up from the Epiphany cores to the host.
+ *
+ * This function outputs an error if `token_size` is less than 16.
+ *
+ * @remarks If `initial_data` is nonzero, the data is copied so that after the
+ * call it can safely be freed or overwritten by the user.
+ */
+void* ebsp_stream_create(int processor_id, int stream_size, int token_size,
+                         const void* initial_data);
+

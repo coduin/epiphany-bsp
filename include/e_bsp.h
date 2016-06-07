@@ -546,6 +546,129 @@ void ebsp_close_down_stream(unsigned stream_id);
  */
 void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes);
 
+// 
+// New streaming API starting here
+//
+
+/**
+ * Open a stream that was created using `ebsp_stream_create` on the host.
+ *
+ * @param stream_id The identifier of the stream, for this processor.
+ * @return Maximal token size.
+ *
+ * The i'th stream designated for the calling core will have `stream_id` i.
+ *
+ * @remarks This function has to be called *before* performing any other
+ * operation on the stream.
+ * @remarks A call to the function should always match a single call to
+ *  `ebsp_close_up_stream`.
+ */
+int ebsp_stream_open(int stream_id);
+
+/**
+ * Wait for pending transfers to complete and close a stream.
+ *
+ * @param stream_id The identifier of the stream
+ *
+ * Cleans up the stream, and frees any buffers that may have been used by the
+ * stream.
+ */
+void ebsp_stream_close(int stream_id);
+
+/**
+ * Move the cursor in the stream, to change the next token to be obtained.
+ *
+ * @param stream_id The identifier of the stream
+ * @param delta_tokens The number of tokens to skip if `delta_tokens > 0`,
+ *  or to go back if `delta_tokens < 0`.
+ *
+ * If `delta_tokens` is out of bounds, then the cursor will be moved to
+ * the start or end of the stream respectively.
+ * `ebsp_stream_seek(i, INT_MIN)` will set the cursor to the start
+ * `ebsp_stream_seek(i, INT_MAX)` will set the cursor to the end of the stream
+ * 
+ * Note that if `ebsp_stream_move_down` is used with `preload` enabled
+ * (meaning the last call to that function had `preload` enabled),
+ * then the preloaded token will not be changed, so the first call to
+ * `ebsp_stream_move_down` after this will still yield a token from the
+ * previous position.
+ * If `preload` was not enabled then the next call to `ebsp_stream_move_down`
+ * will yield a token from the new position.
+ *
+ * @remarks This function provides a mechanism through which chunks can be
+ *  obtained multiple times. It gives you random access in the memory in
+ *  the data stream.
+ * @remarks This function has `O(delta_tokens)` complexity.
+ */
+void ebsp_stream_seek(int stream_id, int delta_tokens);
+
+/**
+ * Obtain the next token from a stream.
+ *
+ * @param stream_id The identifier of the stream
+ * @param buffer Receives a pointer to a local copy of the next token.
+ * @param preload If this parameter is nonzero then the BSP system will
+ * preload the next token asynchroneously (double buffering).
+ * @return Number of bytes of the obtained chunk. If stream has
+ *  finished or an error has occurred this function will return `0`.
+ *
+ * @remarks Behaviour is undefined if the stream was not opened using
+ * `ebsp_stream_open`.
+ * @remarks Memory is transferred using the `DMA1` engine.
+ * @remarks When using double buffering, the BSP system will allocate memory
+ *  for the next chunk, and will start writing to it using the DMA engine
+ *  while the current chunk is processed. This requires more (local) memory,
+ *  but can greatly increase the overall speed.
+ */
+int ebsp_stream_move_down(int stream_id, void** buffer, int preload);
+
+/**
+ * Write a local token up to a stream.
+ *
+ * @param stream_id The identifier of the stream
+ * @param data The data to be sent up the stream
+ * @param data_size The size of the data to be sent, i.e. the size of the token.
+ * Behaviour is undefined if it is not a multiple of 8.
+ * If it is not a multiple of 8 bytes then transfers will be slow.
+ * @param wait_for_completion If nonzero this function blocks untill
+ * the data is completely written to the stream.
+ * @return Number of bytes written. Zero if an error has occurred.
+ *
+ * The function *always* waits for the previous token to have finished.
+ *
+ * If `wait_for_completion` is nonzero, this function will wait untill
+ * the data is transferred. This corresponds to single buffering.
+ *
+ * Alternativly, double buffering can be used as follows.
+ * Set `wait_for_completion` to zero and continue constructing the next token
+ * in a different buffer. Usage example:
+ * \code{.c}
+ * int* buf1 = ebsp_malloc(100 * sizeof(int));
+ * int* buf2 = ebsp_malloc(100 * sizeof(int));
+ * int* curbuf = buf1;
+ * int* otherbuf = buf2;
+ *
+ * ebsp_stream_open(0); // open stream 0
+ * while (...) {
+ *     // Fill curbuf
+ *     for (int i = 0; i < 100; i++)
+ *         curbuf[i] = 5;
+ *     
+ *     // Send up
+ *     ebsp_stream_move_up(0, curbuf, 100 * sizeof(int), 0);
+ *     // Use other buffer
+ *     swap(curbuf, otherbuf);
+ * }
+ * ebsp_free(buf1);
+ * ebsp_free(buf2);
+ * \endcode
+ *
+ * @remarks Behaviour is undefined if the stream was not opened using
+ * `ebsp_stream_open`.
+ * @remarks Memory is transferred using the `DMA1` engine.
+ */
+int ebsp_stream_move_up(int stream_id, const void* data, int data_size, int wait_for_completion);
+
 /**
  * Allocate external memory.
  * @param nbytes The size of the memory block
