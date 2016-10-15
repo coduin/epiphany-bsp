@@ -103,6 +103,27 @@ int main() {
     if (tokensize != tokensize2)
         ebsp_message("Invalid token size at bsp_stream_open");
 
+    // Switch stream 0 (core 0) and stream 2 (core 1)
+    // Also test the in-use error message
+
+    ebsp_barrier();
+    if (s == 0) {
+        bsp_stream_close(&s1);
+        bsp_stream_open(&s1, 2);
+        // expect: ($00: BSP ERROR: stream with id 2 is in use)
+    }
+
+    // Close stream 2 on core 1, then open on core 0
+    ebsp_barrier();
+    if (s == 1)
+        bsp_stream_close(&s1);
+    ebsp_barrier();
+    if (s == 0)
+        bsp_stream_open(&s1, 2); // NOW it should be succesful
+    if (s == 1)
+        bsp_stream_open(&s1, 0); // Core 1 can now open stream 0
+    ebsp_barrier();
+
     // Double buffered upstream
     int* up1 = ebsp_malloc(tokensize);
     int* up2 = ebsp_malloc(tokensize);
