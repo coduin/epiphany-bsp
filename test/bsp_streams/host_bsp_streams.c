@@ -81,21 +81,34 @@ int main(int argc, char** argv) {
     for (int i = 0; i < chunk_size * chunks / sizeof(int); ++i) {
         printf("%i ", upstreamsDouble[5][i]);
     }
+    printf("\n");
     // expect: (30 28 26 24 22 20 18 16 14 12 10 8 6 4 2 0 )
 
     // results of new API
-
-    for (int i = 0; i < chunk_size * chunks / sizeof(int); ++i) {
-        printf("%i ", streams1[5][i]);
+    int* ptr = streams1[5];
+    for (int c = 0; c < chunks; c++) {
+        // Skip headers!!!
+        ptr++;
+        ptr++;
+        for (int i = 0; i < chunk_size / sizeof(int); ++i) {
+            printf("%i ", *ptr++);
+        }
     }
     printf("\n");
-    // expect: (0 1 2 3 11 10 9 8 8 9 10 11 3 2 1 0 )
+    // expect: (15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0 )
 
     // Check the data in the DOWN stream. It should have been used
     // as an upstream as well.
-    for (int i = 0; i < chunk_size * chunks / sizeof(int); ++i) {
-        printf("%i ", streams2[5][i]);
+    ptr = streams2[5];
+    for (int c = 0; c < chunks; c++) {
+        // Skip headers!!!
+        ptr++;
+        ptr++;
+        for (int i = 0; i < chunk_size / sizeof(int); ++i) {
+            printf("%i ", *ptr++);
+        }
     }
+    printf("\n");
     // expect: (30 28 26 24 22 20 18 16 14 12 10 8 6 4 2 0 )
 
     // finalize

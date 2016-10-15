@@ -94,7 +94,7 @@ int main() {
     if (s == 0)
         ebsp_close_up_stream(5);
     // expect: ($00: BSP ERROR: stream does not exist)
-
+    
     // New streaming API
     ebsp_stream s1, s2;
     int tokensize  = bsp_stream_open(&s1, 2 * s + 0);
