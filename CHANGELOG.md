@@ -1,10 +1,11 @@
 # Changelog
 
-## 1.0.0-beta.3
+## 1.0.0
 
 ### Added
 - BSP variable list is stored distributed over all cores instead of in external memory
 - Implement `bsp_pop_reg`
+- New streaming API
 
 ### Fixed
 - `bsp_begin` no longer uses divide and modulus operator which take up large amounts of memory
