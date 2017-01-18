@@ -80,16 +80,10 @@ ebsp_hpmove
 .. doxygenfunction:: ebsp_hpmove
    :project: ebsp_host
 
-ebsp_create_down_stream
-^^^^^^^^^^^^^^^^^^^^^^^
+bsp_stream_create
+^^^^^^^^^^^^^^^^^
 
-.. doxygenfunction:: ebsp_create_down_stream
-   :project: ebsp_host
-
-ebsp_create_up_stream
-^^^^^^^^^^^^^^^^^^^^^
-
-.. doxygenfunction:: ebsp_create_up_stream
+.. doxygenfunction:: bsp_stream_create
    :project: ebsp_host
 
 ebsp_write
@@ -251,68 +245,32 @@ bsp_hpmove
 .. doxygenfunction:: bsp_hpmove
    :project: ebsp_e
 
-ebsp_send_up
-^^^^^^^^^^^^
+bsp_stream_open
+^^^^^^^^^^^^^^^
 
-.. doxygenfunction:: ebsp_send_up
+.. doxygenfunction:: bsp_stream_open
    :project: ebsp_e
 
-ebsp_move_chunk_down
-^^^^^^^^^^^^^^^^^^^^
+bsp_stream_close
+^^^^^^^^^^^^^^^^
 
-.. doxygenfunction:: ebsp_move_chunk_down
+.. doxygenfunction:: bsp_stream_close
    :project: ebsp_e
 
-ebsp_move_chunk_up
+bsp_stream_move_up
 ^^^^^^^^^^^^^^^^^^
 
-.. doxygenfunction:: ebsp_move_chunk_up
+.. doxygenfunction:: bsp_stream_move_up
    :project: ebsp_e
 
-ebsp_move_down_cursor
-^^^^^^^^^^^^^^^^^^^^^
-
-.. doxygenfunction:: ebsp_move_down_cursor
-   :project: ebsp_e
-
-ebsp_reset_down_cursor
-^^^^^^^^^^^^^^^^^^^^^^
-
-.. doxygenfunction:: ebsp_reset_down_cursor
-   :project: ebsp_e
-
-ebsp_open_up_stream
-^^^^^^^^^^^^^^^^^^^
-
-.. doxygenfunction:: ebsp_open_up_stream
-   :project: ebsp_e
-
-ebsp_open_down_stream
-^^^^^^^^^^^^^^^^^^^^^
-
-.. doxygenfunction:: ebsp_open_down_stream
-   :project: ebsp_e
-
-ebsp_close_up_stream
+bsp_stream_move_down
 ^^^^^^^^^^^^^^^^^^^^
 
-.. doxygenfunction:: ebsp_close_up_stream
+.. doxygenfunction:: bsp_stream_move_down
    :project: ebsp_e
 
-ebsp_close_down_stream
-^^^^^^^^^^^^^^^^^^^^^^
+bsp_stream_seek
+^^^^^^^^^^^^^^^
 
-.. doxygenfunction:: ebsp_close_down_stream
-   :project: ebsp_e
-
-ebsp_set_up_chunk_size
-^^^^^^^^^^^^^^^^^^^^^^
-
-.. doxygenfunction:: ebsp_set_up_chunk_size
-   :project: ebsp_e
-
-bsp_abort
-^^^^^^^^^
-
-.. doxygenfunction:: bsp_abort
+.. doxygenfunction:: bsp_stream_seek
    :project: ebsp_e

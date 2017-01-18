@@ -70,7 +70,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Epiphany BSP'
-copyright = '2015, Coduin'
+copyright = '2015-2017, Coduin'
 author = 'Coduin'
 
 # The version info for the project you're documenting, acts as replacement for

@@ -438,7 +438,7 @@ void ebsp_send_up(const void* tag, const void* payload, int nbytes);
  *     // Finally, close the stream
  *     bsp_stream_close(&mystream);`
  * }
- * \endcose
+ * \endcode
  *
  * @remarks This function has to be called *before* performing any other
  * operation on the stream.
