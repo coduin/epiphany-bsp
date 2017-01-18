@@ -474,10 +474,8 @@ void bsp_stream_close(ebsp_stream* stream);
  * 
  * Note that if `bsp_stream_move_down` is used with `preload` enabled
  * (meaning the last call to that function had `preload` enabled),
- * then the preloaded token will not be changed, so the first call to
- * `bsp_stream_move_down` after this will still yield a token from the
- * previous position.
- * If `preload` was not enabled then the next call to `bsp_stream_move_down`
+ * then calling `ebsp_stream_seek` will discard any token that was
+ * preloaded in memory, so the first call to `ebsp_stream_move_down` after this
  * will yield a token from the new position.
  *
  * @remarks This function provides a mechanism through which chunks can be
@@ -496,6 +494,9 @@ void bsp_stream_seek(ebsp_stream* stream, int delta_tokens);
  * preload the next token asynchroneously (double buffering).
  * @return Number of bytes of the obtained chunk. If stream has
  *  finished or an error has occurred this function will return `0`.
+ * 
+ * When calling this function, the token that was obtained at the previous
+ * call will be overwritten.
  *
  * @remarks Behaviour is undefined if the stream was not opened using
  * `bsp_stream_open`.

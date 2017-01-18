@@ -43,6 +43,9 @@ const char err_create_opened[] EXT_MEM_RO =
 const char err_out_of_memory[] EXT_MEM_RO =
     "BSP ERROR: could not allocate enough memory for stream";
 
+const char err_token_size2[] EXT_MEM_RO =
+    "BSP ERROR: Stream contained token larger (%d) than maximum token size (%d) for stream. (truncated)";
+
 void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes) {
     ebsp_stream_descriptor* out_stream = &coredata.local_streams[stream_id];
 
@@ -190,26 +193,34 @@ int ebsp_move_chunk_up(void** address, unsigned stream_id, int prealloc) {
 }
 
 void _ebsp_write_chunk(ebsp_stream_descriptor* stream, void* target) {
-    // read 2nd int in header from ext (next size)
+    // read header from ext
+    int prev_size = *(int*)(stream->cursor);
     int chunk_size = *(int*)(stream->cursor + sizeof(int));
-    ebsp_dma_handle* desc = (ebsp_dma_handle*)&(stream->e_dma_desc);
 
     if (chunk_size != 0) // stream has not ended
     {
-        void* dst = target;
-        void* src = stream->cursor;
-
-        // write to current
-        ebsp_dma_push(desc, dst, src, chunk_size + 2 * sizeof(int));
-        // ebsp_dma_start();
+        void* dst = target + 2 * sizeof(int);
+        void* src = stream->cursor + 2 * sizeof(int);
 
         // jump over header+chunk
         stream->cursor = (void*)(((unsigned)(stream->cursor)) +
                                  2 * sizeof(int) + chunk_size);
-    } else {
-        // set next size to 0
-        *((int*)(target + sizeof(int))) = 0;
+
+        // If token is too large, truncate it.
+        // However DO jump the correct distance with cursor
+        if (chunk_size > stream->max_chunksize) {
+            ebsp_message(err_token_size2, chunk_size, stream->max_chunksize);
+            chunk_size = stream->max_chunksize;
+        }
+
+        ebsp_dma_push(&stream->e_dma_desc, dst, src, chunk_size);
     }
+
+    // copy it to local
+    // we do NOT do this with the DMA because of the
+    // possible trunction done above
+    *(int*)(target) = prev_size;
+    *(int*)(target + sizeof(int)) = chunk_size;
 }
 
 int ebsp_open_down_stream(void** address, unsigned stream_id) {
