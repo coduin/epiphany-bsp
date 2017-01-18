@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0
+## 1.0.0 - 2017-18-01
 
 ### Added
 - BSP variable list is stored distributed over all cores instead of in external memory
