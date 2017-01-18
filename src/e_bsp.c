@@ -91,16 +91,6 @@ void EXT_MEM_TEXT bsp_begin() {
 
     _init_local_malloc();
 
-    // Copy stream descriptors to local memory
-    // TODO: do this only when the stream is opened
-    // and send them back when closed so that streams
-    // can change owner
-    unsigned int nbytes =
-        combuf->n_streams[coredata.pid] * sizeof(ebsp_stream_descriptor);
-    coredata.local_streams = ebsp_malloc(nbytes);
-    ebsp_memcpy(coredata.local_streams, combuf->extmem_streams[coredata.pid],
-                nbytes);
-
     // Send &syncstate to ARM
     if (coredata.pid == 0)
         combuf->syncstate_ptr = (int8_t*)&coredata.syncstate;

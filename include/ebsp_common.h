@@ -100,10 +100,9 @@ typedef struct {
     int nbytes;                 // size of the stream including headers
     int max_chunksize;          // size of required buffer in e_core memory
     ebsp_dma_handle e_dma_desc; // descriptor of dma, used as dma_id as well
+    int32_t pid;                // Processor currently owning the stream or -1 if none
     void* current_buffer;       // pointer (in e_core_mem) to current chunk
     void* next_buffer;          // pointer (in e_core_mem) to next chunk
-    int is_down_stream; // is 1 if it is a down-stream, 0 if it is an up-stream
-    int _padding; // make sure struct is 8 byte aligned when packed in arrays
 } __attribute__((aligned(8))) ebsp_stream_descriptor;
 
 // ebsp_combuf is a struct for epiphany <-> ARM communication
@@ -121,8 +120,8 @@ typedef struct {
     float remotetimer;
     int32_t nprocs;
     int32_t tagsize; // Only for initial and final messages
-    int n_streams[NPROCS];
-    void* extmem_streams[NPROCS];
+    int32_t nstreams;
+    ebsp_stream_descriptor* streams;
     // void*               extmem_current_out_chunk[_NPROCS];
     // int                 out_buffer_size[_NPROCS];
 

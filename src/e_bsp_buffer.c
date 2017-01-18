@@ -424,8 +424,8 @@ void ebsp_move_down_cursor(int stream_id, int jump_n_chunks) {
 // They are only the size of the data inbetween.
 // The local copies of the data include these 8 bytes.
 
-int ebsp_stream_open(int stream_id) {
-    if (stream_id >= coredata.local_nstreams) {
+int ebsp_stream_open(int stream_id, ebsp_stream* stream) {
+    if (stream_id >= combuf->nstreams) {
         ebsp_message(err_no_such_stream);
         return 0;
     }
