@@ -96,11 +96,12 @@ int main() {
     // expect: ($00: BSP ERROR: stream does not exist)
 
     // New streaming API
-    int tokensize  = ebsp_stream_open(5);
-    int tokensize2 = ebsp_stream_open(6);
+    ebsp_stream s1, s2;
+    int tokensize  = bsp_stream_open(&s1, 2 * s + 0);
+    int tokensize2 = bsp_stream_open(&s2, 2 * s + 1);
 
     if (tokensize != tokensize2)
-        ebsp_message("Invalid token size at ebsp_stream_open");
+        ebsp_message("Invalid token size at bsp_stream_open");
 
     // Double buffered upstream
     int* up1 = ebsp_malloc(tokensize);
@@ -109,14 +110,14 @@ int main() {
     // First stream down from 6 and copy it into 5
     for (;;) {
         int* buffer;
-        int size = ebsp_stream_move_down(6, (void**)&buffer, 1);
+        int size = bsp_stream_move_down(&s2, (void**)&buffer, 1);
         if (size == 0)
             break;
 
         for (int j = 0; j < tokensize / sizeof(int); ++j)
             up1[j] = buffer[j];
 
-        ebsp_stream_move_up(5, up1, size, 0);
+        bsp_stream_move_up(&s1, up1, size, 0);
         // swap buffers
         int* tmp = up1;
         up1 = up2;
@@ -124,26 +125,26 @@ int main() {
     }
 
     // Now stream down from 5, double the values, and copy it into 6
-    ebsp_stream_seek(5, INT_MIN); // go back to start
-    ebsp_stream_seek(6, INT_MIN); // go back to start
+    bsp_stream_seek(&s1, INT_MIN); // go back to start
+    bsp_stream_seek(&s2, INT_MIN); // go back to start
     for (;;) {
         int* buffer;
-        int size = ebsp_stream_move_down(5, (void**)&buffer, 1);
+        int size = bsp_stream_move_down(&s1, (void**)&buffer, 1);
         if (size == 0)
             break;
 
         for (int j = 0; j < tokensize / sizeof(int); ++j)
             up1[j] = 2 * buffer[j];
 
-        ebsp_stream_move_up(6, up1, size, 0);
+        bsp_stream_move_up(&s2, up1, size, 0);
         // swap buffers
         int* tmp = up1;
         up1 = up2;
         up2 = tmp;
     }
 
-    ebsp_stream_close(5);
-    ebsp_stream_close(6);
+    bsp_stream_close(&s1);
+    bsp_stream_close(&s2);
 
     ebsp_free(up1);
     ebsp_free(up2);

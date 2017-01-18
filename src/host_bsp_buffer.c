@@ -104,7 +104,7 @@ void* bsp_stream_create(int stream_size, int token_size,
     x.current_buffer = NULL;
     x.next_buffer = NULL;
 
-    state.buffered_streams[state.combuf.nstreams] = x;
+    state.shared_streams[state.combuf.nstreams] = x;
     state.combuf.nstreams++;
 
     return extmem_buffer;

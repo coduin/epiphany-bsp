@@ -161,14 +161,21 @@ int ebsp_spmd() {
     }
 
     // Write stream structs to combuf + extmem
+
+    // Depcrecated streams:
     for (int p = 0; p < NPROCS; p++) {
         int nbytes = state.combuf.n_streams[p] * sizeof(ebsp_stream_descriptor);
         void* stream_descriptors = ebsp_ext_malloc(nbytes);
         memcpy(stream_descriptors, state.buffered_streams[p], nbytes);
         state.combuf.extmem_streams[p] = _arm_to_e_pointer(stream_descriptors);
+    }
 
-        // TODO void*               extmem_current_out_chunk[NPROCS];
-        // TODO int                 out_buffer_size[NPROCS];
+    // New streams:
+    {
+        int nbytes = state.combuf.nstreams * sizeof(ebsp_stream_descriptor);
+        void* stream_descriptors = ebsp_ext_malloc(nbytes);
+        memcpy(stream_descriptors, state.shared_streams, nbytes);
+        state.combuf.streams = _arm_to_e_pointer(stream_descriptors);
     }
 
     // Write communication buffer containing nprocs,

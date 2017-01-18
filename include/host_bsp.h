@@ -56,6 +56,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #pragma once
 #include <e-hal.h>
+#include "host_bsp_deprecated.h"
 
 /**
  * Write data to the Epiphany processor.

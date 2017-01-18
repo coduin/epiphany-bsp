@@ -89,8 +89,10 @@ typedef struct {
     // Timer storage
     struct timespec ts_start, ts_end;
 
-    // Buffer
-    ebsp_stream_descriptor buffered_streams[MAX_N_STREAMS];
+    // Buffer. First is deprecated, second is new version
+    ebsp_stream_descriptor buffered_streams[NPROCS][MAX_N_STREAMS];
+    ebsp_stream_descriptor shared_streams[MAX_N_STREAMS];
+
 
 #ifdef DEBUG
     Symbol* e_symbols;

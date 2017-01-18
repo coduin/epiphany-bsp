@@ -63,9 +63,9 @@ int main(int argc, char** argv) {
     int** streams2 = malloc(sizeof(int*) * bsp_nprocs());
 
     for (int s = 0; s < bsp_nprocs(); ++s) {
-        streams1[s] = ebsp_stream_create(s, chunks * chunk_size, chunk_size, 0);
+        streams1[s] = bsp_stream_create(chunks * chunk_size, chunk_size, 0);
         streams2[s] =
-            ebsp_stream_create(s, chunks * chunk_size, chunk_size, downdata);
+            bsp_stream_create(chunks * chunk_size, chunk_size, downdata);
     }
 
     ebsp_spmd();

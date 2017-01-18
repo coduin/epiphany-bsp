@@ -23,30 +23,15 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include "e_bsp_private.h"
 #include <limits.h>
 
-const char err_no_such_stream[] EXT_MEM_RO = "BSP ERROR: stream does not exist";
+const char err_no_such_stream2[] EXT_MEM_RO = "BSP ERROR: stream does not exist";
 
-const char err_mixed_up_down[] EXT_MEM_RO =
-    "BSP ERROR: mixed up and down streams";
-
-const char err_close_closed[] EXT_MEM_RO =
-    "BSP ERROR: tried to close closed stream";
-
-const char err_open_opened[] EXT_MEM_RO =
-    "BSP ERROR: tried to open opened stream";
-
-const char err_jump_out_of_bounds[] EXT_MEM_RO =
-    "BSP ERROR: tried jumping past bounds of stream";
-
-const char err_create_opened[] EXT_MEM_RO =
-    "BSP ERROR: tried creating opened stream";
-
-const char err_out_of_memory[] EXT_MEM_RO =
+const char err_out_of_memory2[] EXT_MEM_RO =
     "BSP ERROR: could not allocate enough memory for stream";
 
 const char err_stream_in_use[] EXT_MEM_RO =
     "BSP ERROR: stream with id %d is in use";
 
-void _ebsp_write_chunk(ebsp_stream* stream, void* target) {
+void _ebsp_read_chunk(ebsp_stream* stream, void* target) {
     // read 2nd int in header from ext (next size)
     int chunk_size = *(int*)(stream->cursor + sizeof(int));
     ebsp_dma_handle* desc = (ebsp_dma_handle*)&(stream->e_dma_desc);
@@ -84,7 +69,7 @@ void _ebsp_write_chunk(ebsp_stream* stream, void* target) {
 
 int bsp_stream_open(ebsp_stream* stream, int stream_id) {
     if (stream_id >= combuf->nstreams) {
-        ebsp_message(err_no_such_stream);
+        ebsp_message(err_no_such_stream2);
         return 0;
     }
     ebsp_stream_descriptor* s = &(combuf->streams[stream_id]);
@@ -164,7 +149,7 @@ int bsp_stream_move_down(ebsp_stream* stream, void** buffer, int preload) {
         stream->current_buffer =
             ebsp_malloc(stream->max_chunksize + 2 * sizeof(int));
         if (stream->current_buffer == NULL) {
-            ebsp_message(err_out_of_memory);
+            ebsp_message(err_out_of_memory2);
             return 0;
         }
     }
@@ -183,7 +168,7 @@ int bsp_stream_move_down(ebsp_stream* stream, void** buffer, int preload) {
     if (stream->next_buffer == NULL) {
         // Data not here yet (did not preload last time)
         // Overwrite current buffer.
-        _ebsp_write_chunk(stream, stream->current_buffer);
+        _ebsp_read_chunk(stream, stream->current_buffer);
         ebsp_dma_wait(&(stream->e_dma_desc));
     } else {
         // Data is locally available already in next_buffer (preload).
@@ -215,11 +200,11 @@ int bsp_stream_move_down(ebsp_stream* stream, void** buffer, int preload) {
             stream->next_buffer =
                 ebsp_malloc(stream->max_chunksize + 2 * sizeof(int));
             if (stream->next_buffer == NULL) {
-                ebsp_message(err_out_of_memory);
+                ebsp_message(err_out_of_memory2);
                 return 0;
             }
         }
-        _ebsp_write_chunk(stream, stream->next_buffer);
+        _ebsp_read_chunk(stream, stream->next_buffer);
     } else {
         // free malloced next buffer
         if (stream->next_buffer != NULL) {

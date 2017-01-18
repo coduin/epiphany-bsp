@@ -42,6 +42,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #include <stddef.h>
 #include "e_bsp_datatypes.h"
+#include "e_bsp_deprecated.h"
 
 /**
  * Denotes the start of a BSP program.
