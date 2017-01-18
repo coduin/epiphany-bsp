@@ -70,7 +70,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Epiphany BSP'
-copyright = '2015, Coduin'
+copyright = '2015-2017, Coduin'
 author = 'Coduin'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -80,7 +80,7 @@ author = 'Coduin'
 # The short X.Y version.
 version = '1.0'
 # The full version, including alpha/beta/rc tags.
-release = '1.0-beta'
+release = '1.0'
 
 # google analytics ID
 googleanalytics_id = 'UA-59249373-1'

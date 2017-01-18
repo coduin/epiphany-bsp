@@ -31,7 +31,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 // An address takes 4 bytes, and MAX_BSP_VARS is the maximum
 // amount of variables that can be registered so in total we need
 // NCORES * MAX_BSP_VARS * 4 bytes to save all this data
-#define MAX_BSP_VARS 64
+#define MAX_BSP_VARS 20
 
 // The maximum amount of buffered put/get operations each
 // core is allowed to do per sync step
@@ -100,6 +100,7 @@ typedef struct {
     int nbytes;                 // size of the stream including headers
     int max_chunksize;          // size of required buffer in e_core memory
     ebsp_dma_handle e_dma_desc; // descriptor of dma, used as dma_id as well
+    int32_t pid;                // Processor currently owning the stream or -1 if none
     void* current_buffer;       // pointer (in e_core_mem) to current chunk
     void* next_buffer;          // pointer (in e_core_mem) to next chunk
     int is_down_stream; // is 1 if it is a down-stream, 0 if it is an up-stream
@@ -121,14 +122,14 @@ typedef struct {
     float remotetimer;
     int32_t nprocs;
     int32_t tagsize; // Only for initial and final messages
+    // Deprecated streams
     int n_streams[NPROCS];
     void* extmem_streams[NPROCS];
-    // void*               extmem_current_out_chunk[_NPROCS];
-    // int                 out_buffer_size[_NPROCS];
+    // New streams
+    int32_t nstreams;
+    ebsp_stream_descriptor* streams;
 
     // Epiphany <--> Epiphany
-    void* bsp_var_list[MAX_BSP_VARS][NPROCS];
-    uint32_t bsp_var_counter;
     ebsp_data_request data_requests[NPROCS][MAX_DATA_REQUESTS];
     ebsp_message_queue message_queue[2];
     ebsp_payload_buffer data_payloads; // used for put/get/send

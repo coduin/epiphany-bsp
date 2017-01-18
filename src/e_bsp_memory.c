@@ -79,6 +79,14 @@ void EXT_MEM_TEXT ebsp_free(void* ptr) {
     }
 }
 
+// For debug purposes
+void EXT_MEM_TEXT print_malloc_info() {
+    uint32_t used, free;
+    _get_malloc_info(coredata.local_malloc_base, &used, &free);
+    ebsp_message("MALLOC STATE: %u Bytes used. %u Bytes free.",
+                 (unsigned int)used, (unsigned int)free);
+}
+
 void ebsp_memcpy(void* dest, const void* source, size_t nbytes) {
     unsigned bits = (unsigned)dest | (unsigned)source;
     if ((bits & 0x7) == 0) {

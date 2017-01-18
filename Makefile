@@ -21,6 +21,7 @@ E_SRCS = \
 		e_bsp_mp.c \
 		e_bsp_memory.c\
 		e_bsp_buffer.c \
+		e_bsp_buffer_deprecated.c \
 		e_bsp_dma.c
 
 E_ASM_SRCS = \
@@ -40,8 +41,10 @@ HOST_SRCS = \
 		host_bsp.c \
 		host_bsp_memory.c \
 		host_bsp_buffer.c \
+		host_bsp_buffer_deprecated.c \
 		host_bsp_mp.c \
-		host_bsp_utility.c
+		host_bsp_utility.c \
+		host_bsp_debug.c
 
 #First include directory is only for cross-compiling
 INCLUDES = -I/usr/include/esdk \

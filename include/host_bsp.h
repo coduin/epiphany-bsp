@@ -56,6 +56,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #pragma once
 #include <e-hal.h>
+#include "host_bsp_deprecated.h"
 
 /**
  * Write data to the Epiphany processor.
@@ -279,33 +280,44 @@ void ebsp_move(void* payload, int buffer_size);
 int ebsp_hpmove(void** tag_ptr_buf, void** payload_ptr_buf);
 
 /**
- * Creates a down stream
+ * Creates a generic stream for streaming data to or from an Epiphany core.
  *
- * @param src The data which should be streamed down to an Epiphany core.
- * @param dst_core_id The processor identifier of the receiving core.
- * @param nbytes The total number of bytes of the data to be streamed down.
- * @param chunksize The size in bytes of a single chunk. Must be at least 16.
+ * @param stream_size The total number of bytes of data in the stream.
+ * @param token_size The size in bytes of a single token. Must be at least 16.
+ * @param initial_data (Optional) The data which should be streamed to an
+ * Epiphany core.
+ * @return A pointer to a section of external memory storing the tokens.
  *
- * This function outputs an error if `chunksize` is less than 16.
+ * The function returns NULL on failure.
  *
- * @remarks The data is copied from `src`, such that the data `src` can be
- *  safely freed or overwritten after this call.
+ * If `initial_data` is nonzero, it is copied to the stream (`stream_size`
+ * bytes).
+ * If `initial_data` is zero, an empty stream of size `stream_size` is created.
+ * In this case, `stream_size` should be the maximum number of bytes that will
+ * be sent up from the Epiphany cores to the host.
+ *
+ * This function prints an error if `token_size` is less than 16.
+ *
+ * The format of the data pointed to by the return value is as follows:
+ * Before every token, there are two integers that specify the size
+ * of the preceding token and the size of the token itself.
+ *
+ * 00000000, nextsize, data,
+ * prevsize, nextsize, data,
+ * ...
+ * prevsize, nextsize, data,
+ * prevsize, 00000000
+ *
+ * So a header consists of two integers (8 byte total).
+ * The two sizes do NOT include these headers.
+ * They are only the size of the data inbetween.
+ *
+ * If you want to use the returned pointer directly you have to manually take
+ * care of this data format.
+ *
+ * @remarks If `initial_data` is nonzero, the data is copied so that after the
+ * call it can safely be freed or overwritten by the user.
  */
+void* bsp_stream_create(int stream_size, int token_size,
+                         const void* initial_data);
 
-void ebsp_create_down_stream(const void* src, int dst_core_id, int nbytes,
-                             int chunksize);
-
-/**
- * Creates an up stream
- *
- * @param dst_core_id The processor identifier of the sending core.
- * @param max_nbytes The maximum number of bytes that will be sent up using
- *  this up stream.
- * @param chunksize The maximum number of bytes of a single chunk that can be
- *  sent up through this stream. Must be at least 16.
- * @return A pointer to a section of external memory storing the chunks
- *  sent up by the sending core.
- *
- * This function outputs an error if `chunksize` is less than 16.
- */
-void* ebsp_create_up_stream(int dst_core_id, int max_nbytes, int chunksize);

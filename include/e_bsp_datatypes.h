@@ -31,3 +31,15 @@ typedef struct {
     void* dst_addr;
 } __attribute__((aligned(8))) ebsp_dma_handle;
 
+typedef struct {
+    ebsp_dma_handle e_dma_desc; // descriptor of dma, used as dma_id as well
+    void* cursor;               // current position of the stream in extmem
+    int id;                     // stream_id of the stream
+    void* extmem_start;         // extmem data in e_core address space
+    void* extmem_end;           // end of allocated region
+    void* current_buffer;       // pointer (in e_core_mem) to current chunk
+    void* next_buffer;          // pointer (in e_core_mem) to next chunk
+    unsigned max_chunksize; // maximum size of a token exluding 8 byte header
+} __attribute__((aligned(8))) ebsp_stream;
+
+

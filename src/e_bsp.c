@@ -36,27 +36,24 @@ void EXT_MEM_TEXT bsp_begin() {
     int row = e_group_config.core_row;
     int col = e_group_config.core_col;
     int cols = e_group_config.group_cols;
+    int rows = e_group_config.group_rows;
 
-    // Initialize local data
+    // Since coredata is in the .bss section it will automatically be filled
+    // with zeroes so no need to do that here. Only fill the nonzero elements
     coredata.pid = col + cols * row;
     coredata.nprocs = combuf->nprocs;
-    coredata.request_counter = 0;
-    coredata.var_pushed = 0;
     coredata.tagsize = combuf->tagsize;
     coredata.tagsize_next = coredata.tagsize;
-    coredata.read_queue_index = 0;
-    coredata.message_index = 0;
-    coredata.cur_dma_desc = NULL;
-    coredata.last_dma_desc = NULL;
     coredata.dma1config =
         e_get_global_address(row, col, (void*)E_REG_DMA1CONFIG);
     coredata.dma1status =
         e_get_global_address(row, col, (void*)E_REG_DMA1STATUS);
     coredata.local_nstreams = combuf->n_streams[coredata.pid];
 
-    for (int s = 0; s < coredata.nprocs; s++)
-        coredata.coreids[s] =
-            (uint16_t)e_coreid_from_coords(s / cols, s % cols);
+    int s = 0;
+    for (int i = 0; i < rows; i++)
+        for (int j = 0; j < cols; j++)
+            coredata.coreids[s++] = (uint16_t)e_coreid_from_coords(i, j);
 
     // Initialize the barrier and mutexes
     e_barrier_init(coredata.sync_barrier, coredata.sync_barrier_tgt);
@@ -95,6 +92,9 @@ void EXT_MEM_TEXT bsp_begin() {
     _init_local_malloc();
 
     // Copy stream descriptors to local memory
+    // TODO: do this only when the stream is opened
+    // and send them back when closed so that streams
+    // can change owner
     unsigned int nbytes =
         combuf->n_streams[coredata.pid] * sizeof(ebsp_stream_descriptor);
     coredata.local_streams = ebsp_malloc(nbytes);
@@ -132,8 +132,6 @@ void EXT_MEM_TEXT bsp_begin() {
 
 void bsp_end() {
     _write_syncstate(STATE_FINISH);
-    // Finish execution
-    __asm__("trap 3");
 }
 
 int bsp_nprocs() { return coredata.nprocs; }
@@ -179,12 +177,6 @@ void bsp_sync() {
     // Switch queue between 0 and 1
     // xor seems to produce the shortest assembly
     coredata.read_queue_index ^= 1;
-
-    if (coredata.var_pushed) {
-        coredata.var_pushed = 0;
-        if (coredata.pid == 0)
-            combuf->bsp_var_counter++;
-    }
 
     coredata.tagsize = coredata.tagsize_next;
     coredata.message_index = 0;

@@ -31,6 +31,18 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #define MAX_N_STREAMS 1000
 
+#ifdef DEBUG
+typedef struct {
+    int index;
+    unsigned int value; // must be unsigned, addresses use the last bit
+    size_t size;
+    int type;    // STT_FUNC, STT_OBJECT, etc
+    int bind;    // STB_GLOBAL, STB_LOCAL
+    int section; // SHN_ABS, SHN_COMMON, SHN_UNDEF, or section index
+    char name[64];
+} Symbol;
+#endif
+
 /*
  *  Global BSP state
  */
@@ -77,8 +89,15 @@ typedef struct {
     // Timer storage
     struct timespec ts_start, ts_end;
 
-    // Buffer
+    // Buffer. First is deprecated, second is new version
     ebsp_stream_descriptor buffered_streams[NPROCS][MAX_N_STREAMS];
+    ebsp_stream_descriptor shared_streams[MAX_N_STREAMS];
+
+
+#ifdef DEBUG
+    Symbol* e_symbols;
+    int num_symbols;
+#endif
 
 } bsp_state_t;
 
@@ -141,3 +160,12 @@ void _update_remote_timer();
 void _microsleep(int microseconds);
 void _get_p_coords(int pid, int* row, int* col);
 void init_application_path();
+
+/*
+ * host_bsp_debug
+ */
+#ifdef DEBUG
+void _read_elf(const char* filename);
+Symbol* _get_symbol_by_addr(void* addr);
+Symbol* _get_symbol_by_name(const char* symbol);
+#endif

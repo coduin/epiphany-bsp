@@ -21,7 +21,7 @@ In particular this library has been implemented and tested on the  [Parallella](
 
 int main(int argc, char **argv)
 {
-    bsp_init("ecore_program.srec", argc, argv);
+    bsp_init("ecore_program.elf", argc, argv);
     bsp_begin(16);
     ebsp_spmd();
     bsp_end();
@@ -92,7 +92,7 @@ HOST_LIB_NAMES = -lhost-bsp -le-hal -le-loader
 
 E_LIB_NAMES = -le-bsp -le-lib
 
-all: bin bin/host_program bin/ecore_program.srec
+all: bin bin/host_program bin/ecore_program.elf
 
 bin:
     @mkdir -p bin
@@ -104,9 +104,6 @@ bin/host_program: src/host_code.c
 bin/ecore_program.elf: src/ecore_code.c
     @echo "CC $<"
     @e-gcc $(CFLAGS) -T ${ELDF} $(INCLUDES) -o $@ $< $(E_LIBS) $(E_LIB_NAMES)
-
-bin/%.srec: bin/%.elf
-    @e-objcopy --srec-forceS3 --output-target srec $< $@
 
 clean:
     rm -r bin

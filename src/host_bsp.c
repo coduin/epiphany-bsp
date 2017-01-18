@@ -25,6 +25,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 #include <stdio.h>
 #include <string.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <e-loader.h>
 
 #define __USE_XOPEN2K
@@ -51,6 +52,10 @@ int bsp_init(const char* _e_name, int argc, char** argv) {
                 state.e_fullpath);
         return 0;
     }
+
+#ifdef DEBUG
+    _read_elf(state.e_fullpath);
+#endif
 
     // Initialize the Epiphany system for the working with the host application
     if (e_init(NULL) != E_OK) {
@@ -156,14 +161,21 @@ int ebsp_spmd() {
     }
 
     // Write stream structs to combuf + extmem
+
+    // Depcrecated streams:
     for (int p = 0; p < NPROCS; p++) {
         int nbytes = state.combuf.n_streams[p] * sizeof(ebsp_stream_descriptor);
         void* stream_descriptors = ebsp_ext_malloc(nbytes);
         memcpy(stream_descriptors, state.buffered_streams[p], nbytes);
         state.combuf.extmem_streams[p] = _arm_to_e_pointer(stream_descriptors);
+    }
 
-        // TODO void*               extmem_current_out_chunk[NPROCS];
-        // TODO int                 out_buffer_size[NPROCS];
+    // New streams:
+    {
+        int nbytes = state.combuf.nstreams * sizeof(ebsp_stream_descriptor);
+        void* stream_descriptors = ebsp_ext_malloc(nbytes);
+        memcpy(stream_descriptors, state.shared_streams, nbytes);
+        state.combuf.streams = _arm_to_e_pointer(stream_descriptors);
     }
 
     // Write communication buffer containing nprocs,
@@ -325,9 +337,15 @@ int ebsp_spmd() {
                 e_read(&state.dev, prow, pcol, E_REG_PC, &pc[i], sizeof(uint32_t));
             }
 
-            printf("                PC for every core:");
+            printf("Current instruction for every core:");
             for (int i = 0; i < state.nprocs_used; i++) {
-                printf(" %p", (void*)pc[i]);
+                if ((i % 4) == 0)
+                    printf("\n\t");
+                Symbol* sym = _get_symbol_by_addr((void*)pc[i]);
+                if (sym)
+                    printf(" %s+%p", sym->name, (void*)(pc[i] - sym->value));
+                else
+                    printf(" %p", (void*)pc[i]);
             }
             printf("\n");
 
@@ -395,6 +413,12 @@ int bsp_end() {
                 "ERROR: bsp_end called when bsp was not initialized.\n");
         return 0;
     }
+
+#ifdef DEBUG
+    if (state.e_symbols)
+        free(state.e_symbols);
+    state.e_symbols = 0;
+#endif
 
     if (bsp_initialized >= 2)
         e_free(&state.emem);

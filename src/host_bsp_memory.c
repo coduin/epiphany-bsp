@@ -67,7 +67,7 @@ int ebsp_read(int pid, off_t src, void* dst, int size) {
 }
 
 int _write_core_syncstate(int pid, int syncstate) {
-    return ebsp_write(pid, &syncstate, (off_t)state.combuf.syncstate_ptr, 4);
+    return ebsp_write(pid, &syncstate, (off_t)state.combuf.syncstate_ptr, 1);
 }
 
 int _write_extmem(void* src, off_t offset, int size) {

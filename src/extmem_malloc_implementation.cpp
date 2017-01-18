@@ -111,6 +111,11 @@ void* MALLOC_FUNCTION_PREFIX _malloc(void* base, uint32_t nbytes) {
                 chunks_left -= 32;
                 continue;
             }
+        } else if (mask == -1) {
+            // All 32 bits (chunks) are in use
+            // So start at least AFTER this one
+            start_mask = i + 1;
+            start_bit = 0;
         } else {
             // Mask is not empty. We will need to parse all individual bits
             for (uint32_t j = 0; j < 32; ++j) {
@@ -191,4 +196,36 @@ void MALLOC_FUNCTION_PREFIX _init_malloc_state(void* base, uint32_t size) {
     *ptr++ = total_bitmask_ints;
     while (total_bitmask_ints--)
         *ptr++ = 0;
+}
+
+// For debug purposes
+void MALLOC_FUNCTION_PREFIX
+_get_malloc_info(void* base, uint32_t* used, uint32_t* free) {
+    uint32_t total_bitmask_ints = get_bitmask_count(base);
+    uint32_t* bitmasks = get_bitmasks(base);
+
+    uint32_t bits_in_use = 0;
+    uint32_t bits_free = 0;
+    for (uint32_t i = 0; i < total_bitmask_ints; ++i) {
+        uint32_t mask = bitmasks[i];
+        if (mask == 0) {
+            bits_free += 32;
+            continue;
+        } else if (mask == -1) {
+            bits_in_use += 32;
+            continue;
+        } else {
+            // Mask is not empty. We will need to parse all individual bits
+            for (uint32_t j = 0; j < 32; ++j) {
+                if (mask & 1) {
+                    bits_in_use++;
+                } else {
+                    bits_free++;
+                }
+                mask >>= 1;
+            }
+        }
+    }
+    *used = bits_in_use * CHUNK_SIZE;
+    *free = bits_free * CHUNK_SIZE;
 }

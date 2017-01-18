@@ -45,6 +45,7 @@ int main(int argc, char** argv) {
         c++;
     }
 
+    // Old streaming API
     for (int s = 0; s < bsp_nprocs(); ++s) {
         upstreams[s] =
             (int*)ebsp_create_up_stream(s, chunks * chunk_size, chunk_size);
@@ -56,7 +57,20 @@ int main(int argc, char** argv) {
                                 chunk_size);
     }
 
+    // New streaming API
+    // Create two streams for each core. An empty one and a filled one.
+    int** streams1 = malloc(sizeof(int*) * bsp_nprocs());
+    int** streams2 = malloc(sizeof(int*) * bsp_nprocs());
+
+    for (int s = 0; s < bsp_nprocs(); ++s) {
+        streams1[s] = bsp_stream_create(chunks * chunk_size, chunk_size, 0);
+        streams2[s] =
+            bsp_stream_create(chunks * chunk_size, chunk_size, downdata);
+    }
+
     ebsp_spmd();
+
+    // results of old API
 
     for (int i = 0; i < chunk_size * chunks / sizeof(int); ++i) {
         printf("%i ", upstreams[5][i]);
@@ -67,6 +81,34 @@ int main(int argc, char** argv) {
     for (int i = 0; i < chunk_size * chunks / sizeof(int); ++i) {
         printf("%i ", upstreamsDouble[5][i]);
     }
+    printf("\n");
+    // expect: (30 28 26 24 22 20 18 16 14 12 10 8 6 4 2 0 )
+
+    // results of new API
+    int* ptr = streams1[5];
+    for (int c = 0; c < chunks; c++) {
+        // Skip headers!!!
+        ptr++;
+        ptr++;
+        for (int i = 0; i < chunk_size / sizeof(int); ++i) {
+            printf("%i ", *ptr++);
+        }
+    }
+    printf("\n");
+    // expect: (15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0 )
+
+    // Check the data in the DOWN stream. It should have been used
+    // as an upstream as well.
+    ptr = streams2[5];
+    for (int c = 0; c < chunks; c++) {
+        // Skip headers!!!
+        ptr++;
+        ptr++;
+        for (int i = 0; i < chunk_size / sizeof(int); ++i) {
+            printf("%i ", *ptr++);
+        }
+    }
+    printf("\n");
     // expect: (30 28 26 24 22 20 18 16 14 12 10 8 6 4 2 0 )
 
     // finalize

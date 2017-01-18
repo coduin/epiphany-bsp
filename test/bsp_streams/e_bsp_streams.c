@@ -21,12 +21,15 @@ see the files COPYING and COPYING.LESSER. If not, see
 */
 
 #include <e_bsp.h>
+#include <limits.h>
 #include "../common.h"
 
 int main() {
     bsp_begin();
 
     int s = bsp_pid();
+
+    // Old streaming API
 
     int* upstream = 0;
     int* upstreamDouble = 0;
@@ -91,6 +94,81 @@ int main() {
     if (s == 0)
         ebsp_close_up_stream(5);
     // expect: ($00: BSP ERROR: stream does not exist)
+    
+    // New streaming API
+    ebsp_stream s1, s2;
+    int tokensize  = bsp_stream_open(&s1, 2 * s + 0);
+    int tokensize2 = bsp_stream_open(&s2, 2 * s + 1);
+
+    if (tokensize != tokensize2)
+        ebsp_message("Invalid token size at bsp_stream_open");
+
+    // Switch stream 0 (core 0) and stream 2 (core 1)
+    // Also test the in-use error message
+
+    ebsp_barrier();
+    if (s == 0) {
+        bsp_stream_close(&s1);
+        bsp_stream_open(&s1, 2);
+        // expect: ($00: BSP ERROR: stream with id 2 is in use)
+    }
+
+    // Close stream 2 on core 1, then open on core 0
+    ebsp_barrier();
+    if (s == 1)
+        bsp_stream_close(&s1);
+    ebsp_barrier();
+    if (s == 0)
+        bsp_stream_open(&s1, 2); // NOW it should be succesful
+    if (s == 1)
+        bsp_stream_open(&s1, 0); // Core 1 can now open stream 0
+    ebsp_barrier();
+
+    // Double buffered upstream
+    int* up1 = ebsp_malloc(tokensize);
+    int* up2 = ebsp_malloc(tokensize);
+
+    // First stream down from 6 and copy it into 5
+    for (;;) {
+        int* buffer;
+        int size = bsp_stream_move_down(&s2, (void**)&buffer, 1);
+        if (size == 0)
+            break;
+
+        for (int j = 0; j < tokensize / sizeof(int); ++j)
+            up1[j] = buffer[j];
+
+        bsp_stream_move_up(&s1, up1, size, 0);
+        // swap buffers
+        int* tmp = up1;
+        up1 = up2;
+        up2 = tmp;
+    }
+
+    // Now stream down from 5, double the values, and copy it into 6
+    bsp_stream_seek(&s1, INT_MIN); // go back to start
+    bsp_stream_seek(&s2, INT_MIN); // go back to start
+    for (;;) {
+        int* buffer;
+        int size = bsp_stream_move_down(&s1, (void**)&buffer, 1);
+        if (size == 0)
+            break;
+
+        for (int j = 0; j < tokensize / sizeof(int); ++j)
+            up1[j] = 2 * buffer[j];
+
+        bsp_stream_move_up(&s2, up1, size, 0);
+        // swap buffers
+        int* tmp = up1;
+        up1 = up2;
+        up2 = tmp;
+    }
+
+    bsp_stream_close(&s1);
+    bsp_stream_close(&s2);
+
+    ebsp_free(up1);
+    ebsp_free(up2);
 
     bsp_end();
 

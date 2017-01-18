@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.0.0 - 2017-18-01
+
+### Added
+- BSP variable list is stored distributed over all cores instead of in external memory
+- Implement `bsp_pop_reg`
+- New streaming API
+
+### Fixed
+- `bsp_begin` no longer uses divide and modulus operator which take up large amounts of memory
+- `bsp_begin` no longer initializes coredata to zero since this is already done in the loader
+- `bsp_end` no longer executes TRAP so that `main` can finish properly
+
+### Removed
+
+
 ## 1.0.0-beta.2 - 2016-04-21
 
 ### Added

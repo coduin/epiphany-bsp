@@ -42,6 +42,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 
 #include <stddef.h>
 #include "e_bsp_datatypes.h"
+#include "e_bsp_deprecated.h"
 
 /**
  * Denotes the start of a BSP program.
@@ -202,9 +203,7 @@ void bsp_push_reg(const void* variable, const int nbytes);
  *  previously registered with bsp_push_reg()
  *
  * The operation takes effect after the next call to bsp_sync().
- * @remarks In the current implementation, this function does
- * nothing. In a future update this function will free up variable
- * spots for new registrations.
+ * The order in which the variables are popped does not matter.
  */
 void bsp_pop_reg(const void* variable);
 
@@ -419,134 +418,143 @@ int bsp_hpmove(void** tag_ptr_buf, void** payload_ptr_buf);
 void ebsp_send_up(const void* tag, const void* payload, int nbytes);
 
 /**
- * Obtain the next chunk of data from a stream.
+ * Open a stream that was created using `bsp_stream_create` on the host.
  *
- * @param address A pointer to a value that is overwritten with the local
- *  memory location of the data chunk
- * @param stream_id The identifier of the stream
- * @param prealloc If this parameter is equal to `1` then the BSP system will
- *  use double buffering, if it is `0` then single buffering is used.
+ * @param stream Pointer to an existing `bsp_stream` struct to hold the stream
+ * data. This struct can be allocated on the stack by the user.
+ * @param stream_id The index of the stream.
+ * @return Nonzero if succesful.
+ *
+ * The first stream created by the host will have `stream_id` 0.
+ *
+ * Usage example:
+ * \code{.c}
+ * bsp_stream mystream;
+ * if( bsp_stream_open(&mystream, 3) ) {
+ *     // Get some data
+ *     void* buffer = 0;
+ *     bsp_stream_move_down(&mystream, &buffer, 0);
+ *     // The data is now in buffer
+ *     // Finally, close the stream
+ *     bsp_stream_close(&mystream);`
+ * }
+ * \endcode
+ *
+ * @remarks This function has to be called *before* performing any other
+ * operation on the stream.
+ * @remarks A call to the function should always match a single call to
+ *  `bsp_stream_close`.
+ */
+int bsp_stream_open(ebsp_stream* stream, int stream_id);
+
+/**
+ * Wait for pending transfers to complete and close a stream.
+ *
+ * @param stream The handle of the stream, opened by `bsp_stream_open`.
+ *
+ * Behaviour is undefined if `stream` is not a handle opened by
+ * `bsp_stream_open`.
+ *
+ * Cleans up the stream, and frees any buffers that may have been used by the
+ * stream.
+ */
+void bsp_stream_close(ebsp_stream* stream);
+
+/**
+ * Move the cursor in the stream, to change the next token to be obtained.
+ *
+ * @param stream The handle of the stream
+ * @param delta_tokens The number of tokens to skip if `delta_tokens > 0`,
+ *  or to go back if `delta_tokens < 0`.
+ *
+ * If `delta_tokens` is out of bounds, then the cursor will be moved to
+ * the start or end of the stream respectively.
+ * `bsp_stream_seek(i, INT_MIN)` will set the cursor to the start
+ * `bsp_stream_seek(i, INT_MAX)` will set the cursor to the end of the stream
+ * 
+ * Note that if `bsp_stream_move_down` is used with `preload` enabled
+ * (meaning the last call to that function had `preload` enabled),
+ * then calling `ebsp_stream_seek` will discard any token that was
+ * preloaded in memory, so the first call to `ebsp_stream_move_down` after this
+ * will yield a token from the new position.
+ *
+ * @remarks This function provides a mechanism through which chunks can be
+ *  obtained multiple times. It gives you random access in the memory in
+ *  the data stream.
+ * @remarks This function has `O(delta_tokens)` complexity.
+ */
+void bsp_stream_seek(ebsp_stream* stream, int delta_tokens);
+
+/**
+ * Obtain the next token from a stream.
+ *
+ * @param stream The handle of the stream
+ * @param buffer Receives a pointer to a local copy of the next token.
+ * @param preload If this parameter is nonzero then the BSP system will
+ * preload the next token asynchroneously (double buffering).
  * @return Number of bytes of the obtained chunk. If stream has
  *  finished or an error has occurred this function will return `0`.
+ * 
+ * When calling this function, the token that was obtained at the previous
+ * call will be overwritten.
  *
+ * @remarks Behaviour is undefined if the stream was not opened using
+ * `bsp_stream_open`.
  * @remarks Memory is transferred using the `DMA1` engine.
  * @remarks When using double buffering, the BSP system will allocate memory
  *  for the next chunk, and will start writing to it using the DMA engine
  *  while the current chunk is processed. This requires more (local) memory,
  *  but can greatly increase the overall speed.
  */
-int ebsp_move_chunk_down(void** address, unsigned stream_id, int prealloc);
+int bsp_stream_move_down(ebsp_stream* stream, void** buffer, int preload);
 
 /**
- * Move a chunk of data up from a stream.
-
- * @param address A pointer to a value that is overwritten with the local
- *  memory location where the next chunk should be written to.
- * @param stream_id The identifier of the stream
- * @param prealloc If this parameter is equal to `1` then the BSP system will
- *  use double buffering, if it is `0` then single buffering is used.
- * @return Number of bytes allocated for the next chunk of this stream. if
- *  stream has finished or an error has occurred this function will return `0`.
+ * Write a local token up to a stream.
  *
+ * @param stream The handle of the stream
+ * @param data The data to be sent up the stream
+ * @param data_size The size of the data to be sent, i.e. the size of the token.
+ * Behaviour is undefined if it is not a multiple of 8.
+ * If it is not a multiple of 8 bytes then transfers will be slow.
+ * @param wait_for_completion If nonzero this function blocks untill
+ * the data is completely written to the stream.
+ * @return Number of bytes written. Zero if an error has occurred.
+ *
+ * The function *always* waits for the previous token to have finished.
+ *
+ * If `wait_for_completion` is nonzero, this function will wait untill
+ * the data is transferred. This corresponds to single buffering.
+ *
+ * Alternativly, double buffering can be used as follows.
+ * Set `wait_for_completion` to zero and continue constructing the next token
+ * in a different buffer. Usage example:
+ * \code{.c}
+ * int* buf1 = ebsp_malloc(100 * sizeof(int));
+ * int* buf2 = ebsp_malloc(100 * sizeof(int));
+ * int* curbuf = buf1;
+ * int* otherbuf = buf2;
+ *
+ * ebsp_stream s;
+ * bsp_stream_open(&s, 0); // open stream 0
+ * while (...) {
+ *     // Fill curbuf
+ *     for (int i = 0; i < 100; i++)
+ *         curbuf[i] = 5;
+ *     
+ *     // Send up
+ *     bsp_stream_move_up(&s, curbuf, 100 * sizeof(int), 0);
+ *     // Use other buffer
+ *     swap(curbuf, otherbuf);
+ * }
+ * ebsp_free(buf1);
+ * ebsp_free(buf2);
+ * \endcode
+ *
+ * @remarks Behaviour is undefined if the stream was not opened using
+ * `bsp_stream_open`.
  * @remarks Memory is transferred using the `DMA1` engine.
- * @remarks When using the double buffering mode, `*address` will contain the
- *  location of a new chunk of memory, such that the BSP program can continue
- *  while the current chunk is being copied using the DMA engine. This requires
- *  more local memory, but can improve the performance of the program.
  */
-int ebsp_move_chunk_up(void** address, unsigned stream_id, int prealloc);
-
-/**
- * Move the cursor pointing to the next chunk to be obtained from a stream.
- *
- * @param stream_id The identifier of the stream
- * @param jump_n_chunks The number of chunks to skip if `jump_n_chunks > 0`,
- *  or to go back if `jump_n_chunks < 0`.
- *
- * @remarks Internally a stream is a collection of data, along with specific
- *  information for a stream. For example, a stream holds a pointer to the
- *  next chunk that should be written to a core. Using this function you can
- *  change which chunk should be the `next` chunk. This allows you to obtain
- *  chunks multiple times, or to skip chunks completely.
- * @remarks This function provides a mechanism through which chunks can be
- *  obtained multiple times. It gives you random access in the memory in
- *  the data stream.
- * @remarks This function has `O(jump_n_chunks)` complexity.
- */
-void ebsp_move_down_cursor(int stream_id, int jump_n_chunks);
-
-/**
- * Resets the cursor pointing to the next chunk to be obtained from a stream.
- *
- * @param stream_id The identifier of the stream
- *
- * After calling this function the *next chunk* that is obtained from this
- * stream is equal to the first chunk.
- *
- * @remarks This function has `O(1)` complexity.
- */
-void ebsp_reset_down_cursor(int stream_id);
-
-/**
- * Open an up stream.
- *
- * @param address Pointer to a variable that will be overwritten with the
- *  location where the data should be written  for the first chunk that will
- *  be sent up.
- * @param stream_id The identifier of the stream
- * @return Number of bytes that can be written to the first chunk to be sent up.
- *
- * @remarks This function has to be called *before* performing any other operation
- *  on the stream.
- * @remarks A call to the function should always match a single call to
- *  `ebsp_close_up_stream`.
- */
-int ebsp_open_up_stream(void** address, unsigned stream_id);
-
-/**
- * Close an up stream.
- *
- * @param stream_id The identifier of the stream
- *
- * Cleans up the stream, and frees any buffers that may have been used by the
- *  stream.
- */
-void ebsp_close_up_stream(unsigned stream_id);
-
-/**
- * Open a down stream.
- *
- * @param address Pointer to a variable that will be overwritten with the
- *  location where the data should be written  for the first chunk that will
- *  be sent up.
- * @param stream_id The identifier of the stream
- * @return The size of the first chunk of this stream in bytes.
- *
- * @remarks This function has to be called *before* performing any other operation
- *  on the stream.
- * @remarks A call to the function should always match a single call to
- *  `ebsp_close_down_stream`.
- */
-int ebsp_open_down_stream(void** address, unsigned stream_id);
-
-/**
- * Close a down stream.
- *
- * @param stream_id The identifier of the stream
- *
- * Cleans up the stream, and frees any buffers that may have been used by the
- *  stream.
- */
-void ebsp_close_down_stream(unsigned stream_id);
-
-/**
- * Set the number of bytes of the current chunk in the up stream.
- *
- * @param stream_id The identifier of the stream
- * @param nbytes The number of bytes that should be moved from the current
- *  chunk of data in the next call to `ebsp_move_chunk_up`.
- */
-void ebsp_set_up_chunk_size(unsigned stream_id, int nbytes);
+int bsp_stream_move_up(ebsp_stream* stream, const void* data, int data_size, int wait_for_completion);
 
 /**
  * Allocate external memory.
