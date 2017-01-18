@@ -29,7 +29,7 @@ see the files COPYING and COPYING.LESSER. If not, see
 extern bsp_state_t state;
 #define MINIMUM_CHUNK_SIZE (4 * sizeof(int))
 
-void* ebsp_stream_create(int stream_size, int token_size,
+void* bsp_stream_create(int stream_size, int token_size,
                          const void* initial_data) {
     if (token_size < MINIMUM_CHUNK_SIZE) {
         printf("ERROR: minimum token size is %i bytes\n", MINIMUM_CHUNK_SIZE);

@@ -449,7 +449,10 @@ int bsp_stream_open(ebsp_stream* stream, int stream_id);
 /**
  * Wait for pending transfers to complete and close a stream.
  *
- * @param stream The handle of the stream
+ * @param stream The handle of the stream, opened by `bsp_stream_open`.
+ *
+ * Behaviour is undefined if `stream` is not a handle opened by
+ * `bsp_stream_open`.
  *
  * Cleans up the stream, and frees any buffers that may have been used by the
  * stream.

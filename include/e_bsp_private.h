@@ -72,6 +72,9 @@ typedef struct {
     // Mutex for ebsp_message
     e_mutex_t ebsp_message_mutex;
 
+    // Mutex for opening a stream
+    e_mutex_t stream_mutex;
+
     // Mutex for ebsp_ext_malloc (internal malloc does not have mutex)
     e_mutex_t malloc_mutex;
 

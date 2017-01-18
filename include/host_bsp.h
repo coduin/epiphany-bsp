@@ -301,6 +301,16 @@ int ebsp_hpmove(void** tag_ptr_buf, void** payload_ptr_buf);
  * Before every token, there are two integers that specify the size
  * of the preceding token and the size of the token itself.
  *
+ * 00000000, nextsize, data,
+ * prevsize, nextsize, data,
+ * ...
+ * prevsize, nextsize, data,
+ * prevsize, 00000000
+ *
+ * So a header consists of two integers (8 byte total).
+ * The two sizes do NOT include these headers.
+ * They are only the size of the data inbetween.
+ *
  * If you want to use the returned pointer directly you have to manually take
  * care of this data format.
  *
