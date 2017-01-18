@@ -32,7 +32,7 @@ This will create a stream containing user data. This stream is chopped up in ``2
         // ...
     }
 
-After this call, the stream will start copying data to the core, but the data is not necessarily there yet (it might still be copying). To access this data we *move* a token::
+After this call, the stream will start copying data to the core, but the data is not necessarily there yet (it might still be copying). A stream can only be opened by *a single core at a time*. To access this data we *move* a token::
 
     // Get some data
     void* buffer = NULL;
