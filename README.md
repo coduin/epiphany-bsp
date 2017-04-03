@@ -115,12 +115,6 @@ To run programs built with EBSP you run the host program. The call to `bsp_init(
 
 The `master` branch contains the latest release. An (unstable) snapshot of the current development can be found in the `develop` branch. To manually build the library, issue `make` from the root directory of the library. The library only depends on the ESDK which should come preinstalled on your Parallella board. The examples and tests are built separately.
 
-## About Coduin
-
-Coduin (formerly Buurlage Wits) is a small company based in Utrecht, the Netherlands. Next to our work on software libraries and models for many-core processors in embedded systems, we are also active in the area of data analysis and predictive modelling.
-
-If you are using EBSP, or have any questions, remarks or ideas then please get in touch at info@buurlagewits.nl! We would very much like to hear from you.
-
 ## Authors
 
 - Tom Bannink
@@ -134,3 +128,5 @@ Also thanks to:
 ## Issues
 
  The [issue tracker](https://github.com/coduin/epiphany-bsp/issues) is hosted on GitHub. We welcome pull requests, please pull request against the develop branch and add your name to the authors section of this README. Read [the GitHub flow guide](https://guides.github.com/introduction/flow/) for details.
+ 
+ If you are using EBSP, or have any questions, remarks or ideas then please get in touch! We would very much like to hear from you.
